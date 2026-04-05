@@ -1,0 +1,42 @@
+<div class="bg-white dark:bg-neutral-900 rounded-2xl overflow-hidden">
+  <div class="bg-gradient-to-r from-primary-600 to-primary-700 px-6 py-5 text-white">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-white/20">
+          <mat-icon class="icon-size-8 text-white" [svgIcon]="'heroicons_outline:arrow-path'"></mat-icon>
+        </div>
+        <div>
+          <h2 class="text-xl font-bold tracking-tight">Update loan status</h2>
+          <p class="text-sm text-white/90">{{ data.loan.loanName }} — AED {{ data.loan.loanAmount | number: '1.2-2' }}</p>
+        </div>
+      </div>
+      <button mat-icon-button type="button" (click)="cancel()" class="text-white/90 hover:bg-white/20">
+        <mat-icon class="text-white">close</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  <form [formGroup]="form" class="p-6 sm:p-8 flex flex-col gap-2 min-w-[300px]">
+    <mat-form-field class="fuse-mat-dense w-full">
+      <mat-label>Status</mat-label>
+      <mat-select formControlName="status">
+        @for (s of statusOptions; track s) {
+        <mat-option [value]="s">{{ s | titlecase }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field class="fuse-mat-dense w-full">
+      <mat-label>Reason</mat-label>
+      <textarea matInput formControlName="reason" rows="2" placeholder="e.g. Declined due to missing documents"></textarea>
+    </mat-form-field>
+    <mat-form-field class="fuse-mat-dense w-full">
+      <mat-label>Remarks (optional)</mat-label>
+      <textarea matInput formControlName="remarks" rows="2" placeholder="Approver remarks"></textarea>
+    </mat-form-field>
+  </form>
+
+  <div class="px-6 pb-6 flex flex-wrap gap-3 justify-end">
+    <button mat-stroked-button type="button" (click)="cancel()">Cancel</button>
+    <button mat-flat-button color="primary" type="button" (click)="submit()" [disabled]="form.invalid">Save</button>
+  </div>
+</div>

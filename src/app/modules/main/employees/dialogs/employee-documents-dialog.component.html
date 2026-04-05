@@ -1,0 +1,49 @@
+<div class="print-dialog-content bg-white rounded-2xl overflow-hidden">
+  <div class="bg-gradient-to-r from-primary-600 to-primary-700 px-6 py-5 text-white">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-white/20">
+          <mat-icon class="icon-size-8 text-white" [svgIcon]="'heroicons_outline:identification'"></mat-icon>
+        </div>
+        <div>
+          <h2 class="text-xl font-bold tracking-tight">Update Passport &amp; Home Country ID Details</h2>
+          <p class="text-sm text-white/90">Step 6 — Passport &amp; documents</p>
+        </div>
+      </div>
+      <button mat-icon-button (click)="cancel()" class="text-white/90 hover:bg-white/20">
+        <mat-icon class="text-white">close</mat-icon>
+      </button>
+    </div>
+  </div>
+  <div class="p-6 sm:p-8">
+    <form [formGroup]="form" class="grid grid-cols-1 md:grid-cols-3 gap-3 w-full">
+      <mat-form-field class="fuse-mat-dense w-full"><mat-label>Passport Number</mat-label><input matInput formControlName="passportNumber" /></mat-form-field>
+      <mat-form-field class="fuse-mat-dense w-full"><mat-label>Passport Place of Issue</mat-label><input matInput formControlName="passportPlaceOfIssue" /></mat-form-field>
+      <mat-form-field class="fuse-mat-dense w-full">
+        <mat-label>Passport Issue Date</mat-label>
+        <input matInput [matDatepicker]="issuePicker" formControlName="passportIssueDate" />
+        <mat-datepicker-toggle matSuffix [for]="issuePicker"></mat-datepicker-toggle>
+        <mat-datepicker #issuePicker></mat-datepicker>
+      </mat-form-field>
+      <mat-form-field class="fuse-mat-dense w-full">
+        <mat-label>Passport Expiry Date</mat-label>
+        <input matInput [matDatepicker]="expiryPicker" formControlName="passportExpiryDate" />
+        <mat-datepicker-toggle matSuffix [for]="expiryPicker"></mat-datepicker-toggle>
+        <mat-datepicker #expiryPicker></mat-datepicker>
+      </mat-form-field>
+      <mat-form-field class="fuse-mat-dense w-full"><mat-label>Passport Status</mat-label><input matInput formControlName="passportStatus" /></mat-form-field>
+      <mat-form-field class="fuse-mat-dense w-full md:col-span-3"><mat-label>Home Country Address</mat-label><textarea matInput formControlName="homeCountryAddress" rows="2"></textarea></mat-form-field>
+      <mat-form-field class="fuse-mat-dense w-full"><mat-label>Home Country ID Card Number</mat-label><input matInput formControlName="homeCountryIdCardNumber" /></mat-form-field>
+      <mat-form-field class="fuse-mat-dense w-full">
+        <mat-label>Home Country ID Card Expiry Date</mat-label>
+        <input matInput [matDatepicker]="idExpPicker" formControlName="homeCountryIdCardExpDate" />
+        <mat-datepicker-toggle matSuffix [for]="idExpPicker"></mat-datepicker-toggle>
+        <mat-datepicker #idExpPicker></mat-datepicker>
+      </mat-form-field>
+    </form>
+    <div class="mt-8 flex flex-wrap gap-3 justify-end">
+      <button mat-flat-button color="primary" [disabled]="loading" (click)="save()">{{ loading ? 'Saving...' : 'Save' }}</button>
+      <button mat-stroked-button (click)="cancel()">Cancel</button>
+    </div>
+  </div>
+</div>

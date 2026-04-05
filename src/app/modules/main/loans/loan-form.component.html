@@ -1,0 +1,136 @@
+<div class="flex min-w-0 flex-auto flex-col" [overlayLoader]="pageLoader">
+  <div
+    class="border-b bg-card px-4 py-4 sm:px-6 md:px-5 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+    <div class="flex items-start gap-3 min-w-0">
+      <div
+        class="flex-shrink-0 w-11 h-11 rounded-xl bg-neutral-100 dark:bg-primary/20 flex items-center justify-center">
+        <mat-icon class="icon-size-6 text-neutral-900 dark:text-white"
+          [svgIcon]="'heroicons_outline:banknotes'"></mat-icon>
+      </div>
+      <div class="min-w-0">
+        <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-neutral-900 dark:text-white">New loan</h1>
+        <p class="text-sm text-secondary mt-0.5">Create a loan for an employee</p>
+      </div>
+    </div>
+    <div class="flex gap-2">
+      
+              <button mat-raised-button color="primary" type="submit" [disabled]="saving" (click)="submit()">
+                <mat-icon>save</mat-icon>
+          {{ saving ? 'Saving…' : 'Create loan' }}
+        </button>
+
+      <app-back-button></app-back-button>
+    </div>
+  </div>
+
+  <div class="flex-auto p-4 sm:p-6 md:p-5 w-full max-w-6xl mx-auto">
+    <form [formGroup]="form" (ngSubmit)="submit()" class="flex flex-col gap-4">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
+        <!-- Loan information -->
+        <mat-card appearance="filled" class="bg-zinc-100 dark:bg-zinc-800/50 w-full h-full border border-neutral-200/80 dark:border-neutral-700/80 rounded-xl overflow-hidden shadow-sm">
+          <mat-card-header class="px-4 py-3 border-b border-neutral-200 dark:border-neutral-700 bg-zinc-50/80 dark:bg-zinc-900/30">
+            <div class="flex items-center gap-x-2">
+              <mat-icon class="icon-size-5 text-zinc-700 dark:text-zinc-200 shrink-0"
+                [svgIcon]="'heroicons_outline:document-text'"></mat-icon>
+              <mat-card-title class="text-zinc-900 dark:text-zinc-100 font-medium tracking-tight text-lg !mb-0">Loan
+                information</mat-card-title>
+            </div>
+          </mat-card-header>
+          <mat-card-content class="p-4 border-0 border-t-0">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <mat-form-field class="fuse-mat-dense w-full sm:col-span-2">
+                <mat-label>Employee</mat-label>
+                <input matInput formControlName="employee" placeholder="Search by employee ID or name"
+                  [matAutocomplete]="empAuto" #empTrigger="matAutocompleteTrigger"
+                  (focus)="openEmployeePanel(empTrigger)" (click)="openEmployeePanel(empTrigger)" />
+                <mat-autocomplete #empAuto="matAutocomplete" [displayWith]="displayEmployee">
+                  @for (e of filteredEmployees; track e.id) {
+                  <mat-option [value]="e">{{ employeeLabel(e) }}</mat-option>
+                  }
+                </mat-autocomplete>
+                @if (form.get('employee')?.hasError('required') && form.get('employee')?.touched) {
+                <mat-error>Select an employee</mat-error>
+                }
+                @if (form.get('employee')?.hasError('employeeNotSelected') && form.get('employee')?.touched) {
+                <mat-error>Choose an employee from the list</mat-error>
+                }
+              </mat-form-field>
+              <mat-form-field class="fuse-mat-dense w-full">
+                <mat-label>Applicant type</mat-label>
+                <input matInput formControlName="applicantType" [matAutocomplete]="appTypeAuto" placeholder="Employee" />
+                <mat-autocomplete #appTypeAuto="matAutocomplete" [displayWith]="displayApplicantTypeLabel">
+                  @for (opt of filteredApplicantOptions; track opt.value) {
+                  <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                  }
+                </mat-autocomplete>
+                @if (form.get('applicantType')?.hasError('required') && form.get('applicantType')?.touched) {
+                <mat-error>Required</mat-error>
+                }
+                @if (form.get('applicantType')?.hasError('invalidOption') && form.get('applicantType')?.touched) {
+                <mat-error>Select a valid option</mat-error>
+                }
+              </mat-form-field>
+              <mat-form-field class="fuse-mat-dense w-full">
+                <mat-label>Status</mat-label>
+                <input matInput formControlName="status" [matAutocomplete]="statusAuto" placeholder="Open" />
+                <mat-autocomplete #statusAuto="matAutocomplete" [displayWith]="displayStatusLabel">
+                  @for (opt of filteredStatusOptions; track opt.value) {
+                  <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                  }
+                </mat-autocomplete>
+                @if (form.get('status')?.hasError('required') && form.get('status')?.touched) {
+                <mat-error>Required</mat-error>
+                }
+                @if (form.get('status')?.hasError('invalidOption') && form.get('status')?.touched) {
+                <mat-error>Select a valid option</mat-error>
+                }
+              </mat-form-field>
+              <mat-form-field class="fuse-mat-dense w-full">
+                <mat-label>Loan name</mat-label>
+                <input matInput formControlName="loanName" placeholder="Car loan" />
+                @if (form.get('loanName')?.invalid && form.get('loanName')?.touched) {
+                <mat-error>Required</mat-error>
+                }
+              </mat-form-field>
+              <mat-form-field class="fuse-mat-dense w-full">
+                <mat-label>Loan amount </mat-label>
+                <input matInput type="number" formControlName="loanAmount" placeholder="5000" />
+                @if (form.get('loanAmount')?.invalid && form.get('loanAmount')?.touched) {
+                <mat-error>Enter a valid amount</mat-error>
+                }
+              </mat-form-field>
+            </div>
+          </mat-card-content>
+        </mat-card>
+
+        <!-- Additional details -->
+        <mat-card appearance="filled" class="bg-zinc-100 dark:bg-zinc-800/50 w-full h-full border border-neutral-200/80 dark:border-neutral-700/80 rounded-xl overflow-hidden shadow-sm">
+          <mat-card-header class="px-4 py-3 border-b border-neutral-200 dark:border-neutral-700 bg-zinc-50/80 dark:bg-zinc-900/30">
+            <div class="flex items-center gap-x-2">
+              <mat-icon class="icon-size-5 text-zinc-700 dark:text-zinc-200 shrink-0"
+                [svgIcon]="'heroicons_outline:chat-bubble-left-right'"></mat-icon>
+              <mat-card-title class="text-zinc-900 dark:text-zinc-100 font-medium tracking-tight text-lg !mb-0">Additional
+                details</mat-card-title>
+            </div>
+          </mat-card-header>
+          <mat-card-content class="p-4 border-0 border-t-0">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <mat-form-field class="fuse-mat-dense w-full sm:col-span-2">
+                <mat-label>Reason</mat-label>
+                <textarea matInput formControlName="reason" rows="4" placeholder="Because of medical needs"></textarea>
+                @if (form.get('reason')?.invalid && form.get('reason')?.touched) {
+                <mat-error>Required</mat-error>
+                }
+              </mat-form-field>
+              <mat-form-field class="fuse-mat-dense w-full sm:col-span-2">
+                <mat-label>Remarks</mat-label>
+                <textarea matInput formControlName="remarks" rows="4" placeholder="Monthly installments of 500"></textarea>
+              </mat-form-field>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </div>
+
+    </form>
+  </div>
+</div>

@@ -1,0 +1,20 @@
+<button mat-button [matMenuTriggerFor]="menu" class="bg-primary-100 w-80 border border-1 border-primary p-6 rounded-xl">
+    <span class="inline-flex gap-3">
+        <span>{{ label }}</span>
+        <mat-icon class="icon-size-4" [svgIcon]="'heroicons_solid:chevron-double-down'"></mat-icon>
+
+
+    </span>
+</button>
+
+<mat-menu #menu="matMenu" class="w-96 max-h-64" panelClass="account-menu">
+    @if(items?.length > 0) {
+    @for(item of items; track item.id){
+    <button mat-menu-item [disabled]="disabledIds.has(item.id)" (click)="onSelect(item)">
+        {{ item[labelKey] }}
+    </button>
+    }
+    } @else {
+    <button mat-menu-item disabled>No items available</button>
+    }
+</mat-menu>

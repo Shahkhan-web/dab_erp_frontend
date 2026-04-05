@@ -1,0 +1,7 @@
+<div class="app-no-data" [attr.data-size]="size">
+  @if (icon) {
+    <mat-icon class="app-no-data__icon" [svgIcon]="icon" aria-hidden="true"></mat-icon>
+  }
+  <p class="app-no-data__message">{{ message }}</p>
+  <ng-content></ng-content>
+</div>

@@ -1,0 +1,398 @@
+<div class="flex min-w-0 flex-auto flex-col" [overlayLoader]="pageLoader">
+  <div
+    class="border-b bg-card px-4 py-4 sm:px-6 md:px-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div class="flex items-start gap-3 min-w-0">
+      <div
+        class="flex-shrink-0 w-11 h-11 rounded-xl bg-neutral-100 dark:bg-primary/20 flex items-center justify-center">
+        <mat-icon class="icon-size-6 text-neutral-900 dark:text-white"
+          [svgIcon]="'heroicons_outline:banknotes'"></mat-icon>
+      </div>
+      <div class="min-w-0">
+        <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-neutral-900 dark:text-white">New salary slip</h1>
+        <p class="text-sm text-secondary mt-0.5">Complete each step, then save</p>
+      </div>
+    </div>
+    <div class="flex flex-wrap gap-2 items-center">
+      <app-back-button></app-back-button>
+    </div>
+  </div>
+
+  <div class="p-4 sm:p-6 flex-1 overflow-auto">
+    <div class="w-full ">
+      <mat-stepper #stepper [linear]="false" class="bg-transparent"
+        (selectionChange)="onStepperSelectionChange($event)">
+        <!-- 1 Details + payment days -->
+        <mat-step [stepControl]="detailsAndPaymentForm">
+          <ng-template matStepLabel>Details</ng-template>
+          <div [formGroup]="detailsAndPaymentForm" class="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
+            <mat-card appearance="filled"
+              class="bg-zinc-100 dark:bg-zinc-800/50 w-full min-w-0 h-full flex flex-col">
+              <mat-card-header>
+                <div class="flex items-center gap-x-2">
+                  <mat-icon class="icon-size-5 text-zinc-900 dark:text-zinc-100"
+                    [svgIcon]="'heroicons_outline:user-circle'"></mat-icon>
+                  <mat-card-title class="text-zinc-900 dark:text-zinc-100 font-medium tracking-tight text-lg">Payroll
+                    period</mat-card-title>
+                </div>
+              </mat-card-header>
+              <mat-card-content class="border border-neutral-200 dark:border-neutral-700 flex-1">
+                <div formGroupName="details" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <mat-form-field class="fuse-mat-dense w-full md:col-span-2">
+                    <mat-label>Employee <span class="text-warn">*</span></mat-label>
+                    <input matInput formControlName="employee" placeholder="Search by name or ID"
+                      [matAutocomplete]="empAuto" #empTrigger="matAutocompleteTrigger"
+                      (focus)="openEmployeePanel(empTrigger)" (click)="openEmployeePanel(empTrigger)" />
+                    <mat-autocomplete #empAuto="matAutocomplete" [displayWith]="displayEmployee"
+                      (optionSelected)="onEmployeeOptionSelected()">
+                      @for (e of filteredEmployees; track e.id) {
+                      <mat-option [value]="e">{{ employeeLabel(e) }}</mat-option>
+                      }
+                    </mat-autocomplete>
+                    @if (detailsForm.get('employee')?.hasError('required') && detailsForm.get('employee')?.touched) {
+                    <mat-error>Select an employee</mat-error>
+                    }
+                    @if (detailsForm.get('employee')?.hasError('employeeNotSelected') && detailsForm.get('employee')?.touched)
+                    {
+                    <mat-error>Choose an employee from the list</mat-error>
+                    }
+                  </mat-form-field>
+                  <mat-form-field class="fuse-mat-dense w-full md:col-span-2">
+                    <mat-label>Payroll frequency</mat-label>
+                    <mat-select formControlName="payrollFrequency">
+                      @for (f of payrollFrequencyOptions; track f) {
+                      <mat-option [value]="f">{{ f | titlecase }}</mat-option>
+                      }
+                    </mat-select>
+                  </mat-form-field>
+                  <mat-form-field class="fuse-mat-dense w-full">
+                    <mat-label>Start date</mat-label>
+                    <input matInput [matDatepicker]="startPicker" formControlName="startDate" />
+                    <mat-datepicker-toggle matSuffix [for]="startPicker"></mat-datepicker-toggle>
+                    <mat-datepicker #startPicker></mat-datepicker>
+                  </mat-form-field>
+                  <mat-form-field class="fuse-mat-dense w-full">
+                    <mat-label>End date</mat-label>
+                    <input matInput [matDatepicker]="endPicker" formControlName="endDate" />
+                    <mat-datepicker-toggle matSuffix [for]="endPicker"></mat-datepicker-toggle>
+                    <mat-datepicker #endPicker></mat-datepicker>
+                  </mat-form-field>
+                </div>
+              </mat-card-content>
+            </mat-card>
+
+            <mat-card appearance="filled" class="bg-zinc-100 dark:bg-zinc-800/50 w-full min-w-0 h-full flex flex-col">
+              <mat-card-header>
+                <div class="flex items-center gap-x-2">
+                  <mat-icon class="icon-size-5 text-zinc-900 dark:text-zinc-100"
+                    [svgIcon]="'heroicons_outline:calendar-days'"></mat-icon>
+                  <mat-card-title class="text-zinc-900 dark:text-zinc-100 font-medium tracking-tight text-lg">Payment
+                    days</mat-card-title>
+                </div>
+              </mat-card-header>
+              <mat-card-content class="border border-neutral-200 dark:border-neutral-700 flex-1">
+                <div formGroupName="payment" class="grid grid-cols-1 gap-3">
+                  <mat-form-field class="fuse-mat-dense w-full">
+                    <mat-label>Working days</mat-label>
+                    <input matInput type="number" formControlName="workingDays" />
+                  </mat-form-field>
+                  <mat-form-field class="fuse-mat-dense w-full">
+                    <mat-label>Absent days</mat-label>
+                    <input matInput type="number" formControlName="absentDays" />
+                  </mat-form-field>
+                  <mat-form-field class="fuse-mat-dense w-full">
+                    <mat-label>Leave without pay</mat-label>
+                    <input matInput type="number" formControlName="leaveDaysWithoutPay" />
+                  </mat-form-field>
+                </div>
+              </mat-card-content>
+            </mat-card>
+          </div>
+        </mat-step>
+
+        <!-- 2 Earnings & deductions + net pay preview -->
+        <mat-step>
+          <ng-template matStepLabel>Earnings &amp; deductions</ng-template>
+          <div class="flex flex-col gap-4">
+          <div [formGroup]="linesWrapperForm" class="grid min-h-0 grid-cols-1 lg:grid-cols-2 gap-4">
+            <mat-card appearance="filled"
+              class="bg-zinc-100 dark:bg-zinc-800/50 w-full min-h-0 max-h-[min(26rem,45vh)] flex flex-col">
+              <mat-card-header class="shrink-0">
+                <div class="flex items-center gap-x-2">
+                  <mat-icon class="icon-size-5 text-zinc-900 dark:text-zinc-100"
+                    [svgIcon]="'heroicons_outline:calendar-days'"></mat-icon>
+                  <mat-card-title class="text-zinc-900 dark:text-zinc-100 font-medium tracking-tight text-lg">Earnings</mat-card-title>
+                </div>
+              </mat-card-header>
+              <mat-card-content
+                class="border border-neutral-200 dark:border-neutral-700 flex flex-1 min-h-0 flex-col gap-2 overflow-y-auto overflow-x-hidden overscroll-contain">
+                <div formArrayName="earningLines">
+                  @for (row of earningLines.controls; track $index; let i = $index) {
+                  <div [formGroupName]="i" class="grid grid-cols-1 sm:grid-cols-3 gap-2 items-start border-b border-dashed border-neutral-200 dark:border-neutral-600 pb-3 mb-3 last:border-0 last:pb-0 last:mb-0">
+                    <mat-form-field class="fuse-mat-dense w-full sm:col-span-2">
+                      <mat-label>Component</mat-label>
+                      <mat-select formControlName="payComponentId">
+                        @for (c of earningComponents; track c.id) {
+                        <mat-option [value]="c.id">{{ c.name }}</mat-option>
+                        }
+                      </mat-select>
+                    </mat-form-field>
+                      <div class="flex items-center justify-end">
+                      <mat-form-field class="fuse-mat-dense w-full">
+                        <mat-label>Amount</mat-label>
+                        <input matInput type="number" formControlName="amount" />
+                      </mat-form-field>
+                      <button mat-icon-button type="button" (click)="removeEarningRow(i)"
+                        [disabled]="earningLines.length <= 1" matTooltip="Remove row" aria-label="Remove row">
+                        <mat-icon class="text-warn">delete_outline</mat-icon>
+                      </button>
+                    </div>
+                  </div>
+                  }
+                </div>
+                <button mat-stroked-button type="button" (click)="addEarningRow()">
+                  <mat-icon>add</mat-icon>
+                  <span class="ms-1">Add row</span>
+                </button>
+              </mat-card-content>
+            </mat-card>
+
+            <mat-card appearance="filled"
+              class="bg-zinc-100 dark:bg-zinc-800/50 w-full min-h-0 max-h-[min(26rem,45vh)] flex flex-col">
+              <mat-card-header class="shrink-0">
+                <div class="flex items-center gap-x-2">
+                  <mat-icon class="icon-size-5 text-zinc-900 dark:text-zinc-100"
+                    [svgIcon]="'heroicons_outline:calendar-days'"></mat-icon>
+                  <mat-card-title class="text-zinc-900 dark:text-zinc-100 font-medium tracking-tight text-lg">Deductions</mat-card-title>
+                </div>
+              </mat-card-header>
+              <mat-card-content
+                class="border border-neutral-200 dark:border-neutral-700 flex flex-1 min-h-0 flex-col gap-2 overflow-y-auto overflow-x-hidden overscroll-contain">
+                <div formArrayName="deductionLines">
+                  @for (row of deductionLines.controls; track $index; let i = $index) {
+                  <div [formGroupName]="i" class="grid grid-cols-1 sm:grid-cols-3 gap-2 items-start border-b border-dashed border-neutral-200 dark:border-neutral-600 pb-3 mb-3 last:border-0 last:pb-0 last:mb-0">
+                    <mat-form-field class="fuse-mat-dense w-full sm:col-span-2">
+                      <mat-label>Component</mat-label>
+                      <mat-select formControlName="payComponentId">
+                        @for (c of deductionComponents; track c.id) {
+                        <mat-option [value]="c.id">{{ c.name }}</mat-option>
+                        }
+                      </mat-select>
+                    </mat-form-field>
+                    <div class="flex items-center justify-end">
+                      <mat-form-field class="fuse-mat-dense w-full">
+                        <mat-label>Amount</mat-label>
+                        <input matInput type="number" formControlName="amount" />
+                      </mat-form-field>
+                      <button mat-icon-button type="button" (click)="removeDeductionRow(i)"
+                        [disabled]="deductionLines.length <= 1" matTooltip="Remove row" aria-label="Remove row">
+                        <mat-icon class="text-warn">delete_outline</mat-icon>
+                      </button>
+                    </div>
+                  </div>
+                  }
+                </div>
+                <button mat-stroked-button type="button" (click)="addDeductionRow()">
+                  <mat-icon>add</mat-icon>
+                  <span class="ms-1">Add row</span>
+                </button>
+
+                <div class="mt-4 pt-3 border-t border-neutral-200 dark:border-neutral-700">
+                  <h4 class="text-sm font-semibold mb-2">Loan deductions</h4>
+                  <div formArrayName="loanDeductions">
+                    @for (lr of loanDeductions.controls; track $index; let j = $index) {
+                    <div [formGroupName]="j" class="grid grid-cols-1 sm:grid-cols-3 gap-2 items-start mb-3">
+                      <mat-form-field class="fuse-mat-dense w-full sm:col-span-2">
+                        <mat-label>Loan</mat-label>
+                        <mat-select formControlName="loanId">
+                          <mat-option value="">—</mat-option>
+                          @for (ln of employeeLoans; track ln.id) {
+                          <mat-option [value]="ln.id">{{ ln.loanName }} ({{ ln.remaining | number:'1.0-0' }})</mat-option>
+                          }
+                        </mat-select>
+                      </mat-form-field>
+                      <div class="flex items-center justify-end">
+
+                      <mat-form-field class="fuse-mat-dense w-full">
+                        <mat-label>Deduction amount</mat-label>
+                        <input matInput type="number" formControlName="loanDeductionAmount" />
+                      </mat-form-field>
+                      <button mat-icon-button type="button" (click)="removeLoanDeductionRow(j)" matTooltip="Remove"
+                        aria-label="Remove loan row">
+                        <mat-icon class="text-warn">delete_outline</mat-icon>
+                      </button>
+                      </div>
+                    </div>
+                    }
+                  </div>
+                  <button mat-stroked-button type="button" (click)="addLoanDeductionRow()">
+                    <mat-icon>add</mat-icon>
+                    <span class="ms-1">Add loan deduction</span>
+                  </button>
+                </div>
+              </mat-card-content>
+            </mat-card>
+          </div>
+
+          <mat-card appearance="filled" class="bg-zinc-100 dark:bg-zinc-800/50 w-full">
+            <mat-card-header>
+              <div class="flex items-center gap-2">
+                <div
+                  class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 dark:bg-primary/20">
+                  <mat-icon class="icon-size-5 text-primary" [svgIcon]="'heroicons_outline:calculator'"></mat-icon>
+                </div>
+                <mat-card-title class="text-base font-semibold m-0">Totals (preview)</mat-card-title>
+              </div>
+            </mat-card-header>
+            <mat-card-content class="border border-neutral-200 dark:border-neutral-700 p-4 sm:p-5">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div
+                  class="rounded-xl border border-slate-200/80 bg-white px-4 py-4 shadow-sm dark:border-zinc-600/60 dark:bg-zinc-900/50">
+                  <p class="text-xs font-semibold uppercase tracking-wide text-secondary">Gross pay (earnings)</p>
+                  <p class="mt-2 text-2xl font-semibold tabular-nums tracking-tight text-zinc-900 dark:text-zinc-50">
+                    {{ grossFromEarnings | number:'1.2-2' }}
+                  </p>
+                </div>
+                <div
+                  class="rounded-xl border border-slate-200/80 bg-white px-4 py-4 shadow-sm dark:border-zinc-600/60 dark:bg-zinc-900/50">
+                  <p class="text-xs font-semibold uppercase tracking-wide text-secondary">Total deduction</p>
+                  <p
+                    class="mt-2 text-2xl font-semibold tabular-nums tracking-tight text-amber-800 dark:text-amber-200/90">
+                    {{ totalDeductionAmount | number:'1.2-2' }}
+                  </p>
+                </div>
+              </div>
+              <div
+                class="mt-4 rounded-xl border border-primary/25 bg-gradient-to-br from-primary/8 via-primary/5 to-transparent px-5 py-5 dark:border-primary/35 dark:from-primary/15 dark:via-primary/10">
+                <p class="text-xs font-semibold uppercase tracking-wide text-primary/90 dark:text-primary-200/90">Net pay
+                  (preview)</p>
+                  <p class="mt-1 text-3xl font-bold tabular-nums tracking-tight text-primary-700 dark:text-primary-200 sm:text-4xl">
+                    {{ netPayPreview | number:'1.2-2' }}
+                  </p>
+                </div>
+              <p class="mt-4 text-xs leading-relaxed text-secondary">Final figures are calculated on the server when you
+                save.</p>
+            </mat-card-content>
+          </mat-card>
+          </div>
+        </mat-step>
+
+        <!-- 3 Bank + rider -->
+        <mat-step [stepControl]="bankAndRiderForm">
+          <ng-template matStepLabel>Bank &amp; rider</ng-template>
+          <div [formGroup]="bankAndRiderForm" class="grid grid-cols-1 gap-4 items-stretch"
+            [ngClass]="{ 'lg:grid-cols-2': showRiderPerformanceUi }">
+            <mat-card appearance="filled" class="bg-zinc-100 dark:bg-zinc-800/50 w-full min-w-0 h-full flex flex-col">
+              <mat-card-header>
+                <div class="flex items-center gap-x-2">
+                  <mat-icon class="icon-size-5 text-zinc-900 dark:text-zinc-100"
+                    [svgIcon]="'heroicons_outline:banknotes'"></mat-icon>
+                  <mat-card-title class="text-zinc-900 dark:text-zinc-100 font-medium tracking-tight text-lg">Bank Info &amp; Performance</mat-card-title>
+                </div>
+              </mat-card-header>
+              <mat-card-content class="border border-neutral-200 dark:border-neutral-700 flex-1 space-y-4">
+                <div formGroupName="bank" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <mat-form-field class="fuse-mat-dense w-full">
+                    <mat-label>Bank name</mat-label>
+                    <input matInput formControlName="bankName" />
+                  </mat-form-field>
+                  <mat-form-field class="fuse-mat-dense w-full">
+                    <mat-label>Bank account no.</mat-label>
+                    <input matInput formControlName="bankAccountNo" />
+                  </mat-form-field>
+                </div>
+                @if (showRiderPerformanceUi) {
+                <div formGroupName="riderPerformance">
+                  <div formGroupName="performance" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <mat-form-field class="fuse-mat-dense w-full">
+                      <mat-label>Total delivered orders</mat-label>
+                      <input matInput type="number" formControlName="totalCompletedDeliveries" />
+                    </mat-form-field>
+                    <mat-form-field class="fuse-mat-dense w-full">
+                      <mat-label>Pickups count</mat-label>
+                      <input matInput type="number" formControlName="pickupsCount" />
+                    </mat-form-field>
+                    <mat-form-field class="fuse-mat-dense w-full">
+                      <mat-label>Dropoffs count</mat-label>
+                      <input matInput type="number" formControlName="dropoffsCount" />
+                    </mat-form-field>
+                    <mat-form-field class="fuse-mat-dense w-full">
+                      <mat-label>Deliveries return LC</mat-label>
+                      <input matInput type="number" formControlName="deliveriesReturnLc" />
+                    </mat-form-field>
+                    <mat-form-field class="fuse-mat-dense w-full md:col-span-2">
+                      <mat-label>Distance LC</mat-label>
+                      <input matInput type="number" step="0.001" formControlName="distanceLc" />
+                    </mat-form-field>
+                  </div>
+                </div>
+                }
+              </mat-card-content>
+            </mat-card>
+
+            @if (showRiderPerformanceUi) {
+            <div formGroupName="riderPerformance" class="min-w-0">
+              <mat-card appearance="filled" class="bg-zinc-100 dark:bg-zinc-800/50 w-full h-full flex flex-col">
+                <mat-card-header>
+                  <div class="flex items-center gap-x-2">
+                    <mat-icon class="icon-size-5 text-zinc-900 dark:text-zinc-100"
+                      [svgIcon]="'heroicons_outline:banknotes'"></mat-icon>
+                    <mat-card-title class="text-zinc-900 dark:text-zinc-100 font-medium tracking-tight text-lg">Talabat / rider amounts</mat-card-title>
+                  </div>
+                </mat-card-header>
+                <mat-card-content class="border border-neutral-200 dark:border-neutral-700 mb-4 flex-1"
+                  formGroupName="rider">
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <mat-form-field class="fuse-mat-dense w-full md:col-span-2">
+                      <mat-label>Talabat case rider earning</mat-label>
+                      <input matInput type="number" formControlName="talabatCaseRiderEarning" />
+                      <mat-hint>{{ talabatEarningFormulaHint }}</mat-hint>
+                    </mat-form-field>
+                    <mat-form-field class="fuse-mat-dense w-full">
+                      <mat-label>COD deduction</mat-label>
+                      <input matInput type="number" formControlName="codDeduction" />
+                    </mat-form-field>
+                    <mat-form-field class="fuse-mat-dense w-full">
+                      <mat-label>Delivery incentive</mat-label>
+                      <input matInput type="number" formControlName="deliveryIncentive" />
+                    </mat-form-field>
+                    <mat-form-field class="fuse-mat-dense w-full">
+                      <mat-label>Inventory deduction</mat-label>
+                      <input matInput type="number" formControlName="inventoryDeduction" />
+                    </mat-form-field>
+                    <mat-form-field class="fuse-mat-dense w-full">
+                      <mat-label>Fuel incentive</mat-label>
+                      <input matInput type="number" formControlName="fuelIncentive" />
+                    </mat-form-field>
+                    <mat-form-field class="fuse-mat-dense w-full">
+                      <mat-label>Clawback deduction</mat-label>
+                      <input matInput type="number" formControlName="clawbackDeduction" />
+                    </mat-form-field>
+                  </div>
+                </mat-card-content>
+              </mat-card>
+            </div>
+            }
+          </div>
+        </mat-step>
+      </mat-stepper>
+
+      <div
+        class="flex flex-wrap justify-between gap-3 mt-6 pt-4 border-t border-neutral-200 dark:border-neutral-700">
+        <button mat-stroked-button type="button" (click)="stepper.previous()" [disabled]="stepperIndex === 0">
+          Previous
+        </button>
+        <div class="flex flex-wrap gap-2">
+          @if (stepperIndex < lastStepIndex) {
+          <button mat-flat-button color="primary" type="button" (click)="stepper.next()">
+            Next
+          </button>
+          } @else {
+          <button mat-flat-button color="primary" type="button" (click)="save()" [disabled]="saving || pageLoader">
+            {{ saving ? 'Saving…' : 'Save' }}
+          </button>
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

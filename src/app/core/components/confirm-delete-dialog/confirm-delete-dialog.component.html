@@ -1,0 +1,18 @@
+<h2 mat-dialog-title class="text-center pt-5">
+<mat-icon class="icon-size-20" color="warn" 
+[svgIcon]="'heroicons_outline:information-circle'"></mat-icon>
+</h2>
+
+<mat-dialog-content class="text-center p-5">
+  <h3 class="mat-title">Are you sure?</h3>
+  <p class="mat-body-1">You will not be able to revert this action.</p>
+  @if(data?.message){
+    <p class="mat-body-2 text-secondary">{{ data.message }}</p>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="center" class="pb-5">
+  <button mat-stroked-button (click)="cancel()">Cancel</button>
+
+  <button mat-flat-button color="warn" (click)="confirm()">Yes,Delete it!</button>
+</mat-dialog-actions>

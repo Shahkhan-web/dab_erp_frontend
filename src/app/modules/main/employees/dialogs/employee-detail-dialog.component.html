@@ -1,0 +1,175 @@
+<div class="bg-white dark:bg-zinc-900 rounded-2xl overflow-hidden">
+  <!-- Header -->
+  <div class="bg-gradient-to-r from-primary-600 to-primary-700 px-6 py-5 text-white">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-white/20">
+          <mat-icon class="icon-size-8 text-white" [svgIcon]="'heroicons_outline:user-circle'"></mat-icon>
+        </div>
+        <div>
+          <h2 class="text-xl font-bold tracking-tight">Employee Details</h2>
+          @if (data) {
+            <p class="text-sm text-white/90">{{ fullName }}</p>
+          } @else if (!loading && !error) {
+            <p class="text-sm text-white/90">—</p>
+          }
+        </div>
+      </div>
+      <button mat-icon-button (click)="close()" class="text-white/90 hover:bg-white/20" aria-label="Close">
+        <mat-icon class="text-white">close</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  @if (loading) {
+    <div class="flex flex-col items-center justify-center gap-4 py-16">
+      <mat-spinner diameter="48"></mat-spinner>
+      <p class="text-sm text-slate-500 dark:text-zinc-400">Loading employee...</p>
+    </div>
+  } @else if (error) {
+    <div class="flex flex-col items-center justify-center gap-4 py-16 px-6">
+      <mat-icon class="text-5xl text-red-400">error_outline</mat-icon>
+      <p class="text-center text-slate-700 dark:text-zinc-300">{{ error }}</p>
+      <button mat-flat-button (click)="close()">Close</button>
+    </div>
+  } @else if (data) {
+    <div class="p-6 sm:p-8 max-h-[70vh] overflow-y-auto">
+      <!-- Summary strip -->
+      <div class="mb-6 flex flex-wrap items-center gap-4 rounded-xl border border-slate-200 bg-neutral-100 px-4 py-3 dark:border-zinc-700 dark:bg-zinc-800/50">
+        <span class="flex items-center gap-2 text-sm font-medium"
+              [ngClass]="{
+                'text-emerald-600 dark:text-emerald-400': data?.workingStatus === 'active',
+                'text-amber-600 dark:text-amber-400': data?.workingStatus !== 'active'
+              }">
+          <span class="h-2 w-2 rounded-full"
+                [ngClass]="{
+                  'bg-emerald-500': data?.workingStatus === 'active',
+                  'bg-amber-500': data?.workingStatus !== 'active'
+                }"></span>
+          {{ workingStatusLabel }}
+        </span>
+        <span class="text-sm text-slate-600 dark:text-zinc-400">Profile: {{ profileCompletionFormatted }}</span>
+        @if (data?.personalNumber) {
+          <span class="text-sm text-slate-600 dark:text-zinc-400">Personal #: {{ data.personalNumber }}</span>
+        }
+      </div>
+
+      <!-- Personal -->
+      <div class="detail-section mb-6">
+        <div class="section-title">
+          <mat-icon class="icon-size-5" [svgIcon]="'heroicons_outline:user'"></mat-icon>
+          Personal
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6">
+          <div class="detail-row"><span class="label">First name</span><span class="value">{{ display(data.firstName) }}</span></div>
+          <div class="detail-row"><span class="label">Middle name</span><span class="value">{{ display(data.middleName) }}</span></div>
+          <div class="detail-row"><span class="label">Last name</span><span class="value">{{ display(data.lastName) }}</span></div>
+          <div class="detail-row"><span class="label">Name (Arabic)</span><span class="value">{{ display(data.employeeNameArabic) }}</span></div>
+          <div class="detail-row"><span class="label">Personal number</span><span class="value">{{ display(data.personalNumber) }}</span></div>
+          <div class="detail-row"><span class="label">Father number</span><span class="value">{{ display(data.fatherNumber) }}</span></div>
+          <div class="detail-row"><span class="label">Birthplace</span><span class="value">{{ display(data.birthplace) }}</span></div>
+          <div class="detail-row"><span class="label">Nationality</span><span class="value">{{ display(data.nationality) }}</span></div>
+          <div class="detail-row"><span class="label">Home country</span><span class="value">{{ display(data.homeCountry) }}</span></div>
+          <div class="detail-row"><span class="label">UAE address</span><span class="value">{{ display(data.uaeAddress) }}</span></div>
+          <div class="detail-row"><span class="label">Marital status</span><span class="value">{{ display(data.maritalStatus) }}</span></div>
+          <div class="detail-row"><span class="label">Blood group</span><span class="value">{{ display(data.bloodGroup) }}</span></div>
+          <div class="detail-row sm:col-span-2"><span class="label">Family background</span><span class="value">{{ display(data.familyBackground) }}</span></div>
+          <div class="detail-row sm:col-span-2"><span class="label">Health details</span><span class="value">{{ display(data.healthDetails) }}</span></div>
+          <div class="detail-row"><span class="label">Health insurance</span><span class="value">{{ display(data.healthInsuranceProvider) }}</span></div>
+        </div>
+      </div>
+
+      <!-- Contact & Address -->
+      <div class="detail-section mb-6">
+        <div class="section-title">
+          <mat-icon class="icon-size-5" [svgIcon]="'heroicons_outline:envelope'"></mat-icon>
+          Contact &amp; Address
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6">
+          <div class="detail-row"><span class="label">Mobile</span><span class="value">{{ display(data.mobileNumber) }}</span></div>
+          <div class="detail-row"><span class="label">Personal email</span><span class="value">{{ display(data.personalEmail) }}</span></div>
+          <div class="detail-row"><span class="label">Contact email</span><span class="value">{{ display(data.contactEmail) }}</span></div>
+          <div class="detail-row"><span class="label">Company email</span><span class="value">{{ display(data.companyEmail) }}</span></div>
+          <div class="detail-row sm:col-span-2"><span class="label">Current address</span><span class="value">{{ display(data.currentAddress) }}</span></div>
+          <div class="detail-row sm:col-span-2"><span class="label">Permanent address</span><span class="value">{{ display(data.permanentAddress) }}</span></div>
+          <div class="detail-row"><span class="label">Emergency contact</span><span class="value">{{ display(data.emergencyContact) }}</span></div>
+          <div class="detail-row"><span class="label">Relation</span><span class="value">{{ display(data.emergencyContactRelation) }}</span></div>
+        </div>
+      </div>
+
+      <!-- Joining & Employment -->
+      <div class="detail-section mb-6">
+        <div class="section-title">
+          <mat-icon class="icon-size-5" [svgIcon]="'heroicons_outline:calendar-days'"></mat-icon>
+          Joining &amp; Employment
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6">
+          <div class="detail-row"><span class="label">Sponsorship type</span><span class="value">{{ display(data.sponsorshipType) }}</span></div>
+          <div class="detail-row"><span class="label">Sponsorship org</span><span class="value">{{ display(data.sponsorshipOrgName) }}</span></div>
+          <div class="detail-row"><span class="label">Date of joining</span><span class="value">{{ displayDate(data.dateOfJoining) }}</span></div>
+          <div class="detail-row"><span class="label">Posting date</span><span class="value">{{ displayDate(data.postingDate) }}</span></div>
+          <div class="detail-row"><span class="label">Reference employee</span><span class="value">{{ display(data.referenceEmployeeName) }}</span></div>
+          <div class="detail-row"><span class="label">Joining date</span><span class="value">{{ displayDate(data.joiningDate) }}</span></div>
+          <div class="detail-row"><span class="label">Confirmation date</span><span class="value">{{ displayDate(data.confirmationDate) }}</span></div>
+          <div class="detail-row"><span class="label">Notice days</span><span class="value">{{ display(data.noticeDays) }}</span></div>
+          <div class="detail-row"><span class="label">Offer date</span><span class="value">{{ displayDate(data.offerDate) }}</span></div>
+          <div class="detail-row"><span class="label">Contract end</span><span class="value">{{ displayDate(data.contractEndDate) }}</span></div>
+          <div class="detail-row"><span class="label">Date of retirement</span><span class="value">{{ displayDate(data.dateOfRetirement) }}</span></div>
+        </div>
+      </div>
+
+      <!-- Salary -->
+      <div class="detail-section mb-6">
+        <div class="section-title">
+          <mat-icon class="icon-size-5" [svgIcon]="'heroicons_outline:currency-dollar'"></mat-icon>
+          Salary
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6">
+          <div class="detail-row"><span class="label">Salary currency</span><span class="value">{{ display(data.salaryCurrency) }}</span></div>
+          <div class="detail-row"><span class="label">Salary mode</span><span class="value">{{ display(data.salaryMode) }}</span></div>
+          <div class="detail-row"><span class="label">Cost to company</span><span class="value">{{ display(data.costToCompany) }}</span></div>
+          <div class="detail-row"><span class="label">Basic salary</span><span class="value">{{ display(data.basicSalary) }}</span></div>
+          <div class="detail-row"><span class="label">Mobile allowance</span><span class="value">{{ display(data.mobileAllowance) }}</span></div>
+          <div class="detail-row"><span class="label">Food allowance</span><span class="value">{{ display(data.foodAllowance) }}</span></div>
+          <div class="detail-row"><span class="label">Transportation</span><span class="value">{{ display(data.transportationAllowance) }}</span></div>
+          <div class="detail-row"><span class="label">Other allowance</span><span class="value">{{ display(data.otherAllowance) }}</span></div>
+          <div class="detail-row"><span class="label">Cost center</span><span class="value">{{ display(data.costCenter) }}</span></div>
+        </div>
+      </div>
+
+      <!-- Passport & ID -->
+      <div class="detail-section mb-6">
+        <div class="section-title">
+          <mat-icon class="icon-size-5" [svgIcon]="'heroicons_outline:identification'"></mat-icon>
+          Passport &amp; Home Country ID
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6">
+          <div class="detail-row"><span class="label">Passport number</span><span class="value">{{ display(data.passportNumber) }}</span></div>
+          <div class="detail-row"><span class="label">Place of issue</span><span class="value">{{ display(data.passportPlaceOfIssue) }}</span></div>
+          <div class="detail-row"><span class="label">Passport issue date</span><span class="value">{{ displayDate(data.passportIssueDate) }}</span></div>
+          <div class="detail-row"><span class="label">Passport expiry</span><span class="value">{{ displayDate(data.passportExpiryDate) }}</span></div>
+          <div class="detail-row"><span class="label">Passport status</span><span class="value">{{ display(data.passportStatus) }}</span></div>
+          <div class="detail-row sm:col-span-2"><span class="label">Home country address</span><span class="value">{{ display(data.homeCountryAddress) }}</span></div>
+          <div class="detail-row"><span class="label">Home country ID number</span><span class="value">{{ display(data.homeCountryIdCardNumber) }}</span></div>
+          <div class="detail-row"><span class="label">Home country ID expiry</span><span class="value">{{ displayDate(data.homeCountryIdCardExpDate) }}</span></div>
+        </div>
+      </div>
+
+      <!-- Meta -->
+      <div class="detail-section">
+        <div class="section-title">
+          <mat-icon class="icon-size-5" [svgIcon]="'heroicons_outline:clock'"></mat-icon>
+          Record
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6">
+          <div class="detail-row"><span class="label">Created</span><span class="value">{{ displayDate(data.createdAt) }}</span></div>
+          <div class="detail-row"><span class="label">Updated</span><span class="value">{{ displayDate(data.updatedAt) }}</span></div>
+        </div>
+      </div>
+
+      <div class="mt-8 flex flex-wrap gap-3">
+        <button mat-stroked-button (click)="close()">Close</button>
+      </div>
+    </div>
+  }
+</div>

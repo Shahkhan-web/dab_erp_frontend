@@ -1,0 +1,88 @@
+<div class="flex min-w-0 flex-auto flex-col" [overlayLoader]="pageLoader">
+  <div
+    class="border-b bg-card px-4 py-4 sm:px-6 md:px-5 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+    <div class="flex items-start gap-3 min-w-0">
+      <div
+        class="flex-shrink-0 w-11 h-11 rounded-xl bg-neutral-100 dark:bg-primary/20 flex items-center justify-center">
+        <mat-icon class="icon-size-6 text-neutral-900 dark:text-white"
+          [svgIcon]="'heroicons_outline:currency-dollar'"></mat-icon>
+      </div>
+      <div class="min-w-0">
+        <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-neutral-900 dark:text-white">Talabat Occupation Rates</h1>
+        <p class="text-sm text-secondary mt-0.5">Per-unit AED rates for bike rider / bicyclist</p>
+      </div>
+    </div>
+    <div class="flex gap-2">
+      <app-back-button></app-back-button>
+    </div>
+  </div>
+
+  <div class="flex-auto p-4 sm:p-6 md:p-5 flex flex-col gap-3">
+    <div class="bg-card rounded-xl shadow overflow-hidden border border-slate-200/60 dark:border-zinc-700/60">
+      <div class="overflow-x-auto">
+        <table mat-table [dataSource]="items" class="w-full min-w-[700px]">
+
+          <ng-container matColumnDef="occupation">
+            <th mat-header-cell *matHeaderCellDef>Occupation</th>
+            <td mat-cell *matCellDef="let item">
+              <span class="font-semibold text-neutral-900 dark:text-white">{{ occupationLabel(item?.occupation) }}</span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="pickupRateAed">
+            <th mat-header-cell *matHeaderCellDef>Pickup Rate (AED)</th>
+            <td mat-cell *matCellDef="let item">
+              <span class="font-medium">{{ item?.pickupRateAed | number:'1.2-2' }}</span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="dropoffRateAed">
+            <th mat-header-cell *matHeaderCellDef>Dropoff Rate (AED)</th>
+            <td mat-cell *matCellDef="let item">
+              <span class="font-medium">{{ item?.dropoffRateAed | number:'1.2-2' }}</span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="deliveriesReturnLcRateAed">
+            <th mat-header-cell *matHeaderCellDef>Return LC Rate (AED)</th>
+            <td mat-cell *matCellDef="let item">
+              <span class="font-medium">{{ item?.deliveriesReturnLcRateAed | number:'1.2-2' }}</span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="updatedAt">
+            <th mat-header-cell *matHeaderCellDef>Updated</th>
+            <td mat-cell *matCellDef="let item">{{ item?.updatedAt | date: 'short' }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef class="text-right w-14">Actions</th>
+            <td mat-cell *matCellDef="let item" class="text-right">
+              <button mat-icon-button [matMenuTriggerFor]="rowMenu" aria-label="Actions">
+                <mat-icon class="icon-size-4 text-neutral-500 dark:text-neutral-100">more_vert</mat-icon>
+              </button>
+              <mat-menu #rowMenu="matMenu">
+                <button mat-menu-item (click)="openEditDialog(item)">
+                  <mat-icon class="text-secondary icon-size-4" [svgIcon]="'heroicons_outline:pencil-square'"></mat-icon>
+                  <span>Edit</span>
+                </button>
+              </mat-menu>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"
+            class="bg-zinc-100 dark:bg-zinc-800/50 font-semibold leading-8 text-neutral-900 tracking-tight"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+          <tr *matNoDataRow>
+            <td class="py-16 text-center" [attr.colspan]="displayedColumns.length">
+              <div class="flex flex-col items-center justify-center gap-3 text-slate-500">
+                <mat-icon class="text-5xl text-slate-300">inventory_2</mat-icon>
+                <div class="text-base font-semibold">No occupation rates found</div>
+              </div>
+            </td>
+          </tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>

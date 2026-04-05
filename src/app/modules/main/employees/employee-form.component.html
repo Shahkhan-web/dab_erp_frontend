@@ -1,0 +1,696 @@
+<div class="flex min-w-0 flex-auto flex-col overflow-hidden" [overlayLoader]="pageLoader">
+  <div class="border-b bg-card px-4 py-4 sm:px-6 md:px-5 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+    <div class="flex items-start gap-3 min-w-0">
+      <div class="flex-shrink-0 w-11 h-11 rounded-xl bg-neutral-100 dark:bg-primary/20 flex items-center justify-center">
+        <mat-icon class="icon-size-6 text-neutral-900 dark:text-white" [svgIcon]="'heroicons_outline:user'"></mat-icon>
+      </div>
+      <div class="min-w-0">
+        <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-neutral-900 dark:text-white">
+          {{ isEdit ? 'Edit Employee' : 'Add Employee' }}
+        </h1>
+        <p class="text-sm text-secondary mt-0.5">
+          {{ isEdit ? 'Update employee details step-by-step' : 'Create a new employee step-by-step' }}
+        </p>
+      </div>
+    </div>
+    <div class="flex gap-2">
+      <button mat-stroked-button color="primary" type="button" [disabled]="pageLoader" (click)="cancel()">
+        <mat-icon>arrow_back</mat-icon>
+        <span class="ms-2">Back</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="p-4 sm:p-6 flex-1 overflow-auto">
+    <div class="w-full max-w-5xl mx-auto">
+      <mat-stepper [linear]="false" class="bg-transparent">
+        <!-- Step 1 -->
+        <mat-step [stepControl]="overviewForm">
+          <ng-template matStepLabel>Overview</ng-template>
+          <mat-card appearance="filled" class="bg-zinc-100 dark:bg-zinc-800/50 w-full">
+            <mat-card-header>
+              <div class="flex items-center gap-x-2">
+                <mat-icon class="icon-size-5 text-zinc-900 dark:text-zinc-100" [svgIcon]="'heroicons_outline:identification'"></mat-icon>
+                <mat-card-title class="text-zinc-900 dark:text-zinc-100 font-medium tracking-tight text-lg">Employee Overview (Step 1)</mat-card-title>
+              </div>
+            </mat-card-header>
+            <mat-card-content class="border border-neutral-200 dark:border-neutral-700">
+              <form [formGroup]="overviewForm" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <mat-form-field class="fuse-mat-dense w-full">
+                  <mat-label>First Name</mat-label>
+                  <input matInput formControlName="firstName" />
+                </mat-form-field>
+                <mat-form-field class="fuse-mat-dense w-full">
+                  <mat-label>Middle Name</mat-label>
+                  <input matInput formControlName="middleName" />
+                </mat-form-field>
+                <mat-form-field class="fuse-mat-dense w-full">
+                  <mat-label>Last Name</mat-label>
+                  <input matInput formControlName="lastName" />
+                </mat-form-field>
+                <mat-form-field class="fuse-mat-dense w-full">
+                  <mat-label>Employee Name (Arabic)</mat-label>
+                  <input matInput formControlName="employeeNameArabic" />
+                </mat-form-field>
+                <mat-form-field class="fuse-mat-dense w-full">
+                  <mat-label>Personal Number</mat-label>
+                  <input matInput formControlName="personalNumber" />
+                </mat-form-field>
+                <mat-form-field class="fuse-mat-dense w-full md:col-span-2">
+                  <mat-label>Company</mat-label>
+                  <mat-select formControlName="companyId">
+                    <mat-option value="">— Select company —</mat-option>
+                    <mat-option *ngFor="let c of companies" [value]="c.id">{{ c.name }}</mat-option>
+                  </mat-select>
+                  @if (overviewForm.get('companyId')?.invalid && overviewForm.get('companyId')?.touched) {
+                    <mat-error>Company is required</mat-error>
+                  }
+                </mat-form-field>
+                <mat-form-field class="fuse-mat-dense w-full">
+                  <mat-label>Working Status</mat-label>
+                  <mat-select formControlName="workingStatus">
+                    <mat-option value="active">Active</mat-option>
+                    <mat-option value="non_active">Non Active</mat-option>
+                    <mat-option value="suspended">Suspended</mat-option>
+                    <mat-option value="left ">Left</mat-option>
+                  </mat-select>
+                </mat-form-field>
+                <mat-form-field class="fuse-mat-dense w-full">
+                  <mat-label>Occupation</mat-label>
+                  <mat-select formControlName="occupation">
+                    <mat-option *ngFor="let opt of occupationOptions" [value]="opt.value">{{ opt.label }}</mat-option>
+                  </mat-select>
+                </mat-form-field>
+                <!-- <mat-form-field class="fuse-mat-dense w-full">
+                  <mat-label>Date of Joining</mat-label>
+                  <input matInput [matDatepicker]="dateOfJoiningPicker" formControlName="dateOfJoining" />
+                  <mat-datepicker-toggle matSuffix [for]="dateOfJoiningPicker"></mat-datepicker-toggle>
+                  <mat-datepicker #dateOfJoiningPicker></mat-datepicker>
+                </mat-form-field> -->
+                <mat-form-field class="fuse-mat-dense w-full">
+                  <mat-label>Posting Date</mat-label>
+                  <input matInput [matDatepicker]="postingDatePicker" formControlName="postingDate" />
+                  <mat-datepicker-toggle matSuffix [for]="postingDatePicker"></mat-datepicker-toggle>
+                  <mat-datepicker #postingDatePicker></mat-datepicker>
+                </mat-form-field>
+                <mat-form-field class="fuse-mat-dense w-full md:col-span-2">
+                  <mat-label>Reference Employee Name</mat-label>
+                  <input matInput formControlName="referenceEmployeeName" />
+                </mat-form-field>
+              </form>
+              <div class="mt-6 flex flex-wrap gap-3 justify-end">
+                <button mat-flat-button color="primary" [disabled]="saving.overview" (click)="saveOverview()">
+                  {{ saving.overview ? 'Saving...' : (employeeId ? 'Update information' : 'Create employee') }}
+                </button>
+                <button mat-stroked-button matStepperNext>Next</button>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </mat-step>
+
+        <!-- Step 2 -->
+        <mat-step [stepControl]="personalForm">
+          <ng-template matStepLabel>Personal</ng-template>
+          <mat-card appearance="filled" class="bg-zinc-100 dark:bg-zinc-800/50 w-full mt-4">
+            <mat-card-header>
+              <div class="flex items-center gap-x-2">
+                <mat-icon class="icon-size-5 text-zinc-900 dark:text-zinc-100" [svgIcon]="'heroicons_outline:user-circle'"></mat-icon>
+                <mat-card-title class="text-zinc-900 dark:text-zinc-100 font-medium tracking-tight text-lg">Personal Details (Step 2)</mat-card-title>
+              </div>
+            </mat-card-header>
+            <mat-card-content class="border border-neutral-200 dark:border-neutral-700">
+              <form [formGroup]="personalForm" class="grid grid-cols-1 md:grid-cols-3 gap-3 w-full">
+                <mat-form-field class="fuse-mat-dense w-full">
+                  <mat-label>Father Number</mat-label>
+                  <input matInput formControlName="fatherNumber" />
+                </mat-form-field>
+                <mat-form-field class="fuse-mat-dense w-full">
+                  <mat-label>Birthplace</mat-label>
+                  <input matInput formControlName="birthplace" />
+                </mat-form-field>
+                <mat-form-field class="fuse-mat-dense w-full">
+                  <mat-label>Nationality</mat-label>
+                  <mat-select formControlName="nationality">
+                    <mat-option value="">— Select —</mat-option>
+                    <mat-option *ngFor="let country of countryOptions" [value]="country">{{ country }}</mat-option>
+                  </mat-select>
+                </mat-form-field>
+                <mat-form-field class="fuse-mat-dense w-full">
+                  <mat-label>Home Country</mat-label>
+                  <mat-select formControlName="homeCountry">
+                    <mat-option value="">— Select —</mat-option>
+                    <mat-option *ngFor="let country of countryOptions" [value]="country">{{ country }}</mat-option>
+                  </mat-select>
+
+                </mat-form-field>
+                <mat-form-field class="fuse-mat-dense w-full">
+                  <mat-label>Marital Status</mat-label>
+                  <mat-select formControlName="maritalStatus">
+                    <mat-option *ngFor="let opt of maritalStatusOptions" [value]="opt">{{ opt | titlecase }}</mat-option>
+                  </mat-select>
+                </mat-form-field>
+                <mat-form-field class="fuse-mat-dense w-full">
+                  <mat-label>Blood Group</mat-label>
+                  <mat-select formControlName="bloodGroup">
+                    <mat-option *ngFor="let opt of bloodGroupOptions" [value]="opt">{{ opt }}</mat-option>
+                  </mat-select>
+                </mat-form-field>
+                <mat-form-field class="fuse-mat-dense w-full">
+                  <mat-label>Family Background</mat-label>
+                  <textarea matInput formControlName="familyBackground" rows="1"></textarea>
+                </mat-form-field>
+                <mat-form-field class="fuse-mat-dense w-full">
+                  <mat-label>Health Details</mat-label>
+                  <textarea matInput formControlName="healthDetails" rows="1"></textarea>
+                </mat-form-field>
+                <mat-form-field class="fuse-mat-dense w-full">
+                  <mat-label>Health Insurance Provider</mat-label>
+                  <input matInput formControlName="healthInsuranceProvider" />
+                </mat-form-field>
+              </form>
+              <div class="mt-6 flex flex-wrap gap-3 justify-end">
+                <button mat-flat-button color="primary" [disabled]="saving.personal" (click)="savePersonal()">
+                  {{ saving.personal ? 'Saving...' : 'Update information' }}
+                </button>
+                <button mat-stroked-button matStepperPrevious>Back</button>
+                <button mat-stroked-button matStepperNext>Next</button>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </mat-step>
+
+        <!-- Step 3 -->
+        <mat-step [stepControl]="contactForm">
+          <ng-template matStepLabel>Contact</ng-template>
+          <mat-card appearance="filled" class="bg-zinc-100 dark:bg-zinc-800/50 w-full mt-4">
+            <mat-card-header>
+              <div class="flex items-center gap-x-2">
+                <mat-icon class="icon-size-5 text-zinc-900 dark:text-zinc-100" [svgIcon]="'heroicons_outline:envelope'"></mat-icon>
+                <mat-card-title class="text-zinc-900 dark:text-zinc-100 font-medium tracking-tight text-lg">Contact &amp; Address (Step 3)</mat-card-title>
+              </div>
+            </mat-card-header>
+            <mat-card-content class="border border-neutral-200 dark:border-neutral-700">
+              <form [formGroup]="contactForm" class="grid grid-cols-1 md:grid-cols-3 gap-3 w-full">
+                <mat-form-field class="fuse-mat-dense w-full"><mat-label>Mobile Number</mat-label><input matInput formControlName="mobileNumber" /></mat-form-field>
+                <mat-form-field class="fuse-mat-dense w-full"><mat-label>Personal Email</mat-label><input matInput type="email" formControlName="personalEmail" /></mat-form-field>
+                <mat-form-field class="fuse-mat-dense w-full"><mat-label>Contact Email</mat-label><input matInput type="email" formControlName="contactEmail" /></mat-form-field>
+                <mat-form-field class="fuse-mat-dense w-full"><mat-label>Company Email</mat-label><input matInput type="email" formControlName="companyEmail" /></mat-form-field>
+                <mat-form-field class="fuse-mat-dense w-full"><mat-label>Emergency Contact</mat-label><input matInput formControlName="emergencyContact" /></mat-form-field>
+                <mat-form-field class="fuse-mat-dense w-full"><mat-label>Emergency Contact Relation</mat-label><input matInput formControlName="emergencyContactRelation" /></mat-form-field>
+                <mat-form-field class="fuse-mat-dense w-full md:col-span-3"><mat-label>UAE Address</mat-label><textarea matInput formControlName="uaeAddress" rows="1"></textarea></mat-form-field>
+                <mat-form-field class="fuse-mat-dense w-full md:col-span-3"><mat-label>Current Address</mat-label><textarea matInput formControlName="currentAddress" rows="1"></textarea></mat-form-field>
+                <mat-form-field class="fuse-mat-dense w-full md:col-span-3"><mat-label>Permanent Address</mat-label><textarea matInput formControlName="permanentAddress" rows="1"></textarea></mat-form-field>
+              </form>
+              <div class="mt-6 flex flex-wrap gap-3 justify-end">
+                <button mat-flat-button color="primary" [disabled]="saving.contact" (click)="saveContact()">
+                  {{ saving.contact ? 'Saving...' : 'Update information' }}
+                </button>
+                <button mat-stroked-button matStepperPrevious>Back</button>
+                <button mat-stroked-button matStepperNext>Next</button>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </mat-step>
+
+        <!-- Step 4 -->
+        <mat-step [stepControl]="joiningForm">
+          <ng-template matStepLabel>Joining</ng-template>
+          <mat-card appearance="filled" class="bg-zinc-100 dark:bg-zinc-800/50 w-full mt-4">
+            <mat-card-header>
+              <div class="flex items-center gap-x-2">
+                <mat-icon class="icon-size-5 text-zinc-900 dark:text-zinc-100" [svgIcon]="'heroicons_outline:calendar-days'"></mat-icon>
+                <mat-card-title class="text-zinc-900 dark:text-zinc-100 font-medium tracking-tight text-lg">Joining Details (Step 4)</mat-card-title>
+              </div>
+            </mat-card-header>
+            <mat-card-content class="border border-neutral-200 dark:border-neutral-700">
+              <form [formGroup]="joiningForm" class="grid grid-cols-1 md:grid-cols-3 gap-3 w-full">
+                <mat-form-field class="fuse-mat-dense w-full">
+                  <mat-label>Confirmation Date</mat-label>
+                  <input matInput [matDatepicker]="confirmationPicker" formControlName="confirmationDate" />
+                  <mat-datepicker-toggle matSuffix [for]="confirmationPicker"></mat-datepicker-toggle>
+                  <mat-datepicker #confirmationPicker></mat-datepicker>
+                </mat-form-field>
+                <mat-form-field class="fuse-mat-dense w-full">
+                  <mat-label>Notice Days</mat-label>
+                  <input matInput type="number" formControlName="noticeDays" />
+                </mat-form-field>
+                <mat-form-field class="fuse-mat-dense w-full">
+                  <mat-label>Offer Date</mat-label>
+                  <input matInput [matDatepicker]="offerPicker" formControlName="offerDate" />
+                  <mat-datepicker-toggle matSuffix [for]="offerPicker"></mat-datepicker-toggle>
+                  <mat-datepicker #offerPicker></mat-datepicker>
+                </mat-form-field>
+                <mat-form-field class="fuse-mat-dense w-full">
+                  <mat-label>Contract End Date</mat-label>
+                  <input matInput [matDatepicker]="contractEndPicker" formControlName="contractEndDate" />
+                  <mat-datepicker-toggle matSuffix [for]="contractEndPicker"></mat-datepicker-toggle>
+                  <mat-datepicker #contractEndPicker></mat-datepicker>
+                </mat-form-field>
+                <mat-form-field class="fuse-mat-dense w-full">
+                  <mat-label>Date of Retirement</mat-label>
+                  <input matInput [matDatepicker]="retirementPicker" formControlName="dateOfRetirement" />
+                  <mat-datepicker-toggle matSuffix [for]="retirementPicker"></mat-datepicker-toggle>
+                  <mat-datepicker #retirementPicker></mat-datepicker>
+                </mat-form-field>
+              </form>
+              <div class="mt-6 flex flex-wrap gap-3 justify-end">
+                <button mat-flat-button color="primary" [disabled]="saving.joining" (click)="saveJoining()">
+                  {{ saving.joining ? 'Saving...' : 'Update information' }}
+                </button>
+                <button mat-stroked-button matStepperPrevious>Back</button>
+                <button mat-stroked-button matStepperNext>Next</button>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </mat-step>
+
+        <!-- Step 5 -->
+        <mat-step [stepControl]="salaryForm">
+          <ng-template matStepLabel>Salary</ng-template>
+          <mat-card appearance="filled" class="bg-zinc-100 dark:bg-zinc-800/50 w-full mt-4">
+            <mat-card-header>
+              <div class="flex items-center gap-x-2">
+                <mat-icon class="icon-size-5 text-zinc-900 dark:text-zinc-100" [svgIcon]="'heroicons_outline:currency-dollar'"></mat-icon>
+                <mat-card-title class="text-zinc-900 dark:text-zinc-100 font-medium tracking-tight text-lg">Salary &amp; Sponsorship (Step 5)</mat-card-title>
+              </div>
+            </mat-card-header>
+            <mat-card-content class="border border-neutral-200 dark:border-neutral-700">
+              <form [formGroup]="salaryForm" class="grid grid-cols-1 md:grid-cols-3 gap-3 w-full">
+                <mat-form-field class="fuse-mat-dense w-full"><mat-label>Cost to Company</mat-label><input matInput type="number" formControlName="costToCompany" /></mat-form-field>
+                <mat-form-field class="fuse-mat-dense w-full"><mat-label>Basic Salary</mat-label><input matInput type="number" formControlName="basicSalary" /></mat-form-field>
+                <mat-form-field class="fuse-mat-dense w-full"><mat-label>Mobile Allowance</mat-label><input matInput type="number" formControlName="mobileAllowance" /></mat-form-field>
+                <mat-form-field class="fuse-mat-dense w-full"><mat-label>Food Allowance</mat-label><input matInput type="number" formControlName="foodAllowance" /></mat-form-field>
+                <mat-form-field class="fuse-mat-dense w-full"><mat-label>Transportation Allowance</mat-label><input matInput type="number" formControlName="transportationAllowance" /></mat-form-field>
+                <mat-form-field class="fuse-mat-dense w-full"><mat-label>Other Allowance</mat-label><input matInput type="number" formControlName="otherAllowance" /></mat-form-field>
+                <mat-form-field class="fuse-mat-dense w-full">
+                  <mat-label>Salary Currency</mat-label>
+                  <mat-select formControlName="salaryCurrency">
+                    <mat-option value="AED">AED</mat-option>
+                    <mat-option value="USD">USD</mat-option>
+                    <mat-option value="SAR">SAR</mat-option>
+                  </mat-select>
+                </mat-form-field>
+                <mat-form-field class="fuse-mat-dense w-full">
+                  <mat-label>Salary Mode</mat-label>
+                  <mat-select formControlName="salaryMode">
+                    <mat-option value="bank">Bank</mat-option>
+                    <mat-option value="cash">Cash</mat-option>
+                  </mat-select>
+                </mat-form-field>
+                <mat-form-field class="fuse-mat-dense w-full"><mat-label>Cost Center</mat-label><input matInput formControlName="costCenter" /></mat-form-field>
+                <mat-form-field class="fuse-mat-dense w-full">
+                  <mat-label>Sponsorship Type</mat-label>
+                  <mat-select formControlName="sponsorshipType">
+                    <mat-option value="org_visa">Organization Visa</mat-option>
+                    <mat-option value="personal">Personal</mat-option>
+                  </mat-select>
+                </mat-form-field>
+                <mat-form-field class="fuse-mat-dense w-full"><mat-label>Sponsorship Org Name</mat-label><input matInput formControlName="sponsorshipOrgName" /></mat-form-field>
+              </form>
+              <div class="mt-6 flex flex-wrap gap-3 justify-end">
+                <button mat-flat-button color="primary" [disabled]="saving.salary" (click)="saveSalary()">
+                  {{ saving.salary ? 'Saving...' : 'Update information' }}
+                </button>
+                <button mat-stroked-button matStepperPrevious>Back</button>
+                <button mat-stroked-button matStepperNext>Next</button>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </mat-step>
+
+        <!-- Step 6 -->
+        <mat-step [stepControl]="documentsForm">
+          <ng-template matStepLabel>Documents</ng-template>
+          <mat-card appearance="filled" class="bg-zinc-100 dark:bg-zinc-800/50 w-full mt-4">
+            <mat-card-header>
+              <div class="flex items-center gap-x-2">
+                <mat-icon class="icon-size-5 text-zinc-900 dark:text-zinc-100" [svgIcon]="'heroicons_outline:identification'"></mat-icon>
+                <mat-card-title class="text-zinc-900 dark:text-zinc-100 font-medium tracking-tight text-lg">Passport &amp; Documents (Step 6)</mat-card-title>
+              </div>
+            </mat-card-header>
+            <mat-card-content class="border border-neutral-200 dark:border-neutral-700">
+              <form [formGroup]="documentsForm" class="grid grid-cols-1 md:grid-cols-3 gap-3 w-full">
+                <mat-form-field class="fuse-mat-dense w-full"><mat-label>Passport Number</mat-label><input matInput formControlName="passportNumber" /></mat-form-field>
+                <mat-form-field class="fuse-mat-dense w-full"><mat-label>Passport Place of Issue</mat-label><input matInput formControlName="passportPlaceOfIssue" /></mat-form-field>
+                <mat-form-field class="fuse-mat-dense w-full">
+                  <mat-label>Passport Issue Date</mat-label>
+                  <input matInput [matDatepicker]="issuePicker" formControlName="passportIssueDate" />
+                  <mat-datepicker-toggle matSuffix [for]="issuePicker"></mat-datepicker-toggle>
+                  <mat-datepicker #issuePicker></mat-datepicker>
+                </mat-form-field>
+                <mat-form-field class="fuse-mat-dense w-full">
+                  <mat-label>Passport Expiry Date</mat-label>
+                  <input matInput [matDatepicker]="expiryPicker" formControlName="passportExpiryDate" />
+                  <mat-datepicker-toggle matSuffix [for]="expiryPicker"></mat-datepicker-toggle>
+                  <mat-datepicker #expiryPicker></mat-datepicker>
+                </mat-form-field>
+                <mat-form-field class="fuse-mat-dense w-full"><mat-label>Passport Status</mat-label><input matInput formControlName="passportStatus" /></mat-form-field>
+                <mat-form-field class="fuse-mat-dense w-full md:col-span-3"><mat-label>Home Country Address</mat-label><textarea matInput formControlName="homeCountryAddress" rows="2"></textarea></mat-form-field>
+                <mat-form-field class="fuse-mat-dense w-full"><mat-label>Home Country ID Card Number</mat-label><input matInput formControlName="homeCountryIdCardNumber" /></mat-form-field>
+                <mat-form-field class="fuse-mat-dense w-full">
+                  <mat-label>Home Country ID Card Expiry Date</mat-label>
+                  <input matInput [matDatepicker]="idExpPicker" formControlName="homeCountryIdCardExpDate" />
+                  <mat-datepicker-toggle matSuffix [for]="idExpPicker"></mat-datepicker-toggle>
+                  <mat-datepicker #idExpPicker></mat-datepicker>
+                </mat-form-field>
+              </form>
+              <div class="mt-6 flex flex-wrap gap-3 justify-end">
+                <button mat-flat-button color="primary" [disabled]="saving.documents" (click)="saveDocuments()">
+                  {{ saving.documents ? 'Saving...' : 'Update information' }}
+                </button>
+                <button mat-stroked-button matStepperPrevious>Back</button>
+                <button mat-stroked-button matStepperNext>Next</button>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </mat-step>
+
+        <!-- Step 7 — Extra documents -->
+        <mat-step [stepControl]="extraDocsStepForm">
+          <ng-template matStepLabel>Extra files</ng-template>
+          <mat-card appearance="filled" class="bg-zinc-100 dark:bg-zinc-800/50 w-full mt-4">
+            <mat-card-header>
+              <div class="flex items-center gap-x-2">
+                <mat-icon class="icon-size-5 text-zinc-900 dark:text-zinc-100" [svgIcon]="'heroicons_outline:cloud-arrow-up'"></mat-icon>
+                <mat-card-title class="text-zinc-900 dark:text-zinc-100 font-medium tracking-tight text-lg">Profile &amp; extra files (Step 7)</mat-card-title>
+              </div>
+            </mat-card-header>
+            <mat-card-content class="border border-neutral-200 dark:border-neutral-700 space-y-6">
+              <p class="text-sm text-secondary -mt-2 mb-2 max-w-2xl">
+                Set a profile photo (up to 5&nbsp;MB, JPEG/PNG/WebP/GIF) and attach other documents (up to 15&nbsp;MB each, with a display name).
+              </p>
+              <div
+                *ngIf="!employeeId"
+                class="flex items-start gap-3 rounded-xl border border-amber-200/80 bg-amber-50/90 dark:border-amber-900/50 dark:bg-amber-950/30 px-4 py-3 text-sm text-amber-950 dark:text-amber-100"
+              >
+                <mat-icon class="icon-size-5 flex-shrink-0 text-amber-700 dark:text-amber-300" [svgIcon]="'heroicons_outline:information-circle'"></mat-icon>
+                <span>Save <strong>Step 1 — Overview</strong> first to create this employee, then you can upload files here.</span>
+              </div>
+
+              <form [formGroup]="extraDocsStepForm" class="hidden" aria-hidden="true"></form>
+
+              <!-- Profile picture -->
+              <section
+                class="rounded-2xl border border-zinc-200/90 bg-gradient-to-br from-white to-zinc-50 p-5 shadow-sm dark:border-zinc-600 dark:from-zinc-900/60 dark:to-zinc-900/30 sm:p-6"
+                [class.pointer-events-none]="!employeeId"
+                [class.opacity-50]="!employeeId"
+              >
+                <div class="flex items-center gap-2 border-b border-zinc-200 pb-3 dark:border-zinc-600">
+                  <mat-icon class="icon-size-5 text-primary-600 dark:text-primary-400" [svgIcon]="'heroicons_outline:camera'"></mat-icon>
+                  <h3 class="text-base font-semibold text-zinc-900 dark:text-zinc-50">Profile photo</h3>
+                </div>
+                <div class="mt-5 flex flex-col items-center gap-6 sm:flex-row sm:items-start">
+                  <div
+                    class="relative shrink-0 rounded-full p-1 transition-all duration-200"
+                    [ngClass]="
+                      profileAvatarDragActive
+                        ? 'ring-2 ring-primary ring-offset-2 ring-offset-zinc-50 dark:ring-offset-zinc-900'
+                        : 'ring-1 ring-zinc-200 dark:ring-zinc-600'
+                    "
+                    (dragenter)="onProfileAvatarDragEnter($event)"
+                    (dragleave)="onProfileAvatarDragLeave($event)"
+                    (dragover)="onProfileAvatarDragOver($event)"
+                    (drop)="onProfileAvatarDrop($event)"
+                  >
+                    <div
+                      class="flex h-32 w-32 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-zinc-100 to-zinc-200 dark:from-zinc-800 dark:to-zinc-900"
+                    >
+                      <img
+                        *ngIf="pendingProfilePreviewUrl || profilePictureUrl"
+                        [src]="pendingProfilePreviewUrl || profilePictureUrl"
+                        alt=""
+                        class="h-full w-full object-cover"
+                      />
+                      <mat-icon
+                        *ngIf="!pendingProfilePreviewUrl && !profilePictureUrl"
+                        class="icon-size-14 text-zinc-400 dark:text-zinc-500"
+                        [svgIcon]="'heroicons_outline:user'"
+                      ></mat-icon>
+                    </div>
+                    <input
+                      #profilePicInput
+                      type="file"
+                      class="sr-only"
+                      [accept]="profilePictureAcceptAttr"
+                      (change)="onProfilePictureFileInputChange($event)"
+                    />
+                  </div>
+                  <div class="min-w-0 flex-1 space-y-3 text-center sm:text-start">
+                    <p class="text-sm text-secondary leading-relaxed">
+                      Drag an image onto the circle or use <strong>Choose photo</strong>. Then upload to save it to this employee.
+                    </p>
+                    <div class="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
+                      <button
+                        mat-stroked-button
+                        color="primary"
+                        type="button"
+                        class="fuse-mat-dense"
+                        [disabled]="!employeeId"
+                        (click)="profilePicInput.click()"
+                      >
+                        <mat-icon class="icon-size-5">add_a_photo</mat-icon>
+                        <span class="ms-2">Choose photo</span>
+                      </button>
+                      <button
+                        *ngIf="pendingProfileFile"
+                        mat-flat-button
+                        color="primary"
+                        type="button"
+                        [disabled]="uploadingProfilePicture"
+                        (click)="uploadProfilePicture()"
+                      >
+                        <mat-progress-spinner
+                          *ngIf="uploadingProfilePicture"
+                          class="inline-block align-middle me-2"
+                          diameter="20"
+                          mode="indeterminate"
+                        ></mat-progress-spinner>
+                        <span>{{ uploadingProfilePicture ? 'Uploading…' : 'Upload photo' }}</span>
+                      </button>
+                      <button
+                        *ngIf="pendingProfileFile"
+                        mat-stroked-button
+                        type="button"
+                        [disabled]="uploadingProfilePicture"
+                        (click)="clearPendingProfilePicture()"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        *ngIf="profilePictureUrl && !pendingProfileFile"
+                        mat-stroked-button
+                        color="warn"
+                        type="button"
+                        [disabled]="removingProfilePicture"
+                        (click)="removeProfilePicture()"
+                      >
+                        <mat-progress-spinner
+                          *ngIf="removingProfilePicture"
+                          class="inline-block align-middle me-2"
+                          diameter="20"
+                          mode="indeterminate"
+                        ></mat-progress-spinner>
+                        <span>{{ removingProfilePicture ? 'Removing…' : 'Remove photo' }}</span>
+                      </button>
+                    </div>
+                    <p class="text-xs text-secondary">JPEG, PNG, WebP, or GIF · max {{ profilePictureMaxBytes / (1024 * 1024) }}&nbsp;MB</p>
+                  </div>
+                </div>
+              </section>
+
+              <div class="flex items-center gap-3 py-1">
+                <div class="h-px flex-1 bg-zinc-200 dark:bg-zinc-600"></div>
+                <span class="text-xs font-medium uppercase tracking-wider text-secondary">Extra documents</span>
+                <div class="h-px flex-1 bg-zinc-200 dark:bg-zinc-600"></div>
+              </div>
+
+              <!-- Drop zone -->
+              <div
+                class="relative overflow-hidden rounded-2xl border-2 border-dashed transition-all duration-200"
+                [ngClass]="
+                  uploadDragActive
+                    ? 'border-primary bg-primary-500/5 dark:bg-primary-400/10'
+                    : 'border-zinc-300 dark:border-zinc-600'
+                "
+                [class.pointer-events-none]="!employeeId"
+                [class.opacity-50]="!employeeId"
+                (dragenter)="onUploadDragEnter($event)"
+                (dragleave)="onUploadDragLeave($event)"
+                (dragover)="onUploadDragOver($event)"
+                (drop)="onUploadDrop($event)"
+              >
+                <div class="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary-500/10 via-transparent to-violet-500/10 dark:from-primary-400/10 dark:to-violet-400/10"></div>
+                <div class="relative flex flex-col items-center justify-center gap-3 px-6 py-12 text-center sm:py-14">
+                  <div
+                    class="flex h-16 w-16 items-center justify-center rounded-2xl bg-white shadow-sm ring-1 ring-zinc-200/80 dark:bg-zinc-800 dark:ring-zinc-600"
+                  >
+                    <mat-icon
+                      class="icon-size-10 text-primary-600 dark:text-primary-400"
+                      [svgIcon]="'heroicons_outline:arrow-up-tray'"
+                    ></mat-icon>
+                  </div>
+                  <div>
+                    <p class="text-base font-semibold text-zinc-900 dark:text-zinc-50">Drop a file here</p>
+                    <p class="mt-1 text-sm text-secondary">or</p>
+                  </div>
+                  <button
+                    mat-stroked-button
+                    color="primary"
+                    type="button"
+                    class="fuse-mat-dense"
+                    [disabled]="!employeeId"
+                    (click)="extraFileInput.click()"
+                  >
+                    <mat-icon class="icon-size-5">folder_open</mat-icon>
+                    <span class="ms-2">Browse files</span>
+                  </button>
+                  <input
+                    #extraFileInput
+                    type="file"
+                    class="sr-only"
+                    [accept]="extraDocAcceptAttr"
+                    (change)="onExtraDocFileInputChange($event)"
+                  />
+                  <p class="max-w-md text-xs text-secondary leading-relaxed">
+                    PDF, JPEG, PNG, WebP, or GIF · max {{ extraDocMaxBytes / (1024 * 1024) }}&nbsp;MB
+                  </p>
+                </div>
+              </div>
+
+              <!-- Pending upload -->
+              <div
+                *ngIf="pendingFile"
+                class="rounded-xl border border-zinc-200 bg-white/80 dark:border-zinc-600 dark:bg-zinc-900/40 p-4 shadow-sm"
+              >
+                <div class="flex flex-col gap-4 sm:flex-row sm:items-start">
+                  <div
+                    class="flex h-24 w-24 flex-shrink-0 items-center justify-center overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800"
+                  >
+                    <img *ngIf="pendingPreviewUrl" [src]="pendingPreviewUrl" alt="" class="h-full w-full object-cover" />
+                    <mat-icon
+                      *ngIf="!pendingPreviewUrl"
+                      class="icon-size-10 text-zinc-400"
+                      [svgIcon]="'heroicons_outline:document-text'"
+                    ></mat-icon>
+                  </div>
+                  <div class="min-w-0 flex-1 space-y-3">
+                    <div>
+                      <p class="truncate font-medium text-zinc-900 dark:text-zinc-50">{{ pendingFile.name }}</p>
+                      <p class="text-sm text-secondary">{{ formatFileSize(pendingFile.size) }}</p>
+                    </div>
+                    <mat-form-field class="fuse-mat-dense w-full" subscriptSizing="dynamic">
+                      <mat-label>Display name</mat-label>
+                      <input matInput name="extraUploadDisplayName" [(ngModel)]="uploadDisplayName" [ngModelOptions]="{ standalone: true }" />
+                    </mat-form-field>
+                    <div class="flex flex-wrap gap-2">
+                      <button
+                        mat-flat-button
+                        color="primary"
+                        type="button"
+                        [disabled]="uploadingExtra || !uploadDisplayName.trim()"
+                        (click)="uploadExtraDocument()"
+                      >
+                        <mat-progress-spinner
+                          *ngIf="uploadingExtra"
+                          class="inline-block align-middle me-2"
+                          diameter="20"
+                          mode="indeterminate"
+                        ></mat-progress-spinner>
+                        <span>{{ uploadingExtra ? 'Uploading…' : 'Upload' }}</span>
+                      </button>
+                      <button mat-stroked-button type="button" [disabled]="uploadingExtra" (click)="clearPendingExtraDoc()">
+                        Clear
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Uploaded list -->
+              <div *ngIf="extraDocuments.length">
+                <h3 class="mb-3 text-sm font-semibold uppercase tracking-wide text-secondary">Uploaded documents</h3>
+                <ul class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <li
+                    *ngFor="let doc of extraDocuments"
+                    class="group flex gap-3 rounded-xl border border-zinc-200 bg-white p-3 shadow-sm transition hover:border-primary-300 hover:shadow dark:border-zinc-600 dark:bg-zinc-900/50 dark:hover:border-primary-700"
+                  >
+                    <button
+                      type="button"
+                      class="relative flex h-14 w-14 flex-shrink-0 items-center justify-center overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800"
+                      [disabled]="!doc.url"
+                      [matTooltip]="doc.url ? 'Open' : 'No preview link'"
+                      (click)="openExtraDoc(doc)"
+                    >
+                      <img
+                        *ngIf="doc.url && isImageExtraDoc(doc)"
+                        [src]="doc.url"
+                        alt=""
+                        class="h-full w-full object-cover"
+                      />
+                      <mat-icon
+                        *ngIf="!doc.url || !isImageExtraDoc(doc)"
+                        class="icon-size-7 text-zinc-500"
+                        [svgIcon]="extraDocIconSvg(doc)"
+                      ></mat-icon>
+                    </button>
+                    <div class="min-w-0 flex-1">
+                      <ng-container *ngIf="renamingDocId !== doc.id">
+                        <p class="truncate font-medium text-zinc-900 dark:text-zinc-100">{{ doc.displayName }}</p>
+                        <p *ngIf="doc.createdAt" class="text-xs text-secondary">{{ doc.createdAt | date : 'mediumDate' }}</p>
+                      </ng-container>
+                      <ng-container *ngIf="renamingDocId === doc.id">
+                        <mat-form-field class="fuse-mat-dense w-full" subscriptSizing="dynamic">
+                          <mat-label>Name</mat-label>
+                          <input matInput [(ngModel)]="renameDraft" [ngModelOptions]="{ standalone: true }" (keydown.enter)="saveRenameExtraDoc()" />
+                        </mat-form-field>
+                        <div class="mt-1 flex gap-1">
+                          <button mat-button type="button" color="primary" (click)="saveRenameExtraDoc()">Save</button>
+                          <button mat-button type="button" (click)="cancelRenameExtraDoc()">Cancel</button>
+                        </div>
+                      </ng-container>
+                    </div>
+                    <div *ngIf="renamingDocId !== doc.id" class="flex flex-shrink-0 flex-row items-center gap-1">
+                      <button
+                        mat-icon-button
+                        type="button"
+                        matTooltip="Rename"
+                        (click)="startRenameExtraDoc(doc)"
+                      >
+                        <mat-icon class="icon-size-5">edit</mat-icon>
+                      </button>
+                      <button
+                        mat-icon-button
+                        type="button"
+                        matTooltip="Remove"
+                        [disabled]="deletingDocId === doc.id"
+                        (click)="deleteExtraDoc(doc)"
+                      >
+                        <mat-progress-spinner
+                          *ngIf="deletingDocId === doc.id"
+                          diameter="20"
+                          mode="indeterminate"
+                        ></mat-progress-spinner>
+                        <mat-icon *ngIf="deletingDocId !== doc.id" class="icon-size-5 text-red-600">delete</mat-icon>
+                      </button>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+
+              <div
+                *ngIf="employeeId && !extraDocuments.length && !pendingFile"
+                class="rounded-lg border border-dashed border-zinc-200 py-8 text-center text-sm text-secondary dark:border-zinc-600"
+              >
+                No extra documents yet. Upload one using the area above.
+              </div>
+
+              <div class="mt-2 flex flex-wrap gap-3 justify-end">
+                <button mat-stroked-button matStepperPrevious>Back</button>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </mat-step>
+      </mat-stepper>
+    </div>
+  </div>
+</div>

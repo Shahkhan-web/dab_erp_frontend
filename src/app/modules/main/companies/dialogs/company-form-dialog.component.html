@@ -1,0 +1,46 @@
+<div class="bg-white dark:bg-neutral-900 rounded-2xl max-h-[90vh] overflow-x-hidden overflow-y-auto">
+  <div class="bg-gradient-to-r from-primary-600 to-primary-700 px-6 py-5 text-white">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-white/20">
+          <mat-icon class="icon-size-8 text-white" [svgIcon]="'heroicons_outline:building-office-2'"></mat-icon>
+        </div>
+        <div>
+          <h2 class="text-xl font-bold tracking-tight">Add company</h2>
+          <p class="text-sm text-white/90">Create a company and set the employee ID prefix</p>
+        </div>
+      </div>
+      <button mat-icon-button type="button" (click)="cancel()" class="text-white/90 hover:bg-white/20" aria-label="Close">
+        <mat-icon class="text-white">close</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  <form [formGroup]="form" class="p-6 sm:p-8 grid grid-cols-1 gap-4">
+    <mat-form-field class="fuse-mat-dense w-full">
+      <mat-label>Company name</mat-label>
+      <input matInput formControlName="name" autocomplete="organization" />
+      @if (form.get('name')?.hasError('required') && form.get('name')?.touched) {
+        <mat-error>Name is required</mat-error>
+      }
+    </mat-form-field>
+    <mat-form-field class="fuse-mat-dense w-full">
+      <mat-label>Employee ID prefix</mat-label>
+      <input matInput formControlName="employeeIdPrefix" placeholder="e.g. DXB" autocomplete="off" />
+      <mat-hint>Letters, numbers, and hyphens; stored uppercase</mat-hint>
+      @if (form.get('employeeIdPrefix')?.hasError('required') && form.get('employeeIdPrefix')?.touched) {
+        <mat-error>Prefix is required</mat-error>
+      }
+      @if (form.get('employeeIdPrefix')?.hasError('pattern') && form.get('employeeIdPrefix')?.touched) {
+        <mat-error>Use letters, numbers, and hyphens only</mat-error>
+      }
+    </mat-form-field>
+  </form>
+
+  <div class="px-6 pb-6 flex flex-wrap gap-3 justify-end">
+    <button mat-stroked-button type="button" (click)="cancel()" [disabled]="loading">Cancel</button>
+    <button mat-flat-button color="primary" type="button" [disabled]="loading" (click)="save()">
+      {{ loading ? 'Creating…' : 'Create' }}
+    </button>
+  </div>
+</div>

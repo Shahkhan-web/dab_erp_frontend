@@ -1,0 +1,54 @@
+:host {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: 100%;
+    height: 100%;
+}
+
+::ng-deep .mat-mdc-dialog-container .mdc-dialog__surface {
+    padding: 0 !important;
+}
+
+.detail-section {
+    .section-title {
+        @apply flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-zinc-400 border-b border-slate-200 dark:border-zinc-700 pb-1.5 mb-2;
+    }
+    .detail-row {
+        @apply flex flex-wrap gap-x-3 gap-y-0.5 py-1 text-sm;
+        .label {
+            @apply text-slate-500 dark:text-zinc-500 min-w-[128px] sm:min-w-[148px];
+        }
+        .value {
+            @apply text-slate-800 dark:text-zinc-200 font-medium;
+        }
+    }
+}
+
+/* Six period fields in one row: label above value, no boxes */
+.period-metrics-row {
+    @apply mt-3 grid w-full min-w-0 grid-cols-6 gap-x-2 gap-y-2 sm:gap-x-4;
+}
+
+.period-metric {
+    @apply flex min-w-0 flex-col gap-0.5;
+
+    &__label {
+        @apply text-xs leading-snug text-slate-500 dark:text-zinc-500;
+    }
+
+    &__value {
+        @apply text-sm font-semibold leading-tight text-slate-900 dark:text-zinc-100 sm:text-base;
+    }
+}
+
+.lines-table {
+    @apply w-full text-sm;
+    th {
+        @apply text-left font-semibold text-slate-600 dark:text-zinc-400 py-1.5 px-2 border-b border-slate-200 dark:border-zinc-700;
+    }
+    td {
+        @apply py-1.5 px-2 border-b border-slate-100 dark:border-zinc-800/80;
+    }
+}

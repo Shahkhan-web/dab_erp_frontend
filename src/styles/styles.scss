@@ -1,0 +1,486 @@
+/* ----------------------------------------------------------------------------------------------------- */
+/*  @ Import/write your custom styles here.
+/*  @ Styles from this file will override 'vendors.scss' and Fuse's base styles.
+/* ----------------------------------------------------------------------------------------------------- */
+
+/* Hide number input spinner arrows globally */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.nav-pill {
+    @apply relative flex items-center gap-2 px-4 py-3 text-sm font-medium text-gray-600 hover:text-primary transition;
+}
+
+.nav-pill:not(:last-child)::after {
+    content: '';
+    @apply absolute right-0 top-1/2 -translate-y-1/2 h-5 w-px bg-gray-200;
+}
+
+.nav-pill:hover::after {
+    @apply bg-gray-300;
+}
+
+.nav-label {
+    @apply relative;
+}
+
+.active-nav .nav-label {
+    @apply text-primary;
+}
+
+.active-nav .nav-label::after {
+    content: '';
+    @apply absolute left-0 -bottom-2 w-full h-[3px] bg-primary rounded-full;
+}
+
+.nav-pill:hover .nav-label::after {
+    content: '';
+    @apply absolute left-0 -bottom-2 w-full h-[2px] bg-primary/40;
+}
+
+.overlay-loader {
+    position: absolute;
+    inset: 0;
+    z-index: 1000;
+
+    background: color-mix(in srgb, var(--fuse-bg-card) 85%, transparent);
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.overlay-spinner {
+    width: 48px;
+    height: 48px;
+    border: 4px solid var(--mat-divider-color);
+    border-top-color: var(--mat-primary);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.dialog-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 0 6px 0;
+
+    h2 {
+        margin: 0;
+        font-size: 20px;
+        font-weight: 600;
+    }
+}
+
+.dialog-title {
+    display: flex;
+    flex-direction: column;
+}
+
+.dialog-subtitle {
+    margin: 2px 0 0;
+    font-size: 13px;
+    color: rgba(0, 0, 0, 0.6);
+}
+
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 72px;
+    padding: 8px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: 0.8px;
+}
+
+.mat-mdc-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: transparent;
+}
+
+.app-table {
+    background: var(--fuse-bg-card);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow:
+        0 10px 30px color-mix(in srgb, black 15%, transparent),
+        0 2px 8px color-mix(in srgb, black 10%, transparent);
+}
+
+.mat-mdc-header-cell {
+    font-size: 14px;
+    letter-spacing: 0.1em;
+    border-bottom: none;
+    padding: 6px 20px !important;
+}
+
+.mat-mdc-cell {
+    padding: 6px 20px !important;
+    font-size: 13px;
+    border-bottom: 1px solid var(--mat-divider-color);
+}
+
+.mat-mdc-row:last-child .mat-mdc-cell {
+    border-bottom: none;
+}
+
+.mat-mdc-header-row {
+    border-top-left-radius: 14px;
+    border-top-right-radius: 14px;
+}
+
+.mat-mdc-footer-row {
+    border-bottom-left-radius: 14px;
+    border-bottom-right-radius: 14px;
+}
+
+/* ================================
+   Accounting Input – Debit / Credit
+   Works with Angular Material + Fuse
+   Light + Dark mode supported
+================================ */
+
+.custom-input {
+  width: 100%;
+  padding: 0.5rem 1rem;
+  text-align: right;
+  border-radius: 0.5rem;
+
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0; /* slate-200 */
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+
+  outline: none;
+  transition: all 0.2s ease;
+
+  &:focus {
+    border-color: var(--fuse-primary-500, #3b82f6);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
+  }
+
+  /* Disabled state */
+  &:disabled {
+    background-color: #f1f5f9; /* slate-100 */
+    border-color: #cbd5e1;     /* slate-300 */
+    box-shadow: none;
+    cursor: not-allowed;
+    color: #94a3b8;            /* slate-400 */
+  }
+}
+
+/* Dark mode support (Fuse uses .dark on body/html) */
+.dark .accounting-input {
+  background-color: #27272a;  /* zinc-800 */
+  border-color: #3f3f46;      /* zinc-700 */
+  color: #e5e7eb;
+
+  &:disabled {
+    background-color: #3f3f46; /* zinc-700 */
+    border-color: #52525b;     /* zinc-600 */
+    color: #9ca3af;
+  }
+}
+
+
+.mat-mdc-card {
+  background: var(--fuse-bg-card);
+  border-radius: 16px !important;
+  padding: 0.5rem !important;
+  box-shadow: none !important;
+  @apply dark:bg-gray-800/50;
+}
+
+.mat-mdc-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  padding: 4px 8px 0px !important;
+}
+
+.mat-mdc-card-content {
+  background: var(--fuse-bg-card);
+  border-radius: 10px;
+  padding: 1.25rem 1.5rem !important;
+  margin: 0;
+  height: 100%;
+  @apply dark:bg-gray-800/50;
+}
+
+.mat-mdc-card-header-text {
+  display: none;
+}
+
+/* ========== Vertical Navigation Typography (Latest Fuse Theme) ========== */
+/* Global typography improvements for sidebar navigation items */
+fuse-vertical-navigation {
+    fuse-vertical-navigation-aside-item,
+    fuse-vertical-navigation-basic-item,
+    fuse-vertical-navigation-collapsable-item {
+        .fuse-vertical-navigation-item-wrapper {
+            .fuse-vertical-navigation-item {
+                /* Default (inactive) state - lighter weight */
+                font-weight: 400;
+                letter-spacing: 0.01em;
+
+                .fuse-vertical-navigation-item-title-wrapper {
+                    .fuse-vertical-navigation-item-title {
+                        font-weight: 400;
+                        letter-spacing: 0.01em;
+                    }
+                }
+
+                /* Icon size matches title size (13px) */
+                .fuse-vertical-navigation-item-icon {
+                    width: 13px;
+                    height: 13px;
+                    min-width: 13px;
+                    min-height: 13px;
+                    font-size: 13px;
+                    line-height: 13px;
+                    opacity: 0.8;
+
+                    svg {
+                        width: 13px;
+                        height: 13px;
+
+                        /* Increase stroke width for outline icons to make them more prominent and beautiful */
+                        path,
+                        line,
+                        polyline,
+                        polygon,
+                        circle,
+                        rect,
+                        ellipse {
+                            stroke-width: 2px !important;
+                        }
+                    }
+                }
+
+                /* Active state - bolder weight for better visual hierarchy */
+                &.fuse-vertical-navigation-item-active,
+                &.fuse-vertical-navigation-item-active-forced {
+                    font-weight: 600;
+                    letter-spacing: 0.01em;
+
+                    .fuse-vertical-navigation-item-title-wrapper {
+                        .fuse-vertical-navigation-item-title {
+                            font-weight: 600;
+                            letter-spacing: 0.01em;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/* Branch filter: search input with suffix icon inside mat-select overlay */
+.branch-select-panel {
+    padding-top: 0.75rem;
+    overflow: visible;
+}
+
+.branch-select-panel .branch-search-option {
+    overflow: visible;
+
+    .branch-search-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        width: 100%;
+        padding: 0.375rem 0.75rem;
+        margin: 0.5rem 0.5rem 0.25rem 0.5rem;
+        border-radius: 0.5rem;
+        border: 1px solid rgba(0, 0, 0, 0.12);
+        background: var(--fuse-bg-default, #fff);
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+        transition: border-color 0.2s, box-shadow 0.2s;
+
+        .dark & {
+            border-color: rgba(255, 255, 255, 0.12);
+            background: var(--fuse-bg-default);
+        }
+
+        &:focus-within {
+            border-color: var(--fuse-primary, #6366f1);
+            box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+        }
+    }
+
+    .branch-search-input {
+        flex: 1;
+        min-width: 0;
+        border: none;
+        background: transparent;
+        outline: none;
+        font-size: 0.875rem;
+        color: var(--fuse-text-default, #111827);
+        pointer-events: auto !important;
+        cursor: text;
+
+        &::placeholder {
+            color: var(--fuse-text-hint, #9ca3af);
+        }
+
+        .dark & {
+            color: var(--fuse-text-default);
+        }
+    }
+
+    .branch-search-suffix {
+        flex-shrink: 0;
+        pointer-events: none;
+        opacity: 0.85;
+    }
+}
+
+/* mat-select with search: full-width input + hide checkbox on search row (multi-select) */
+.select-search-panel {
+    .select-search-option {
+        cursor: default;
+
+        .mat-mdc-option-pseudo-checkbox {
+            display: none !important;
+        }
+
+        .mdc-list-item__primary-text {
+            flex: 1;
+            min-width: 0;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .select-search-input {
+            width: 100% !important;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+    }
+}
+
+/* Global: mat-select search input full width (any panel, any module) */
+.cdk-overlay-pane .mat-mdc-option:has(input) {
+    cursor: default;
+    width: 100%;
+    min-width: 0;
+
+    .mat-mdc-option-pseudo-checkbox {
+        display: none !important;
+    }
+
+    .mdc-list-item__primary-text {
+        flex: 1;
+        min-width: 0;
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+        display: block;
+    }
+
+    input {
+        width: 100% !important;
+        max-width: 100%;
+        box-sizing: border-box;
+        display: block;
+    }
+}
+
+/* All dialogs: responsive max-height and scroll when content overflows */
+.mat-mdc-dialog-container .mdc-dialog__surface {
+    padding: 0 !important;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+/* Salary slip detail: use nearly full viewport; scroll only inner body (no double scrollbar) */
+.cdk-overlay-pane.salary-slip-detail-dialog-panel {
+    max-height: calc(100dvh - 16px) !important;
+
+    .mat-mdc-dialog-container,
+    .mdc-dialog__container {
+        max-height: calc(100dvh - 16px) !important;
+    }
+
+    /* Material defaults to justify-content: space-around on the inner row — causes side gutters */
+    .mat-mdc-dialog-inner-container.mdc-dialog__container {
+        justify-content: flex-start !important;
+        align-items: stretch !important;
+        width: 100% !important;
+    }
+
+    .mat-mdc-dialog-container .mat-mdc-dialog-surface.mdc-dialog__surface,
+    .mat-mdc-dialog-container .mdc-dialog__surface {
+        max-height: calc(100dvh - 16px) !important;
+        // overflow: hidden !important;
+        display: flex;
+        flex-direction: column;
+        padding: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        flex: 1 1 auto !important;
+    }
+}
+
+/* Salary slip PDF viewer: same viewport footprint as detail dialog; iframe fills remaining height */
+.cdk-overlay-pane.salary-slip-pdf-dialog-panel {
+    max-height: calc(100dvh - 16px) !important;
+    height: calc(100dvh - 16px) !important;
+
+    .mat-mdc-dialog-container,
+    .mdc-dialog__container {
+        max-height: calc(100dvh - 16px) !important;
+        height: 100% !important;
+    }
+
+    .mat-mdc-dialog-inner-container.mdc-dialog__container {
+        justify-content: flex-start !important;
+        align-items: stretch !important;
+        width: 100% !important;
+        height: 100% !important;
+    }
+
+    .mat-mdc-dialog-container .mat-mdc-dialog-surface.mdc-dialog__surface,
+    .mat-mdc-dialog-container .mdc-dialog__surface {
+        max-height: calc(100dvh - 16px) !important;
+        height: 100% !important;
+        display: flex;
+        flex-direction: column;
+        padding: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        flex: 1 1 auto !important;
+        overflow: hidden !important;
+    }
+
+    /* Projected component root must participate in flex layout */
+    app-salary-slip-pdf-dialog {
+        display: flex !important;
+        flex: 1 1 auto !important;
+        min-height: 0 !important;
+        height: 100% !important;
+        width: 100% !important;
+    }
+}
+

@@ -1,0 +1,229 @@
+<div class="relative min-h-screen w-full overflow-hidden flex items-center justify-center bg-gray-100 dark:bg-gray-900">
+    <div class="pointer-events-none absolute -top-40 -left-40 h-96 w-96 rounded-full bg-pink-500/30 blur-3xl"></div>
+    <div class="pointer-events-none absolute -bottom-40 -right-40 h-96 w-96 rounded-full bg-indigo-500/30 blur-3xl">
+    </div>
+    <!-- Card -->
+    <div class="relative z-10 w-full max-w-5xl min-w-[640px] rounded-2xl bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl border border-white/30 dark:border-white/10
+           p-8 shadow-[0_20px_50px_rgba(0,0,0,0.15)]" [overlayLoader]="loader">
+        <!-- Logo -->
+        <div class="flex justify-center">
+            <img class="w-12" src="images/logo/logo.svg" />
+        </div>
+
+        <!-- Title -->
+        <div class="mt-3 text-center text-3xl font-bold tracking-tight text-gray-900 dark:text-white">
+            Sign Up
+        </div>
+        <div class="mt-1 text-center text-sm text-gray-500 dark:text-gray-400">
+            Already have an account? <a class="text-primary cursor-pointer hover:underline font-semibold"
+                routerLink="/sign-in">
+                Sign In!</a>
+        </div>
+
+        <!-- Alert -->
+        @if (showAlert) {
+        <fuse-alert class="mt-6" [appearance]="'outline'" [showIcon]="false" [type]="alert.type">
+            {{ alert.message }}
+        </fuse-alert>
+        }
+
+        <fuse-card class="flex flex-col overflow-visible p-8 pt-20 mt-3">
+
+            <!-- Avatar Upload -->
+            <div class="absolute -top-20">
+                <label class="group flex h-32 w-32 cursor-pointer items-center justify-center
+           rounded-full border-2 border-dashed border-gray-300
+           bg-slate-50 dark:bg-zinc-900 shadow-sm transition
+           hover:border-primary hover:bg-gray-200">
+                    <ng-container *ngIf="!companyLogoPreview; else preview">
+                        <mat-icon class="text-gray-400 transition group-hover:text-primary"
+                            svgIcon="heroicons_outline:camera"></mat-icon>
+                    </ng-container>
+
+                    <ng-template #preview>
+                        <img [src]="companyLogoPreview" class="h-full w-full rounded-full object-cover" />
+                    </ng-template>
+
+                    <input type="file" accept="image/*" hidden (change)="onLogoChange($event)" />
+                </label>
+            </div>
+
+            <form class="grid grid-cols-1 md:grid-cols-3 gap-3" [formGroup]="signUpForm" (ngSubmit)="signUp()">
+
+                <!-- Company Name -->
+                <mat-form-field class="w-full">
+                    <mat-label>Company Name</mat-label>
+                    <input matInput formControlName="companyName" (blur)="generateCode()" />
+                    <mat-error *ngIf="signUpForm.get('companyName')?.hasError('required')">
+                        Company name is required
+                    </mat-error>
+                </mat-form-field>
+
+                <mat-form-field class="w-full">
+                    <mat-label>Company Type</mat-label>
+                    <mat-select formControlName="CompanyTypeId">
+                        @for(type of companyTypes;track $index){
+                            <mat-option [value]="type.id">{{type.name}}</mat-option>
+                        }
+                    </mat-select>
+                </mat-form-field>
+
+
+                <!-- Company Code -->
+                <mat-form-field class="w-full">
+                    <mat-label>Company Code</mat-label>
+                    <input matInput formControlName="companyCode" placeholder="CMP-" />
+                    <mat-error *ngIf="signUpForm.get('companyCode')?.hasError('required')">
+                        Company code is required
+                    </mat-error>
+                </mat-form-field>
+
+                <!-- Email -->
+                <mat-form-field class="w-full">
+                    <mat-label>Company Email</mat-label>
+                    <input matInput formControlName="companyEmail" />
+                    <mat-error *ngIf="signUpForm.get('companyEmail')?.hasError('companyEmail')">
+                        Invalid email format
+                    </mat-error>
+                </mat-form-field>
+
+                <!-- Phone -->
+                <mat-form-field class="w-full">
+                    <mat-label>Phone</mat-label>
+                    <span matPrefix class="text-gray-500 mr-2">+92</span>
+                    <input matInput formControlName="phone" />
+                </mat-form-field>
+                
+                <mat-form-field class="w-full">
+                    <mat-label>Email</mat-label>
+                    <input matInput formControlName="email" />
+                </mat-form-field>
+
+                <mat-form-field class="w-full">
+                    <mat-label>First Name</mat-label>
+                    <input matInput formControlName="firstName" />
+                </mat-form-field>
+                <mat-form-field class="w-full">
+                    <mat-label>Last Name</mat-label>
+                    <input matInput formControlName="lastName" />
+                </mat-form-field>
+
+                <mat-form-field class="w-full">
+                    <mat-label>Username</mat-label>
+                    <input matInput formControlName="username" (blur)="checkUserName()" />
+                    <mat-hint *ngIf="signUpForm.get('username').valid && usernameAvailable">
+                        <span class="text-green-600 ps-1">username is available</span>
+                    </mat-hint>
+                    <mat-error *ngIf="signUpForm.get('username').hasError('notAvailable')" class="ps-1">username is already taken</mat-error>
+                </mat-form-field>
+
+                <!-- Website -->
+                <!-- <mat-form-field class="w-full">
+                    <mat-label>Website</mat-label>
+                    <input matInput formControlName="website" />
+                </mat-form-field> -->
+
+
+                <!-- Country -->
+                <mat-form-field class="w-full">
+                    <mat-label>Country</mat-label>
+
+                    <mat-select formControlName="country">
+                        <mat-option value="PK">Pakistan</mat-option>
+                        <mat-option value="IN">India</mat-option>
+                        <mat-option value="AE">United Arab Emirates</mat-option>
+                        <mat-option value="SA">Saudi Arabia</mat-option>
+                    </mat-select>
+                </mat-form-field>
+
+                <mat-form-field class="w-full">
+                    <mat-label>State</mat-label>
+
+                    <mat-select formControlName="state">
+                        @for(item of states;track $index){
+                        <mat-option [value]="item.id" (click)="getCities()">{{item?.name}}</mat-option>
+                        }
+                    </mat-select>
+                </mat-form-field>
+                <mat-form-field class="w-full">
+                    <mat-label>City</mat-label>
+
+                    <mat-select formControlName="city">
+                        @for(item of cityByState;track $index){
+                        <mat-option [value]="item?.name">{{item?.name}}</mat-option>
+                        }
+                    </mat-select>
+                </mat-form-field>
+
+
+
+                <!-- Password -->
+                <mat-form-field class="w-full">
+                    <mat-label>Password</mat-label>
+                    <input matInput type="password" formControlName="password" #passwordField />
+                    <button mat-icon-button matSuffix type="button"
+                        (click)="passwordField.type = passwordField.type === 'password' ? 'text' : 'password'">
+                        <mat-icon [svgIcon]="passwordField.type === 'password'
+                        ? 'heroicons_solid:eye'
+                        : 'heroicons_solid:eye-slash'"></mat-icon>
+                    </button>
+                    <mat-error *ngIf="signUpForm.get('password')?.invalid">
+                        Password does not meet security rules
+                    </mat-error>
+                </mat-form-field>
+
+                <mat-form-field class="w-full">
+                    <mat-label>Confirm Password</mat-label>
+                    <input matInput type="password" formControlName="password" #passwordField />
+                    <button mat-icon-button matSuffix type="button"
+                        (click)="passwordField.type = passwordField.type === 'password' ? 'text' : 'password'">
+                        <mat-icon [svgIcon]="passwordField.type === 'password'
+                        ? 'heroicons_solid:eye'
+                        : 'heroicons_solid:eye-slash'"></mat-icon>
+                    </button>
+                    <mat-error *ngIf="signUpForm.get('password')?.invalid">
+                        Password does not meet security rules
+                    </mat-error>
+                </mat-form-field>
+
+                <!-- Timezone -->
+                <mat-form-field class="w-full">
+                    <mat-label>Timezone</mat-label>
+                    <input matInput formControlName="timezone" />
+                    <mat-error *ngIf="signUpForm.get('timezone')?.hasError('required')">
+                        Timezone is required
+                    </mat-error>
+                </mat-form-field>
+
+
+
+                <!-- Address (full width) -->
+                <mat-form-field class="w-full md:col-span-3">
+                    <mat-label>Address</mat-label>
+                    <textarea matInput rows="3" formControlName="address"></textarea>
+                </mat-form-field>
+
+                <!-- Agreements -->
+                <div class="md:col-span-2">
+                    <mat-checkbox formControlName="agreements" color="primary">
+                        I agree to the
+                        <a class="text-primary-500 hover:underline ml-1">Terms</a>
+                        and
+                        <a class="text-primary-500 hover:underline ml-1">Privacy Policy</a>
+                    </mat-checkbox>
+                </div>
+
+                <button mat-flat-button color="primary" class="w-full">
+                    @if (!loader) {
+                    <span>Create Account</span>
+                    }
+                    @if (loader) {
+                    <mat-progress-spinner diameter="24" mode="indeterminate"></mat-progress-spinner>
+                    }
+                </button>
+
+            </form>
+        </fuse-card>
+
+    </div>
+</div>

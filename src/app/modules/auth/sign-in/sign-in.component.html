@@ -1,0 +1,102 @@
+<div class="auth-sign-in-root">
+  <div class="auth-sign-in-card">
+    <!-- Left panel: Sign In -->
+    <div class="auth-sign-in-panel auth-sign-in-form-panel">
+      <div class="auth-sign-in-form-content">
+        <div class="auth-sign-in-logo">
+          <img src="images/logo/logo.png" alt="Logo" />
+        </div>
+        <h1 class="auth-sign-in-title">Sign In</h1>
+
+        <!-- Social login (design placeholder) -->
+        <!-- <div class="auth-sign-in-social">
+          <button type="button" class="auth-sign-in-social-btn" aria-label="Google"><span>G+</span></button>
+          <button type="button" class="auth-sign-in-social-btn" aria-label="Facebook"><span>f</span></button>
+          <button type="button" class="auth-sign-in-social-btn" aria-label="GitHub"><span>Git</span></button>
+          <button type="button" class="auth-sign-in-social-btn" aria-label="LinkedIn"><span>in</span></button>
+        </div> -->
+
+        <p class="auth-sign-in-or">Use your email and password</p>
+
+        @if (showAlert) {
+          <fuse-alert
+            class="auth-sign-in-alert"
+            [appearance]="'outline'"
+            [showIcon]="false"
+            [type]="alert.type"
+          >
+            {{ alert.message }}
+          </fuse-alert>
+        }
+
+        <form
+          class="auth-sign-in-form"
+          [formGroup]="signInForm"
+          [overlayLoader]="loader"
+          (ngSubmit)="signIn()"
+        >
+          <mat-form-field class="auth-sign-in-field fuse-mat-dense">
+            <mat-label>Email</mat-label>
+            <input matInput formControlName="email" />
+            <mat-error *ngIf="signInForm.get('email')?.hasError('required')">
+              Email is required
+            </mat-error>
+          </mat-form-field>
+
+          <mat-form-field class="auth-sign-in-field fuse-mat-dense">
+            <mat-label>Password</mat-label>
+            <input matInput type="password" formControlName="password" #passwordField />
+            <button
+              mat-icon-button
+              matSuffix
+              type="button"
+              (click)="
+                passwordField.type =
+                  passwordField.type === 'password' ? 'text' : 'password'
+              "
+            >
+              <mat-icon
+                [svgIcon]="
+                  passwordField.type === 'password'
+                    ? 'heroicons_solid:eye'
+                    : 'heroicons_solid:eye-slash'
+                "
+              ></mat-icon>
+            </button>
+            <mat-error>Password is required</mat-error>
+          </mat-form-field>
+
+          <!-- <div class="auth-sign-in-forgot">
+            <a [routerLink]="['/forgot-password']">Forget Your password?</a>
+          </div> -->
+
+          <button
+            mat-flat-button
+            color="primary"
+            type="submit"
+            class="auth-sign-in-submit"
+            [disabled]="signInForm.invalid || loader"
+            (click)="signIn()"
+          >
+            <span>SIGN IN</span>
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Right panel: Hello, Friend! / Sign Up -->
+    <div class="auth-sign-in-panel auth-sign-in-welcome-panel">
+      <div class="auth-sign-in-watermark"></div>
+      <div class="auth-sign-in-welcome-content">
+        <h2 class="auth-sign-in-welcome-title">Welcome to Dar Al Barakah Delivery Services LLC!</h2>
+        <p class="auth-sign-in-welcome-text">
+          A centralized system for managing your business efficiently,
+          Manage orders, deliveries, customers, and more from a single platform.
+        </p>
+        <!-- <a mat-stroked-button [routerLink]="['/sign-up']" class="auth-sign-in-signup-btn">
+          SIGN UP
+        </a> -->
+      </div>
+    </div>
+  </div>
+</div>

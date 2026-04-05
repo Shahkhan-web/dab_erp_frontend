@@ -1,0 +1,197 @@
+<div class="bg-white dark:bg-neutral-900 rounded-2xl max-h-[90vh] overflow-x-hidden overflow-y-auto">
+  <div class="bg-gradient-to-r from-primary-600 to-primary-700 px-6 py-5 text-white">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-white/20">
+          <mat-icon class="icon-size-8 text-white" [svgIcon]="'heroicons_outline:user-plus'"></mat-icon>
+        </div>
+        <div>
+          <h2 class="text-xl font-bold tracking-tight">{{ isEdit ? 'Edit User' : 'Add User' }}</h2>
+          <p class="text-sm text-white/90">{{ isEdit ? 'Update admin or manager' : 'Create new admin or manager' }}</p>
+        </div>
+      </div>
+      <button mat-icon-button (click)="cancel()" class="text-white/90 hover:bg-white/20">
+        <mat-icon class="text-white">close</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  <form [formGroup]="form" class="p-6 sm:p-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+    <mat-form-field class="fuse-mat-dense w-full">
+      <mat-label>Display Name</mat-label>
+      <input matInput formControlName="displayName" placeholder="John Doe" />
+      <mat-error>Display name is required</mat-error>
+    </mat-form-field>
+    <mat-form-field class="fuse-mat-dense w-full">
+      <mat-label>Email</mat-label>
+      <input matInput type="email" formControlName="email" placeholder="manager@example.com" />
+      <mat-error>Valid email is required</mat-error>
+    </mat-form-field>
+    <mat-form-field class="fuse-mat-dense w-full col-span-2 md:col-span-1">
+      <mat-label>Designation</mat-label>
+      <input
+        matInput
+        formControlName="designation"
+        [matAutocomplete]="designationAuto"
+        [disabled]="designationsLoading"
+        placeholder="Select from list or type your own"
+      />
+      <mat-autocomplete #designationAuto="matAutocomplete" autoActiveFirstOption>
+        @for (d of filteredDesignations; track d) {
+          <mat-option [value]="d">{{ d }}</mat-option>
+        }
+      </mat-autocomplete>
+      @if (designationsLoading) {
+        <mat-hint>Loading designations…</mat-hint>
+      } @else {
+        <mat-hint>Optional. Choose a suggestion or enter any designation.</mat-hint>
+      }
+    </mat-form-field>
+    @if (!isEdit) {
+      <mat-form-field class="fuse-mat-dense w-full col-span-2 md:col-span-1">
+        <mat-label>Password</mat-label>
+        <input matInput [type]="hidePassword ? 'password' : 'text'" formControlName="password" placeholder="Password" />
+        <button mat-icon-button matSuffix type="button" (click)="hidePassword = !hidePassword" tabindex="-1" aria-label="Toggle password visibility">
+          <mat-icon [svgIcon]="hidePassword ? 'heroicons_solid:eye' : 'heroicons_solid:eye-slash'"></mat-icon>
+        </button>
+        <mat-error>Password is required</mat-error>
+      </mat-form-field>
+    }
+    <mat-form-field class="fuse-mat-dense w-full col-span-2">
+      <mat-label>Role</mat-label>
+      <mat-select formControlName="role">
+        @for (opt of roleOptions; track opt.value) {
+          <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <section
+      class="col-span-2 rounded-2xl border border-zinc-200/90 bg-gradient-to-br from-white to-zinc-50 p-5 shadow-sm dark:border-zinc-600 dark:from-zinc-900/60 dark:to-zinc-900/30 sm:p-6"
+    >
+      <div class="flex items-center gap-2 border-b border-zinc-200 pb-3 dark:border-zinc-600">
+        <mat-icon class="icon-size-5 text-primary-600 dark:text-primary-400" [svgIcon]="'heroicons_outline:camera'"></mat-icon>
+        <h3 class="text-base font-semibold text-zinc-900 dark:text-zinc-50">Profile photo</h3>
+      </div>
+      <p class="mt-3 text-sm text-secondary leading-relaxed">
+        @if (!isEdit) {
+          Choose a photo now; it will upload automatically after the user is created.
+        } @else {
+          Update the picture here or remove the current one. New uploads apply when you save.
+        }
+      </p>
+      <div class="mt-5 flex flex-col items-center gap-6 sm:flex-row sm:items-start">
+        <div
+          class="relative shrink-0 rounded-full p-1 transition-all duration-200"
+          [ngClass]="
+            profileAvatarDragActive
+              ? 'ring-2 ring-primary ring-offset-2 ring-offset-zinc-50 dark:ring-offset-zinc-900'
+              : 'ring-1 ring-zinc-200 dark:ring-zinc-600'
+          "
+          (dragenter)="onProfileAvatarDragEnter($event)"
+          (dragleave)="onProfileAvatarDragLeave($event)"
+          (dragover)="onProfileAvatarDragOver($event)"
+          (drop)="onProfileAvatarDrop($event)"
+        >
+          <div
+            class="flex h-32 w-32 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-zinc-100 to-zinc-200 dark:from-zinc-800 dark:to-zinc-900"
+          >
+            @if (pendingProfilePreviewUrl || profilePictureUrl) {
+              <img
+                [src]="pendingProfilePreviewUrl || profilePictureUrl"
+                alt=""
+                class="h-full w-full object-cover"
+              />
+            } @else {
+              <mat-icon class="icon-size-14 text-zinc-400 dark:text-zinc-500" [svgIcon]="'heroicons_outline:user'"></mat-icon>
+            }
+          </div>
+          <input
+            #profilePicInput
+            type="file"
+            class="sr-only"
+            [accept]="profilePictureAcceptAttr"
+            (change)="onProfilePictureFileInputChange($event)"
+          />
+        </div>
+        <div class="min-w-0 flex-1 space-y-3 text-center sm:text-start">
+          <p class="text-sm text-secondary leading-relaxed">
+            Drag an image onto the circle or use <strong>Choose photo</strong>.
+          </p>
+          <div class="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
+            <button mat-stroked-button color="primary" type="button" class="fuse-mat-dense" (click)="profilePicInput.click()">
+              <mat-icon class="icon-size-5">add_a_photo</mat-icon>
+              <span class="ms-2">Choose photo</span>
+            </button>
+            @if (pendingProfileFile) {
+              <button mat-stroked-button type="button" [disabled]="loading" (click)="clearPendingProfilePicture()">
+                Cancel selection
+              </button>
+            }
+            @if (isEdit && profilePictureUrl && !pendingProfileFile) {
+              <button
+                mat-stroked-button
+                color="warn"
+                type="button"
+                [disabled]="removingProfilePicture || loading"
+                (click)="removeProfilePicture()"
+              >
+                @if (removingProfilePicture) {
+                  <mat-progress-spinner class="inline-block align-middle me-2" diameter="20" mode="indeterminate"></mat-progress-spinner>
+                }
+                <span>{{ removingProfilePicture ? 'Removing…' : 'Remove photo' }}</span>
+              </button>
+            }
+          </div>
+          <p class="text-xs text-secondary">JPEG, PNG, WebP, or GIF · max {{ profilePictureMaxBytes / (1024 * 1024) }}&nbsp;MB</p>
+        </div>
+      </div>
+    </section>
+
+    @if (visibleModuleKeys.length > 0) {
+      <div class="col-span-2 rounded-xl border border-neutral-200 dark:border-neutral-700 overflow-hidden">
+        <div class="px-4 py-3 bg-neutral-50 dark:bg-neutral-800/80 border-b border-neutral-200 dark:border-neutral-700">
+          <h3 class="text-sm font-semibold text-neutral-900 dark:text-white">Module access</h3>
+          <p class="text-xs text-secondary mt-0.5">
+            {{ isAdmin ? 'Set read and write per module.' : 'You can only grant access for modules you manage (write access).' }}
+          </p>
+        </div>
+        <div class="overflow-x-auto" formGroupName="moduleAccess">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b border-neutral-200 dark:border-neutral-700 text-left text-secondary">
+                <th class="px-4 py-2 font-medium">Module</th>
+                <th class="px-4 py-2 font-medium w-24 text-center">Read</th>
+                <th class="px-4 py-2 font-medium w-24 text-center">Write</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (key of visibleModuleKeys; track key) {
+                <tr class="border-b border-neutral-100 dark:border-neutral-800 last:border-0" [formGroupName]="key">
+                  <td class="px-4 py-2 text-neutral-900 dark:text-neutral-100">{{ moduleLabels[key] }}</td>
+                  <td class="px-4 py-2 text-center">
+                    <mat-checkbox color="primary" formControlName="read" (change)="onModuleReadChange(key, $event.checked)"></mat-checkbox>
+                  </td>
+                  <td class="px-4 py-2 text-center">
+                    <mat-checkbox color="primary" formControlName="write" (change)="onModuleWriteChange(key, $event.checked)"></mat-checkbox>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    } @else if (!isAdmin) {
+      <p class="col-span-2 text-sm text-secondary rounded-lg border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-500/10 px-4 py-3">
+        You do not have write access on any module, so module access cannot be set here. Ask an admin to update this user if needed.
+      </p>
+    }
+  </form>
+
+  <div class="px-6 pb-6 flex flex-wrap gap-3 justify-end">
+    <button mat-stroked-button (click)="cancel()">Cancel</button>
+    <button mat-flat-button color="primary" [disabled]="loading" (click)="save()">
+      {{ loading ? 'Saving...' : (isEdit ? 'Update' : 'Create') }}
+    </button>
+  </div>
+</div>

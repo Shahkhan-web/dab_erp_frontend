@@ -1,0 +1,45 @@
+<div
+  class="salary-slip-pdf-dialog flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden rounded-2xl bg-white dark:bg-zinc-900">
+  <div
+    class="relative shrink-0 overflow-hidden bg-gradient-to-br from-violet-600 via-primary-600 to-indigo-700 px-4 py-3 text-white sm:px-5 sm:py-4">
+    <div class="pointer-events-none absolute -right-12 -top-12 h-36 w-36 rounded-full bg-white/10 blur-2xl"></div>
+    <div class="relative flex flex-wrap items-start justify-between gap-3">
+      <div class="flex min-w-0 items-start gap-3">
+        <div
+          class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/20 ring-2 ring-white/30">
+          <mat-icon class="icon-size-7 text-white">picture_as_pdf</mat-icon>
+        </div>
+        <div class="min-w-0">
+          <h2 class="text-lg font-bold tracking-tight sm:text-xl">Salary slip PDF</h2>
+          @if (data.subtitle) {
+          <p class="mt-0.5 truncate text-sm text-white/90">{{ data.subtitle }}</p>
+          }
+        </div>
+      </div>
+      <div class="flex shrink-0 flex-wrap items-center gap-2">
+        <button
+          mat-button
+          type="button"
+          (click)="download()"
+          class="text-white hover:bg-white/15"
+          matTooltip="Save PDF to your device">
+          <mat-icon class="icon-size-5">download</mat-icon>
+          <span class="ms-1">Download</span>
+        </button>
+        <button
+          mat-icon-button
+          type="button"
+          (click)="close()"
+          class="text-white/90 hover:bg-white/15"
+          aria-label="Close">
+          <mat-icon class="text-white">close</mat-icon>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <iframe
+    [src]="pdfSrc"
+    title="Salary slip PDF"
+    class="pdf-viewer-frame min-h-0 w-full flex-1 border-0 bg-zinc-100 dark:bg-zinc-950"></iframe>
+</div>

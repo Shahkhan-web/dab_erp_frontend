@@ -1,0 +1,56 @@
+<div class="print-dialog-content bg-white rounded-2xl overflow-hidden">
+  <div class="bg-gradient-to-r from-primary-600 to-primary-700 px-6 py-5 text-white">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-white/20">
+          <mat-icon class="icon-size-8 text-white" [svgIcon]="'heroicons_outline:currency-dollar'"></mat-icon>
+        </div>
+        <div>
+          <h2 class="text-xl font-bold tracking-tight">Update Salary &amp; Sponsorship Details</h2>
+          <p class="text-sm text-white/90">Step 5 — Salary &amp; sponsorship</p>
+        </div>
+      </div>
+      <button mat-icon-button (click)="cancel()" class="text-white/90 hover:bg-white/20">
+        <mat-icon class="text-white">close</mat-icon>
+      </button>
+    </div>
+  </div>
+  <div class="p-6 sm:p-8">
+    <form [formGroup]="form" class="grid grid-cols-1 md:grid-cols-3 gap-3 w-full">
+      <mat-form-field class="fuse-mat-dense w-full"><mat-label>Cost to Company</mat-label><input matInput type="number" formControlName="costToCompany" /></mat-form-field>
+      <mat-form-field class="fuse-mat-dense w-full"><mat-label>Basic Salary</mat-label><input matInput type="number" formControlName="basicSalary" /></mat-form-field>
+      <mat-form-field class="fuse-mat-dense w-full"><mat-label>Mobile Allowance</mat-label><input matInput type="number" formControlName="mobileAllowance" /></mat-form-field>
+      <mat-form-field class="fuse-mat-dense w-full"><mat-label>Food Allowance</mat-label><input matInput type="number" formControlName="foodAllowance" /></mat-form-field>
+      <mat-form-field class="fuse-mat-dense w-full"><mat-label>Transportation Allowance</mat-label><input matInput type="number" formControlName="transportationAllowance" /></mat-form-field>
+      <mat-form-field class="fuse-mat-dense w-full"><mat-label>Other Allowance</mat-label><input matInput type="number" formControlName="otherAllowance" /></mat-form-field>
+      <mat-form-field class="fuse-mat-dense w-full">
+        <mat-label>Salary Currency</mat-label>
+        <mat-select formControlName="salaryCurrency">
+          <mat-option value="AED">AED</mat-option>
+          <mat-option value="USD">USD</mat-option>
+          <mat-option value="SAR">SAR</mat-option>
+        </mat-select>
+      </mat-form-field>
+      <mat-form-field class="fuse-mat-dense w-full">
+        <mat-label>Salary Mode</mat-label>
+        <mat-select formControlName="salaryMode">
+          <mat-option value="bank">Bank</mat-option>
+          <mat-option value="cash">Cash</mat-option>
+        </mat-select>
+      </mat-form-field>
+      <mat-form-field class="fuse-mat-dense w-full"><mat-label>Cost Center</mat-label><input matInput formControlName="costCenter" /></mat-form-field>
+      <mat-form-field class="fuse-mat-dense w-full">
+        <mat-label>Sponsorship Type</mat-label>
+        <mat-select formControlName="sponsorshipType">
+          <mat-option value="org_visa">Organization Visa</mat-option>
+          <mat-option value="personal">Personal</mat-option>
+        </mat-select>
+      </mat-form-field>
+      <mat-form-field class="fuse-mat-dense w-full"><mat-label>Sponsorship Org Name</mat-label><input matInput formControlName="sponsorshipOrgName" /></mat-form-field>
+    </form>
+    <div class="mt-8 flex flex-wrap gap-3 justify-end">
+      <button mat-flat-button color="primary" [disabled]="loading" (click)="save()">{{ loading ? 'Saving...' : 'Save' }}</button>
+      <button mat-stroked-button (click)="cancel()">Cancel</button>
+    </div>
+  </div>
+</div>

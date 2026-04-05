@@ -1,0 +1,275 @@
+﻿node.exe : npm warn Unknown env config "devdir". This will stop working in the next major version of npm.
+At line:1 char:1
++ & "C:\nvm4w\nodejs/node.exe" "C:\nvm4w\nodejs/node_modules/npm/bin/np ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (npm warn Unknow...version of npm.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+> Building...
+ΓêÜ Building...
+Initial chunk files   | Names             |  Raw size | Estimated transfer size
+styles-RWSG22Q6.css   | styles            |   1.20 MB |                44.15 kB
+main-U5P2QPKV.js      | main              |   1.07 MB |               191.33 kB
+chunk-5M5UDJMA.js     | -                 | 175.19 kB |                51.02 kB
+chunk-MO44THWX.js     | -                 | 146.19 kB |                37.47 kB
+chunk-4HUIIQ6P.js     | -                 | 140.86 kB |                25.15 kB
+chunk-Y5KTXTZG.js     | -                 | 115.33 kB |                20.92 kB
+chunk-7J2TZ4XX.js     | -                 |  83.78 kB |                18.22 kB
+chunk-BOO3M3AT.js     | -                 |  41.60 kB |                 9.08 kB
+chunk-ZN6FV6D6.js     | -                 |  40.96 kB |                10.14 kB
+polyfills-FFHMD2TL.js | polyfills         |  34.52 kB |                11.28 kB
+chunk-PTM52TXI.js     | -                 |  22.53 kB |                 4.08 kB
+chunk-OLWSLCHJ.js     | -                 |  20.61 kB |                 5.63 kB
+chunk-7OOFLHE2.js     | -                 |  19.64 kB |                 4.21 kB
+chunk-Z763ONF7.js     | -                 |   8.04 kB |                 2.39 kB
+chunk-ZNAMKOO3.js     | -                 |   6.30 kB |                 1.74 kB
+chunk-C7Z3AFB6.js     | -                 |   6.02 kB |               749 bytes
+chunk-TSRGIXR5.js     | -                 |   1.53 kB |               662 bytes
+chunk-CTHFOQPW.js     | -                 |   1.45 kB |               532 bytes
+chunk-JGXEE2ED.js     | -                 | 605 bytes |               605 bytes
+chunk-EXOE5S5Y.js     | -                 | 259 bytes |               259 bytes
+chunk-7Q227RNU.js     | -                 |  94 bytes |                94 bytes
+
+                      | Initial total     |   3.14 MB |               439.73 kB
+
+Lazy chunk files      | Names             |  Raw size | Estimated transfer size
+chunk-VRXIKMLJ.js     | apexcharts-common | 566.57 kB |               126.70 kB
+chunk-ZAG3K7T2.js     | -                 | 428.63 kB |               118.54 kB
+chunk-C5ZIPFCK.js     | -                 | 409.78 kB |               112.34 kB
+chunk-KN5DE2GR.js     | inventory-routes  | 365.47 kB |                45.17 kB
+chunk-WZJ43HHR.js     | purchases-routes  | 347.59 kB |                38.90 kB
+chunk-QUSCKSHG.js     | hr-routes         | 253.59 kB |                32.68 kB
+chunk-EEHRPOZC.js     | logistics-routes  | 214.39 kB |                26.07 kB
+chunk-N3N5G4BD.js     | sales-routes      | 209.89 kB |                26.73 kB
+chunk-NHU2NPDK.js     | html2canvas       | 203.12 kB |                38.53 kB
+chunk-SO6EBCPI.js     | accounting-routes | 161.11 kB |                25.74 kB
+chunk-77NHA675.js     | index-es          | 158.82 kB |                46.76 kB
+chunk-EOGN6TV3.js     | settings-routes   | 108.51 kB |                15.67 kB
+chunk-CTE2O4JP.js     | -                 |  88.04 kB |                16.10 kB
+chunk-6ZEF4ZH5.js     | sweetalert2-all   |  79.54 kB |                18.72 kB
+chunk-VPVFKYV7.js     | -                 |  62.72 kB |                 3.95 kB
+...and 43 more lazy chunks files. Use "--verbose" to show all the files.
+
+Application bundle generation complete. [177.969 seconds]
+
+Γû▓ [WARNING] TS-998113: DatePipe is not used within the template of TrialBalanceComponent [plugin angular-compiler]
+
+    src/app/modules/accounting/reports/trial-balance-report/trial-balance-report.component.ts:29:4:
+      29 Γöé     DatePipe
+         Γò╡     ~~~~~~~~
+
+
+Γû▓ [WARNING] TS-998113: FuseCardComponent is not used within the template of AddEditDepartmentComponent [plugin 
+angular-compiler]
+
+    src/app/modules/admin/departments/add-edit-department/add-edit-department.component.ts:37:4:
+      37 Γöé     FuseCardComponent,
+         Γò╡     ~~~~~~~~~~~~~~~~~
+
+
+Γû▓ [WARNING] TS-998113: DatePipe is not used within the template of DepartmentsComponent [plugin angular-compiler]
+
+    src/app/modules/admin/departments/departments.component.ts:30:45:
+      30 Γöé     RouterModule, CommonModule, FormsModule, DatePipe,
+         Γò╡                                              ~~~~~~~~
+
+
+Γû▓ [WARNING] TS-998113: DatePipe is not used within the template of DesignationsComponent [plugin angular-compiler]
+
+    src/app/modules/admin/designations/designations.component.ts:41:4:
+      41 Γöé     DatePipe,
+         Γò╡     ~~~~~~~~
+
+
+Γû▓ [WARNING] TS-998113: FuseCardComponent is not used within the template of AddEditEmployeeComponent [plugin 
+angular-compiler]
+
+    src/app/modules/admin/employes/add-edit-employee/add-edit-employee.component.ts:38:4:
+      38 Γöé     FuseCardComponent,
+         Γò╡     ~~~~~~~~~~~~~~~~~
+
+
+Γû▓ [WARNING] TS-998113: MatDialogTitle is not used within the template of ViewAttributeValuesDialogComponent [plugin 
+angular-compiler]
+
+    src/app/modules/inventory/product-attributes/view-attribute-values-dialog/view-attribute-values-dialog.component.ts
+:24:4:
+      24 Γöé     MatDialogTitle,
+         Γò╡     ~~~~~~~~~~~~~~
+
+
+Γû▓ [WARNING] TS-998113: DatePipe is not used within the template of ProductDetailsComponent [plugin angular-compiler]
+
+    src/app/modules/inventory/products/product-details/product-details.component.ts:136:4:
+      136 Γöé     DatePipe,
+          Γò╡     ~~~~~~~~
+
+
+Γû▓ [WARNING] TS-998113: DatePipe is not used within the template of ProductsComponent [plugin angular-compiler]
+
+    src/app/modules/inventory/products/products.component.ts:43:4:
+      43 Γöé     DatePipe,
+         Γò╡     ~~~~~~~~
+
+
+Γû▓ [WARNING] TS-998113: FuseCardComponent is not used within the template of ShipmentsComponent [plugin 
+angular-compiler]
+
+    src/app/modules/logistics/shipments/shipments.component.ts:49:4:
+      49 Γöé     FuseCardComponent
+         Γò╡     ~~~~~~~~~~~~~~~~~
+
+
+Γû▓ [WARNING] TS-998113: DecimalPipe is not used within the template of GrnComponent [plugin angular-compiler]
+
+    src/app/modules/purchases/grn/grn.component.ts:40:4:
+      40 Γöé     DecimalPipe,
+         Γò╡     ~~~~~~~~~~~
+
+
+Γû▓ [WARNING] TS-998113: DecimalPipe is not used within the template of PurchaseOrdersComponent [plugin 
+angular-compiler]
+
+    src/app/modules/purchases/purchase-orders/purchase-orders.component.ts:47:4:
+      47 Γöé     DecimalPipe,
+         Γò╡     ~~~~~~~~~~~
+
+
+Γû▓ [WARNING] TS-998113: DecimalPipe is not used within the template of PurchaseReturnsComponent [plugin 
+angular-compiler]
+
+    src/app/modules/purchases/purchase-returns/purchase-returns.component.ts:40:4:
+      40 Γöé     DecimalPipe,
+         Γò╡     ~~~~~~~~~~~
+
+
+Γû▓ [WARNING] TS-998113: DecimalPipe is not used within the template of SalesReturnsComponent [plugin angular-compiler]
+
+    src/app/modules/sales/sales-returns/sales-returns.component.ts:30:4:
+      30 Γöé     DecimalPipe,
+         Γò╡     ~~~~~~~~~~~
+
+
+Γû▓ [WARNING] src/@fuse/components/navigation/vertical/vertical.component.scss exceeded maximum budget. Budget 102.40 
+kB was not met by 4.06 kB with a total of 106.46 kB.
+
+
+Γû▓ [WARNING] Module 'core-js/modules/es.promise.js' used by 'node_modules/canvg/lib/index.es.js' is not ESM
+
+  CommonJS or AMD dependencies can cause optimization bailouts.
+  For more information see: https://angular.dev/tools/cli/build#configuring-commonjs-dependencies
+
+
+Γû▓ [WARNING] Module 'core-js/modules/es.string.match.js' used by 'node_modules/canvg/lib/index.es.js' is not ESM
+
+  CommonJS or AMD dependencies can cause optimization bailouts.
+  For more information see: https://angular.dev/tools/cli/build#configuring-commonjs-dependencies
+
+
+Γû▓ [WARNING] Module 'core-js/modules/es.string.replace.js' used by 'node_modules/canvg/lib/index.es.js' is not ESM
+
+  CommonJS or AMD dependencies can cause optimization bailouts.
+  For more information see: https://angular.dev/tools/cli/build#configuring-commonjs-dependencies
+
+
+Γû▓ [WARNING] Module 'core-js/modules/es.string.starts-with.js' used by 'node_modules/canvg/lib/index.es.js' is not ESM
+
+  CommonJS or AMD dependencies can cause optimization bailouts.
+  For more information see: https://angular.dev/tools/cli/build#configuring-commonjs-dependencies
+
+
+Γû▓ [WARNING] Module 'core-js/modules/es.array.iterator.js' used by 'node_modules/canvg/lib/index.es.js' is not ESM
+
+  CommonJS or AMD dependencies can cause optimization bailouts.
+  For more information see: https://angular.dev/tools/cli/build#configuring-commonjs-dependencies
+
+
+Γû▓ [WARNING] Module 'core-js/modules/web.dom-collections.iterator.js' used by 'node_modules/canvg/lib/index.es.js' is 
+not ESM
+
+  CommonJS or AMD dependencies can cause optimization bailouts.
+  For more information see: https://angular.dev/tools/cli/build#configuring-commonjs-dependencies
+
+
+Γû▓ [WARNING] Module 'core-js/modules/es.array.reduce.js' used by 'node_modules/canvg/lib/index.es.js' is not ESM
+
+  CommonJS or AMD dependencies can cause optimization bailouts.
+  For more information see: https://angular.dev/tools/cli/build#configuring-commonjs-dependencies
+
+
+Γû▓ [WARNING] Module 'core-js/modules/es.string.ends-with.js' used by 'node_modules/canvg/lib/index.es.js' is not ESM
+
+  CommonJS or AMD dependencies can cause optimization bailouts.
+  For more information see: https://angular.dev/tools/cli/build#configuring-commonjs-dependencies
+
+
+Γû▓ [WARNING] Module 'core-js/modules/es.string.split.js' used by 'node_modules/canvg/lib/index.es.js' is not ESM
+
+  CommonJS or AMD dependencies can cause optimization bailouts.
+  For more information see: https://angular.dev/tools/cli/build#configuring-commonjs-dependencies
+
+
+Γû▓ [WARNING] Module 'raf' used by 'node_modules/canvg/lib/index.es.js' is not ESM
+
+  CommonJS or AMD dependencies can cause optimization bailouts.
+  For more information see: https://angular.dev/tools/cli/build#configuring-commonjs-dependencies
+
+
+Γû▓ [WARNING] Module 'core-js/modules/es.string.trim.js' used by 'node_modules/canvg/lib/index.es.js' is not ESM
+
+  CommonJS or AMD dependencies can cause optimization bailouts.
+  For more information see: https://angular.dev/tools/cli/build#configuring-commonjs-dependencies
+
+
+Γû▓ [WARNING] Module 'rgbcolor' used by 'node_modules/canvg/lib/index.es.js' is not ESM
+
+  CommonJS or AMD dependencies can cause optimization bailouts.
+  For more information see: https://angular.dev/tools/cli/build#configuring-commonjs-dependencies
+
+
+Γû▓ [WARNING] Module 'core-js/modules/es.array.index-of.js' used by 'node_modules/canvg/lib/index.es.js' is not ESM
+
+  CommonJS or AMD dependencies can cause optimization bailouts.
+  For more information see: https://angular.dev/tools/cli/build#configuring-commonjs-dependencies
+
+
+Γû▓ [WARNING] Module 'core-js/modules/es.string.includes.js' used by 'node_modules/canvg/lib/index.es.js' is not ESM
+
+  CommonJS or AMD dependencies can cause optimization bailouts.
+  For more information see: https://angular.dev/tools/cli/build#configuring-commonjs-dependencies
+
+
+Γû▓ [WARNING] Module 'core-js/modules/es.array.reverse.js' used by 'node_modules/canvg/lib/index.es.js' is not ESM
+
+  CommonJS or AMD dependencies can cause optimization bailouts.
+  For more information see: https://angular.dev/tools/cli/build#configuring-commonjs-dependencies
+
+
+Γû▓ [WARNING] Module 'core-js/modules/es.regexp.to-string.js' used by 'node_modules/canvg/lib/index.es.js' is not ESM
+
+  CommonJS or AMD dependencies can cause optimization bailouts.
+  For more information see: https://angular.dev/tools/cli/build#configuring-commonjs-dependencies
+
+
+Γû▓ [WARNING] Module 'file-saver' used by 
+'src/app/modules/accounting/chart-of-accounts/chart-of-accounts.component.ts' is not ESM
+
+  CommonJS or AMD dependencies can cause optimization bailouts.
+  For more information see: https://angular.dev/tools/cli/build#configuring-commonjs-dependencies
+
+
+Γû▓ [WARNING] Module 'html2canvas' used by 'node_modules/jspdf/dist/jspdf.es.min.js' is not ESM
+
+  CommonJS or AMD dependencies can cause optimization bailouts.
+  For more information see: https://angular.dev/tools/cli/build#configuring-commonjs-dependencies
+
+
+Γû▓ [WARNING] Module 'sweetalert2' used by 
+'node_modules/@sweetalert2/ngx-sweetalert2/fesm2022/sweetalert2-ngx-sweetalert2.mjs' is not ESM
+
+  CommonJS or AMD dependencies can cause optimization bailouts.
+  For more information see: https://angular.dev/tools/cli/build#configuring-commonjs-dependencies
+
+
+Output location: D:\bizcare-data\bizcare-new\dist\fuse
+

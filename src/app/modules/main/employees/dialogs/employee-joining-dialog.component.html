@@ -1,0 +1,60 @@
+<div class="print-dialog-content bg-white rounded-2xl overflow-hidden">
+  <div class="bg-gradient-to-r from-primary-600 to-primary-700 px-6 py-5 text-white">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-white/20">
+          <mat-icon class="icon-size-8 text-white" [svgIcon]="'heroicons_outline:calendar-days'"></mat-icon>
+        </div>
+        <div>
+          <h2 class="text-xl font-bold tracking-tight">Update Joining Details</h2>
+          <p class="text-sm text-white/90">Step 4 — Joining details</p>
+        </div>
+      </div>
+      <button mat-icon-button (click)="cancel()" class="text-white/90 hover:bg-white/20">
+        <mat-icon class="text-white">close</mat-icon>
+      </button>
+    </div>
+  </div>
+  <div class="p-6 sm:p-8">
+    <form [formGroup]="form" class="grid grid-cols-1 md:grid-cols-3 gap-3 w-full">
+      <mat-form-field class="fuse-mat-dense w-full">
+        <mat-label>Joining Date</mat-label>
+        <input matInput [matDatepicker]="joiningPicker" formControlName="joiningDate" />
+        <mat-datepicker-toggle matSuffix [for]="joiningPicker"></mat-datepicker-toggle>
+        <mat-datepicker #joiningPicker></mat-datepicker>
+      </mat-form-field>
+      <mat-form-field class="fuse-mat-dense w-full">
+        <mat-label>Confirmation Date</mat-label>
+        <input matInput [matDatepicker]="confirmationPicker" formControlName="confirmationDate" />
+        <mat-datepicker-toggle matSuffix [for]="confirmationPicker"></mat-datepicker-toggle>
+        <mat-datepicker #confirmationPicker></mat-datepicker>
+      </mat-form-field>
+      <mat-form-field class="fuse-mat-dense w-full">
+        <mat-label>Notice Days</mat-label>
+        <input matInput type="number" formControlName="noticeDays" />
+      </mat-form-field>
+      <mat-form-field class="fuse-mat-dense w-full">
+        <mat-label>Offer Date</mat-label>
+        <input matInput [matDatepicker]="offerPicker" formControlName="offerDate" />
+        <mat-datepicker-toggle matSuffix [for]="offerPicker"></mat-datepicker-toggle>
+        <mat-datepicker #offerPicker></mat-datepicker>
+      </mat-form-field>
+      <mat-form-field class="fuse-mat-dense w-full">
+        <mat-label>Contract End Date</mat-label>
+        <input matInput [matDatepicker]="contractEndPicker" formControlName="contractEndDate" />
+        <mat-datepicker-toggle matSuffix [for]="contractEndPicker"></mat-datepicker-toggle>
+        <mat-datepicker #contractEndPicker></mat-datepicker>
+      </mat-form-field>
+      <mat-form-field class="fuse-mat-dense w-full">
+        <mat-label>Date of Retirement</mat-label>
+        <input matInput [matDatepicker]="retirementPicker" formControlName="dateOfRetirement" />
+        <mat-datepicker-toggle matSuffix [for]="retirementPicker"></mat-datepicker-toggle>
+        <mat-datepicker #retirementPicker></mat-datepicker>
+      </mat-form-field>
+    </form>
+    <div class="mt-8 flex flex-wrap gap-3 justify-end">
+      <button mat-flat-button color="primary" [disabled]="loading" (click)="save()">{{ loading ? 'Saving...' : 'Save' }}</button>
+      <button mat-stroked-button (click)="cancel()">Cancel</button>
+    </div>
+  </div>
+</div>

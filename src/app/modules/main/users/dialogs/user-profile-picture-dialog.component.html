@@ -1,0 +1,123 @@
+<div class="bg-white dark:bg-neutral-900 rounded-2xl max-h-[90vh] overflow-x-hidden overflow-y-auto">
+  <div class="bg-gradient-to-r from-primary-600 to-primary-700 px-6 py-5 text-white">
+    <div class="flex items-center justify-between gap-3">
+      <div class="flex items-center gap-3 min-w-0">
+        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-white/20 shrink-0">
+          <mat-icon class="icon-size-8 text-white" [svgIcon]="'heroicons_outline:camera'"></mat-icon>
+        </div>
+        <div class="min-w-0">
+          <h2 class="text-xl font-bold tracking-tight">Profile photo</h2>
+          <p class="text-sm text-white/90 truncate">{{ displayLabel }}</p>
+        </div>
+      </div>
+      <button mat-icon-button type="button" (click)="close()" class="text-white/90 hover:bg-white/20 shrink-0">
+        <mat-icon class="text-white">close</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  <div class="p-6 sm:p-8">
+    <section
+      class="rounded-2xl border border-zinc-200/90 bg-gradient-to-br from-white to-zinc-50 p-5 shadow-sm dark:border-zinc-600 dark:from-zinc-900/60 dark:to-zinc-900/30 sm:p-6"
+    >
+      <div class="flex items-center gap-2 border-b border-zinc-200 pb-3 dark:border-zinc-600">
+        <mat-icon class="icon-size-5 text-primary-600 dark:text-primary-400" [svgIcon]="'heroicons_outline:camera'"></mat-icon>
+        <h3 class="text-base font-semibold text-zinc-900 dark:text-zinc-50">Profile photo</h3>
+      </div>
+      <div class="mt-5 flex flex-col items-center gap-6 sm:flex-row sm:items-start">
+        <div
+          class="relative shrink-0 rounded-full p-1 transition-all duration-200"
+          [ngClass]="
+            profileAvatarDragActive
+              ? 'ring-2 ring-primary ring-offset-2 ring-offset-zinc-50 dark:ring-offset-zinc-900'
+              : 'ring-1 ring-zinc-200 dark:ring-zinc-600'
+          "
+          (dragenter)="onProfileAvatarDragEnter($event)"
+          (dragleave)="onProfileAvatarDragLeave($event)"
+          (dragover)="onProfileAvatarDragOver($event)"
+          (drop)="onProfileAvatarDrop($event)"
+        >
+          <div
+            class="flex h-32 w-32 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-zinc-100 to-zinc-200 dark:from-zinc-800 dark:to-zinc-900"
+          >
+            <img
+              *ngIf="pendingProfilePreviewUrl || profilePictureUrl"
+              [src]="pendingProfilePreviewUrl || profilePictureUrl"
+              alt=""
+              class="h-full w-full object-cover"
+            />
+            <mat-icon
+              *ngIf="!pendingProfilePreviewUrl && !profilePictureUrl"
+              class="icon-size-14 text-zinc-400 dark:text-zinc-500"
+              [svgIcon]="'heroicons_outline:user'"
+            ></mat-icon>
+          </div>
+          <input
+            #profilePicInput
+            type="file"
+            class="sr-only"
+            [accept]="profilePictureAcceptAttr"
+            (change)="onProfilePictureFileInputChange($event)"
+          />
+        </div>
+        <div class="min-w-0 flex-1 space-y-3 text-center sm:text-start">
+          <p class="text-sm text-secondary leading-relaxed">
+            Drag an image onto the circle or use <strong>Choose photo</strong>. Then upload to save it for this user.
+          </p>
+          <div class="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
+            <button mat-stroked-button color="primary" type="button" class="fuse-mat-dense" (click)="profilePicInput.click()">
+              <mat-icon class="icon-size-5">add_a_photo</mat-icon>
+              <span class="ms-2">Choose photo</span>
+            </button>
+            <button
+              *ngIf="pendingProfileFile"
+              mat-flat-button
+              color="primary"
+              type="button"
+              [disabled]="uploadingProfilePicture"
+              (click)="uploadProfilePicture()"
+            >
+              <mat-progress-spinner
+                *ngIf="uploadingProfilePicture"
+                class="inline-block align-middle me-2"
+                diameter="20"
+                mode="indeterminate"
+              ></mat-progress-spinner>
+              <span>{{ uploadingProfilePicture ? 'Uploading…' : 'Upload photo' }}</span>
+            </button>
+            <button
+              *ngIf="pendingProfileFile"
+              mat-stroked-button
+              type="button"
+              [disabled]="uploadingProfilePicture"
+              (click)="clearPendingProfilePicture()"
+            >
+              Cancel
+            </button>
+            <button
+              *ngIf="profilePictureUrl && !pendingProfileFile"
+              mat-stroked-button
+              color="warn"
+              type="button"
+              [disabled]="removingProfilePicture"
+              (click)="removeProfilePicture()"
+            >
+              <mat-progress-spinner
+                *ngIf="removingProfilePicture"
+                class="inline-block align-middle me-2"
+                diameter="20"
+                mode="indeterminate"
+              ></mat-progress-spinner>
+              <span>{{ removingProfilePicture ? 'Removing…' : 'Remove photo' }}</span>
+            </button>
+          </div>
+          <p class="text-xs text-secondary">JPEG, PNG, WebP, or GIF · max {{ profilePictureMaxBytes / (1024 * 1024) }}&nbsp;MB</p>
+        </div>
+      </div>
+    </section>
+
+    <div class="mt-6 flex justify-end">
+      <button mat-stroked-button type="button" (click)="close()">Close</button>
+    </div>
+  </div>
+</div>

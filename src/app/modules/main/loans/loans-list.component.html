@@ -1,0 +1,164 @@
+<div class="flex min-w-0 flex-auto flex-col" [overlayLoader]="pageLoader">
+  <div
+    class="border-b bg-card px-4 py-4 sm:px-6 md:px-5 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+    <div class="flex items-start gap-3 min-w-0">
+      <div
+        class="flex-shrink-0 w-11 h-11 rounded-xl bg-neutral-100 dark:bg-primary/20 flex items-center justify-center">
+        <mat-icon class="icon-size-6 text-neutral-900 dark:text-white"
+          [svgIcon]="'heroicons_outline:banknotes'"></mat-icon>
+      </div>
+      <div class="min-w-0">
+        <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-neutral-900 dark:text-white">Loans</h1>
+        <p class="text-sm text-secondary mt-0.5">Employee loans</p>
+      </div>
+    </div>
+    <div class="flex gap-2">
+      @if (canWriteLoan) {
+      <button mat-flat-button color="primary" (click)="addLoan()">
+        <mat-icon class="icon-size-5" [svgIcon]="'heroicons_solid:plus'"></mat-icon>
+        <span class="ms-2">Add loan</span>
+      </button>
+      }
+      <app-back-button></app-back-button>
+    </div>
+  </div>
+
+  <div class="flex-auto p-4 sm:p-6 md:p-5 flex flex-col gap-3">
+    <div class="flex justify-center">
+      <mat-card appearance="filled" class="bg-zinc-100 dark:bg-zinc-800/50 w-full max-w-6xl">
+        <mat-card-header class="flex flex-row items-center justify-between w-full">
+          <div class="flex items-center gap-x-2">
+            <mat-icon class="icon-size-5 text-zinc-900 dark:text-zinc-100"
+              [svgIcon]="'heroicons_outline:funnel'"></mat-icon>
+            <mat-card-title
+              class="text-zinc-900 dark:text-zinc-100 font-medium tracking-tight text-lg">Filters</mat-card-title>
+          </div>
+          <div class="flex items-center gap-1">
+            <button mat-icon-button color="primary" (click)="applyFilters()" matTooltip="Apply filters"
+              aria-label="Apply filters">
+              <mat-icon class="icon-size-5" [svgIcon]="'heroicons_outline:check'"></mat-icon>
+            </button>
+            <button mat-icon-button (click)="clearFilters()" matTooltip="Clear filters" aria-label="Clear filters">
+              <mat-icon class="icon-size-5" [svgIcon]="'heroicons_outline:x-mark'"></mat-icon>
+            </button>
+          </div>
+        </mat-card-header>
+        <mat-card-content class="border border-neutral-200 dark:border-neutral-700">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+            <mat-form-field class="fuse-mat-dense w-full">
+              <mat-label>Employee ID</mat-label>
+              <input matInput [(ngModel)]="filterEmployeeId" placeholder="UUID" (keyup.enter)="applyFilters()" />
+            </mat-form-field>
+            <mat-form-field class="fuse-mat-dense w-full">
+              <mat-label>Applicant type</mat-label>
+              <mat-select [(ngModel)]="filterApplicantType" placeholder="All">
+                <mat-option [value]="null">All</mat-option>
+                <mat-option value="employee">Employee</mat-option>
+              </mat-select>
+            </mat-form-field>
+            <mat-form-field class="fuse-mat-dense w-full">
+              <mat-label>Status</mat-label>
+              <mat-select [(ngModel)]="filterStatus" placeholder="All">
+                <mat-option [value]="null">All</mat-option>
+                <mat-option value="open">Open</mat-option>
+                <mat-option value="rejected">Rejected</mat-option>
+                <mat-option value="approved">Approved</mat-option>
+                <mat-option value="paid">Paid</mat-option>
+              </mat-select>
+            </mat-form-field>
+            <mat-form-field class="fuse-mat-dense w-full">
+              <mat-label>Loan name</mat-label>
+              <input matInput [(ngModel)]="filterLoanName" placeholder="Car loan" (keyup.enter)="applyFilters()" />
+            </mat-form-field>
+            <mat-form-field class="fuse-mat-dense w-full">
+              <mat-label>Created from</mat-label>
+              <input matInput [(ngModel)]="filterCreatedFrom" placeholder="2025-01-01"
+                (keyup.enter)="applyFilters()" />
+            </mat-form-field>
+            <mat-form-field class="fuse-mat-dense w-full">
+              <mat-label>Created to</mat-label>
+              <input matInput [(ngModel)]="filterCreatedTo" placeholder="2025-12-31" (keyup.enter)="applyFilters()" />
+            </mat-form-field>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <div class="bg-card rounded-xl shadow overflow-hidden border border-slate-200/60 dark:border-zinc-700/60">
+      <div class="overflow-x-auto">
+        <table mat-table [dataSource]="loans" class="w-full min-w-[960px]">
+          <ng-container matColumnDef="loanName">
+            <th mat-header-cell *matHeaderCellDef>Loan</th>
+            <td mat-cell *matCellDef="let item">
+              <div class="font-semibold text-neutral-900 dark:text-white">{{ item?.loanName }}</div>
+              <div class="text-xs text-secondary max-w-xs truncate" [title]="formatJsonField(item?.reason)">
+                {{ formatJsonField(item?.reason) }}
+              </div>
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="employeeId">
+            <th mat-header-cell *matHeaderCellDef>Employee ID</th>
+            <td mat-cell *matCellDef="let item">
+              <span class="font-mono text-xs">{{ item?.employeeCode }}</span>
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="applicantType">
+            <th mat-header-cell *matHeaderCellDef>Applicant</th>
+            <td mat-cell *matCellDef="let item">{{ item?.applicantType | titlecase }}</td>
+          </ng-container>
+          <ng-container matColumnDef="status">
+            <th mat-header-cell *matHeaderCellDef>Status</th>
+            <td mat-cell *matCellDef="let item">
+              <span class="px-2 py-0.5 rounded-full text-xs font-medium" [ngClass]="statusChipClass(item?.status)">
+                {{ item?.status | titlecase }}
+              </span>
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="loanAmount">
+            <th mat-header-cell *matHeaderCellDef>Amount</th>
+            <td mat-cell *matCellDef="let item">AED {{ item?.loanAmount | number: '1.2-2' }}</td>
+          </ng-container>
+          <ng-container matColumnDef="totalDeductedSoFar">
+            <th mat-header-cell *matHeaderCellDef>Deducted</th>
+            <td mat-cell *matCellDef="let item">AED {{ item?.totalDeductedSoFar | number: '1.2-2' }}</td>
+          </ng-container>
+          <ng-container matColumnDef="remaining">
+            <th mat-header-cell *matHeaderCellDef>Remaining</th>
+            <td mat-cell *matCellDef="let item">AED {{ item?.remaining | number: '1.2-2' }}</td>
+          </ng-container>
+          <ng-container matColumnDef="createdAt">
+            <th mat-header-cell *matHeaderCellDef>Created</th>
+            <td mat-cell *matCellDef="let item">{{ item?.createdAt | date: 'short' }}</td>
+          </ng-container>
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef class="text-right w-16">Actions</th>
+            <td mat-cell *matCellDef="let item" class="text-right">
+              <button mat-icon-button [matMenuTriggerFor]="loanMenu" aria-label="Actions">
+                <mat-icon class="icon-size-4 text-neutral-500 dark:text-neutral-100">more_vert</mat-icon>
+              </button>
+              <mat-menu #loanMenu="matMenu">
+                <button mat-menu-item (click)="openStatusDialog(item)">
+                  <mat-icon class="text-secondary icon-size-4" [svgIcon]="'heroicons_outline:arrow-path'"></mat-icon>
+                  <span>Update status</span>
+                </button>
+              </mat-menu>
+            </td>
+          </ng-container>
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"
+            class="bg-zinc-100 dark:bg-zinc-800/50 font-semibold leading-8 text-neutral-900 tracking-tight"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+          <tr *matNoDataRow>
+            <td class="py-16 text-center" [attr.colspan]="displayedColumns.length">
+              <div class="flex flex-col items-center justify-center gap-3 text-slate-500">
+                <mat-icon class="text-5xl text-slate-300">search_off</mat-icon>
+                <div class="text-base font-semibold">No loans found</div>
+              </div>
+            </td>
+          </tr>
+        </table>
+      </div>
+      <mat-paginator class="border-t text-sm" [length]="total" [pageSize]="pageSize" [pageIndex]="pageIndex"
+        [pageSizeOptions]="[5, 10, 20, 50]" (page)="handlePageEvent($event)" showFirstLastButtons></mat-paginator>
+    </div>
+  </div>
+</div>

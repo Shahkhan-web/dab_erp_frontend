@@ -1,0 +1,35 @@
+<div class="print-dialog-content bg-white rounded-2xl overflow-hidden">
+  <div class="bg-gradient-to-r from-primary-600 to-primary-700 px-6 py-5 text-white">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-white/20">
+          <mat-icon class="icon-size-8 text-white" [svgIcon]="'heroicons_outline:envelope'"></mat-icon>
+        </div>
+        <div>
+          <h2 class="text-xl font-bold tracking-tight">Update Contact &amp; Address Details</h2>
+          <p class="text-sm text-white/90">Step 3 — Contact &amp; address</p>
+        </div>
+      </div>
+      <button mat-icon-button (click)="cancel()" class="text-white/90 hover:bg-white/20">
+        <mat-icon class="text-white">close</mat-icon>
+      </button>
+    </div>
+  </div>
+  <div class="p-6 sm:p-8">
+    <form [formGroup]="form" class="grid grid-cols-1 md:grid-cols-3 gap-3 w-full">
+      <mat-form-field class="fuse-mat-dense w-full"><mat-label>Mobile Number</mat-label><input matInput formControlName="mobileNumber" /></mat-form-field>
+      <mat-form-field class="fuse-mat-dense w-full"><mat-label>Personal Email</mat-label><input matInput type="email" formControlName="personalEmail" /></mat-form-field>
+      <mat-form-field class="fuse-mat-dense w-full"><mat-label>Contact Email</mat-label><input matInput type="email" formControlName="contactEmail" /></mat-form-field>
+      <mat-form-field class="fuse-mat-dense w-full"><mat-label>Company Email</mat-label><input matInput type="email" formControlName="companyEmail" /></mat-form-field>
+      <mat-form-field class="fuse-mat-dense w-full"><mat-label>Emergency Contact</mat-label><input matInput formControlName="emergencyContact" /></mat-form-field>
+      <mat-form-field class="fuse-mat-dense w-full"><mat-label>Emergency Contact Relation</mat-label><input matInput formControlName="emergencyContactRelation" /></mat-form-field>
+      <mat-form-field class="fuse-mat-dense w-full md:col-span-3"><mat-label>UAE Address</mat-label><textarea matInput formControlName="uaeAddress" rows="1"></textarea></mat-form-field>
+      <mat-form-field class="fuse-mat-dense w-full md:col-span-3"><mat-label>Current Address</mat-label><textarea matInput formControlName="currentAddress" rows="1"></textarea></mat-form-field>
+      <mat-form-field class="fuse-mat-dense w-full md:col-span-3"><mat-label>Permanent Address</mat-label><textarea matInput formControlName="permanentAddress" rows="1"></textarea></mat-form-field>
+    </form>
+    <div class="mt-8 flex flex-wrap gap-3 justify-end">
+      <button mat-flat-button color="primary" [disabled]="loading" (click)="save()">{{ loading ? 'Saving...' : 'Save' }}</button>
+      <button mat-stroked-button (click)="cancel()">Cancel</button>
+    </div>
+  </div>
+</div>

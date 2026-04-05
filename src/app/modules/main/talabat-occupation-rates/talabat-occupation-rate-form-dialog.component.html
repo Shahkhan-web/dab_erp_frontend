@@ -1,0 +1,56 @@
+<div class="bg-white dark:bg-neutral-900 rounded-2xl max-h-[90vh] overflow-x-hidden overflow-y-auto">
+  <div class="bg-gradient-to-r from-primary-600 to-primary-700 px-6 py-5 text-white">
+    <div class="flex items-center justify-between gap-3">
+      <div class="flex min-w-0 flex-1 items-center gap-3">
+        <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/20">
+          <mat-icon class="icon-size-8 text-white" [svgIcon]="'heroicons_outline:currency-dollar'"></mat-icon>
+        </div>
+        <div class="min-w-0">
+          <h2 class="text-xl font-bold tracking-tight break-words">Edit Occupation Rate</h2>
+          <p class="text-sm text-white/90 break-words">{{ occupationLabel }} — update AED per-unit rates</p>
+        </div>
+      </div>
+      <button mat-icon-button type="button" (click)="cancel()" class="shrink-0 text-white/90 hover:bg-white/20">
+        <mat-icon class="text-white">close</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  <form [formGroup]="form" class="p-6 sm:p-8 flex flex-col gap-3 min-w-[280px]">
+    <mat-form-field class="fuse-mat-dense w-full">
+      <mat-label>Occupation</mat-label>
+      <input matInput [value]="occupationLabel" disabled />
+    </mat-form-field>
+
+    <mat-form-field class="fuse-mat-dense w-full">
+      <mat-label>Pickup Rate (AED)</mat-label>
+      <input matInput formControlName="pickupRateAed" type="number" min="0" step="0.01" autocomplete="off" />
+      @if (form.get('pickupRateAed')?.invalid && form.get('pickupRateAed')?.touched) {
+      <mat-error>Required (min 0)</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field class="fuse-mat-dense w-full">
+      <mat-label>Dropoff Rate (AED)</mat-label>
+      <input matInput formControlName="dropoffRateAed" type="number" min="0" step="0.01" autocomplete="off" />
+      @if (form.get('dropoffRateAed')?.invalid && form.get('dropoffRateAed')?.touched) {
+      <mat-error>Required (min 0)</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field class="fuse-mat-dense w-full">
+      <mat-label>Deliveries Return LC Rate (AED)</mat-label>
+      <input matInput formControlName="deliveriesReturnLcRateAed" type="number" min="0" step="0.01" autocomplete="off" />
+      @if (form.get('deliveriesReturnLcRateAed')?.invalid && form.get('deliveriesReturnLcRateAed')?.touched) {
+      <mat-error>Required (min 0)</mat-error>
+      }
+    </mat-form-field>
+  </form>
+
+  <div class="px-6 pb-6 flex flex-wrap gap-3 justify-end">
+    <button mat-stroked-button type="button" (click)="cancel()" [disabled]="saving">Cancel</button>
+    <button mat-flat-button color="primary" type="button" (click)="save()" [disabled]="saving">
+      {{ saving ? 'Saving…' : 'Update' }}
+    </button>
+  </div>
+</div>

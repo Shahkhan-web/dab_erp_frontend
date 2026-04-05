@@ -1,0 +1,312 @@
+/* Full-page two-panel branch selection layout */
+.auth-select-branch-root {
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+.auth-select-branch-card {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.12);
+  overflow: hidden;
+  background: #fff;
+}
+
+.auth-select-branch-panel {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2.5rem 2rem;
+  overflow: hidden;
+}
+
+/* Left panel: form - white background */
+.auth-select-branch-form-panel {
+  background: #fff;
+  flex: 1 1 50%;
+}
+
+.auth-select-branch-form-content {
+  width: 100%;
+  max-width: 500px;
+}
+
+.auth-select-branch-logo {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+
+  img {
+    width: 3rem;
+    height: auto;
+  }
+}
+
+.auth-select-branch-title {
+  margin: 0;
+  font-size: 1.875rem;
+  font-weight: 700;
+  text-align: center;
+  color: var(--fuse-text-default, #1f2937);
+  letter-spacing: -0.025em;
+}
+
+.auth-select-branch-subtitle {
+  margin: 0.5rem 0 1.5rem;
+  font-size: 0.9375rem;
+  color: var(--fuse-text-secondary, #6b7280);
+  text-align: center;
+}
+
+.auth-select-branch-alert {
+  margin-bottom: 1rem;
+}
+
+.auth-select-branch-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Mat-card styling - HR module style */
+.auth-select-branch-card {
+  margin-bottom: 0;
+  
+  &.mat-mdc-card {
+    background: #f4f4f5; /* zinc-100 */
+  }
+  
+  .dark & {
+    background: rgba(39, 39, 42, 0.5); /* zinc-800/50 */
+  }
+}
+
+/* Mat-card-content with scroll */
+.auth-select-branch-card-content {
+  max-height: 450px;
+  min-height: 200px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 1rem !important;
+  
+  /* Custom scrollbar styling */
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+    
+    &:hover {
+      background: #a8a8a8;
+    }
+  }
+  
+  /* Dark mode scrollbar */
+  .dark &::-webkit-scrollbar-track {
+    background: #27272a;
+  }
+  
+  .dark &::-webkit-scrollbar-thumb {
+    background: #52525b;
+    
+    &:hover {
+      background: #71717a;
+    }
+  }
+}
+
+/* Branch list container */
+.auth-select-branch-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* Individual branch item */
+.auth-select-branch-item {
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 8px;
+  padding: 0;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  
+  /* Dark mode support */
+  .dark & {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.12);
+  }
+
+  &:hover {
+    border-color: var(--fuse-primary);
+    background: color-mix(in srgb, var(--fuse-primary) 6%, #fff);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    
+    .dark & {
+      background: color-mix(in srgb, var(--fuse-primary) 10%, rgba(255, 255, 255, 0.05));
+    }
+  }
+
+  &.selected {
+    border-color: var(--fuse-primary);
+    border-width: 2px;
+    background: color-mix(in srgb, var(--fuse-primary) 10%, #fff);
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--fuse-primary) 20%, transparent);
+    
+    .dark & {
+      background: color-mix(in srgb, var(--fuse-primary) 15%, rgba(255, 255, 255, 0.05));
+    }
+  }
+}
+
+.auth-select-branch-item-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+}
+
+.auth-select-branch-item-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.auth-select-branch-icon-wrapper {
+  flex-shrink: 0;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.75rem;
+  background: rgba(var(--fuse-primary-rgb), 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  .dark & {
+    background: rgba(var(--fuse-primary-rgb), 0.2);
+  }
+}
+
+.auth-select-branch-icon {
+  color: var(--fuse-primary);
+  font-size: 1.5rem;
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.auth-select-branch-item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.auth-select-branch-item-title {
+  margin: 0 0 0.25rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--fuse-text-default, #1f2937);
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  
+  .dark & {
+    color: var(--fuse-text-default, #f4f4f5);
+  }
+}
+
+.auth-select-branch-item-code {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--fuse-text-secondary, #6b7280);
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  
+  .dark & {
+    color: var(--fuse-text-secondary, #a1a1aa);
+  }
+}
+
+.auth-select-branch-check-icon {
+  color: var(--fuse-primary);
+  font-size: 1.75rem;
+  width: 1.75rem;
+  height: 1.75rem;
+  flex-shrink: 0;
+}
+
+.auth-select-branch-submit {
+  margin-top: 0.5rem;
+  width: 100%;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+  padding: 0.6rem 1.5rem;
+  border-radius: 0.5rem;
+}
+
+/* Right panel: welcome - solid primary */
+.auth-select-branch-welcome-panel {
+  position: relative;
+  flex: 1 1 50%;
+  background: var(--fuse-primary);
+  color: var(--fuse-on-primary);
+  padding: 2.5rem 2rem;
+  border-radius: 10rem 0 0 10rem;
+  overflow: hidden;
+}
+
+.auth-select-branch-watermark {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  background-image: url('/gif/bg-login.gif');
+  background-size: inherit;
+  background-position: center;
+  background-repeat: no-repeat;
+  opacity: 0.15;
+}
+
+.auth-select-branch-welcome-content {
+  max-width: 450px;
+  text-align: center;
+}
+
+.auth-select-branch-welcome-title {
+  margin: 0 0 1rem;
+  font-size: 2.25rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+}
+
+.auth-select-branch-welcome-text {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  opacity: 0.95;
+}

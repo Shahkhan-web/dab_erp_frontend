@@ -1,0 +1,227 @@
+/* Full-page two-panel sign-in layout */
+.auth-sign-in-root {
+  // position: fixed;
+  // inset: 0;
+  // min-height: 100vh;
+  width: 100%;
+  overflow: hidden;
+  // display: flex;
+  // align-items: center;
+  // justify-content: center;
+  // overflow: auto;
+  // padding: 2rem;
+  // box-sizing: border-box;
+  // background: linear-gradient(
+  //   135deg,
+  //   color-mix(in srgb, var(--fuse-primary) 14%, white) 0%,
+  //   color-mix(in srgb, var(--fuse-primary) 8%, white) 100%
+  // );
+}
+
+.auth-sign-in-card {
+  display: flex;
+  width: 100%;
+  // max-width: 960px;
+  height: 100%;
+  // border-radius: 1.5rem;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.12);
+  overflow: hidden;
+  background: #fff;
+}
+
+.auth-sign-in-panel {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2.5rem 2rem;
+}
+
+/* Left panel: form - white background */
+.auth-sign-in-form-panel {
+  background: #fff;
+  flex: 1 1 50%;
+}
+
+.auth-sign-in-form-content {
+  width: 100%;
+  max-width: 340px;
+}
+
+.auth-sign-in-logo {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+
+  img {
+    width: 5rem;
+    height: auto;
+  }
+}
+
+.auth-sign-in-title {
+  margin: 0;
+  font-size: 1.875rem;
+  font-weight: 700;
+  text-align: center;
+  color: var(--fuse-text-default, #1f2937);
+  letter-spacing: -0.025em;
+}
+
+.auth-sign-in-social {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.auth-sign-in-social-btn {
+  width: 2.75rem;
+  height: 2.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--mat-divider-color, #e5e7eb);
+  border-radius: 0.5rem;
+  background: #f9fafb;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--fuse-text-secondary, #4b5563);
+  transition: border-color 0.2s, background 0.2s;
+
+  &:hover {
+    border-color: var(--fuse-primary);
+    background: color-mix(in srgb, var(--fuse-primary) 8%, transparent);
+    color: var(--fuse-primary);
+  }
+}
+
+.auth-sign-in-or {
+  margin: 1.25rem 0 1rem;
+  font-size: 0.8125rem;
+  color: var(--fuse-text-hint);
+  text-align: center;
+  position: relative;
+
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 28%;
+    height: 1px;
+    background: var(--mat-divider-color, #e5e7eb);
+  }
+  &::before {
+    left: 0;
+  }
+  &::after {
+    right: 0;
+  }
+}
+
+.auth-sign-in-alert {
+  margin-bottom: 1rem;
+}
+
+.auth-sign-in-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.auth-sign-in-field {
+  width: 100%;
+}
+
+.auth-sign-in-forgot {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 0.25rem;
+  margin-bottom: 0.5rem;
+
+  a {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--fuse-primary);
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
+.auth-sign-in-submit {
+  margin-top: 0.5rem;
+  width: 100%;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+  padding: 0.6rem 1.5rem;
+  border-radius: 0.5rem;
+}
+
+/* Right panel: welcome - solid primary, straight divider */
+.auth-sign-in-welcome-panel {
+  position: relative;
+  flex: 1 1 50%;
+  background: var(--fuse-primary);
+  color: var(--fuse-on-primary);
+  padding: 2.5rem 2rem;
+  border-radius: 10rem 0 0 10rem;
+  overflow: hidden;
+}
+
+/* Watermark GIF background - covers whole panel, subtle */
+.auth-sign-in-watermark {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  // background-image: url('/gif/bg-login.gif');
+  background-size: inherit;
+  background-position: center;
+  background-repeat: no-repeat;
+  opacity: 0.15;
+}
+
+.auth-sign-in-welcome-content {
+  max-width: 450px;
+  text-align: center;
+}
+
+.auth-sign-in-welcome-title {
+  margin: 0 0 1rem;
+  font-size: 2.25rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+}
+
+.auth-sign-in-welcome-text {
+  margin: 0 0 2rem;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  opacity: 0.95;
+}
+
+/* SIGN UP: white background, primary border and text (like screenshot) */
+.auth-sign-in-signup-btn {
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+  border: 2px solid var(--fuse-primary) !important;
+  border-radius: 0.5rem !important;
+  color: var(--fuse-primary) !important;
+  background: #fff !important;
+  padding: 0.6rem 1.75rem !important;
+
+  &:hover {
+    background: color-mix(in srgb, var(--fuse-primary) 10%, #fff) !important;
+  }
+}
+

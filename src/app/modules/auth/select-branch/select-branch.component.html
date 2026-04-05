@@ -1,0 +1,89 @@
+<div class="auth-select-branch-root">
+  <div class="auth-select-branch-card">
+    <!-- Left panel: Branch Selection -->
+    <div class="auth-select-branch-panel auth-select-branch-form-panel">
+      <div class="auth-select-branch-form-content">
+        <div class="auth-select-branch-logo">
+          <img src="images/logo/logo.svg" alt="Logo" />
+        </div>
+        <h1 class="auth-select-branch-title">Select Branch</h1>
+        <p class="auth-select-branch-subtitle">
+          Please select a branch to continue
+        </p>
+
+        @if (showAlert) {
+          <fuse-alert
+            class="auth-select-branch-alert"
+            [appearance]="'outline'"
+            [showIcon]="false"
+            [type]="alert.type"
+          >
+            {{ alert.message }}
+          </fuse-alert>
+        }
+
+        <div
+          class="auth-select-branch-form"
+          [overlayLoader]="loader"
+        >
+          <mat-card appearance="filled" class="auth-select-branch-card bg-zinc-100 dark:bg-zinc-800/50 w-full">
+            <mat-card-header class="flex flex-row items-center justify-between w-full">
+              <div class="flex items-center gap-x-2">
+                <mat-icon class="icon-size-5 text-zinc-900 dark:text-zinc-100">store</mat-icon>
+                <mat-card-title class="text-zinc-900 dark:text-zinc-100 font-medium tracking-tight text-lg">Available Branches</mat-card-title>
+              </div>
+            </mat-card-header>
+            <mat-card-content class="auth-select-branch-card-content border border-neutral-200 dark:border-neutral-700">
+              <div class="auth-select-branch-list">
+                @for (branch of availableBranches; track branch.id) {
+                  <div
+                    class="auth-select-branch-item"
+                    [class.selected]="selectedBranchId === branch.id"
+                    (click)="selectBranch(branch)"
+                  >
+                    <div class="auth-select-branch-item-content">
+                      <div class="auth-select-branch-item-header">
+                        <div class="auth-select-branch-icon-wrapper">
+                          <mat-icon class="auth-select-branch-icon">store</mat-icon>
+                        </div>
+                        <div class="auth-select-branch-item-info">
+                          <h3 class="auth-select-branch-item-title">{{ branch.name }}</h3>
+                          <p class="auth-select-branch-item-code">{{ branch.code }}</p>
+                        </div>
+                      </div>
+                      @if (selectedBranchId === branch.id) {
+                        <mat-icon class="auth-select-branch-check-icon">check_circle</mat-icon>
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+          <button
+            mat-flat-button
+            color="primary"
+            type="button"
+            class="auth-select-branch-submit"
+            [disabled]="!selectedBranchId || loader"
+            (click)="confirmSelection()"
+          >
+            <span>CONTINUE</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right panel: Welcome -->
+    <div class="auth-select-branch-panel auth-select-branch-welcome-panel">
+      <div class="auth-select-branch-watermark"></div>
+      <div class="auth-select-branch-welcome-content">
+        <h2 class="auth-select-branch-welcome-title">Welcome to BizCare!</h2>
+        <p class="auth-select-branch-welcome-text">
+          Select your branch to access your workspace and start managing your business operations.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>

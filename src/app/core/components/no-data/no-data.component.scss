@@ -1,0 +1,79 @@
+.app-no-data {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  width: 100%;
+  color: var(--app-no-data-color, #6b7280);
+
+  &__icon {
+    color: var(--app-no-data-icon-color, #9ca3af);
+    margin-bottom: 0.5rem;
+  }
+
+  &__message {
+    margin: 0;
+    font-weight: 500;
+  }
+
+  // Projected content (e.g. button) below message
+  ::ng-deep > *:not(.app-no-data__icon):not(.app-no-data__message) {
+    margin-top: 0.75rem;
+  }
+
+  &[data-size='sm'] {
+    padding: 0.5rem 0.75rem;
+
+    .app-no-data__icon {
+      font-size: 1.25rem;
+      width: 1.25rem;
+      height: 1.25rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .app-no-data__message {
+      font-size: 0.8125rem;
+    }
+  }
+
+  &[data-size='md'] {
+    padding: 1.5rem 1rem;
+
+    .app-no-data__icon {
+      font-size: 2.5rem;
+      width: 2.5rem;
+      height: 2.5rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .app-no-data__message {
+      font-size: 0.875rem;
+    }
+  }
+
+  &[data-size='lg'] {
+    padding: 3rem 1.5rem;
+
+    .app-no-data__icon {
+      font-size: 3.5rem;
+      width: 3.5rem;
+      height: 3.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .app-no-data__message {
+      font-size: 1rem;
+    }
+  }
+}
+
+// Dark mode
+:host-context(.dark) .app-no-data,
+:host-context([data-theme='dark']) .app-no-data {
+  color: #9ca3af;
+
+  .app-no-data__icon {
+    color: #6b7280;
+  }
+}

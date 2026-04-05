@@ -1,0 +1,11 @@
+:host {
+    display: block;
+}
+
+::ng-deep .mat-mdc-dialog-container .mdc-dialog__surface {
+    padding: 0 !important;
+}
+
+::ng-deep .loan-panel .mat-expansion-panel-body {
+    padding-top: 0;
+}

@@ -1,0 +1,128 @@
+<div class="bg-white dark:bg-neutral-900 rounded-2xl max-h-[90vh] overflow-x-hidden overflow-y-auto">
+  <div class="bg-gradient-to-r from-primary-600 to-primary-700 px-6 py-5 text-white">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-3 min-w-0">
+        <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/20">
+          <mat-icon class="icon-size-8 text-white" [svgIcon]="'heroicons_outline:photo'"></mat-icon>
+        </div>
+        <div class="min-w-0">
+          <h2 class="text-xl font-bold tracking-tight">Letter head</h2>
+          <p class="text-sm text-white/90 truncate" [title]="data.company.name">{{ data.company.name }}</p>
+        </div>
+      </div>
+      <button mat-icon-button type="button" (click)="cancel()" class="text-white/90 hover:bg-white/20 shrink-0" aria-label="Close">
+        <mat-icon class="text-white">close</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  <div class="p-4 sm:p-6">
+    <mat-card appearance="filled" class="bg-zinc-100 dark:bg-zinc-800/50 w-full">
+      <mat-card-header>
+        <div class="flex items-center gap-x-2">
+          <mat-icon class="icon-size-5 text-zinc-900 dark:text-zinc-100" [svgIcon]="'heroicons_outline:cloud-arrow-up'"></mat-icon>
+          <mat-card-title class="text-zinc-900 dark:text-zinc-100 font-medium tracking-tight text-lg">Letter head image</mat-card-title>
+        </div>
+      </mat-card-header>
+      <mat-card-content class="border border-neutral-200 dark:border-neutral-700 space-y-6">
+        <p class="text-sm text-secondary -mt-2 mb-0 max-w-2xl">
+          JPEG or PNG · between 1200×1700 and 4000×5000 pixels · max 5&nbsp;MB. Uploading replaces any existing letter head.
+        </p>
+
+        @if (fileError) {
+          <div
+            class="flex items-start gap-3 rounded-xl border border-red-200/80 bg-red-50/90 dark:border-red-900/50 dark:bg-red-950/30 px-4 py-3 text-sm text-red-950 dark:text-red-100"
+          >
+            <mat-icon class="icon-size-5 flex-shrink-0 text-red-700 dark:text-red-300" [svgIcon]="'heroicons_outline:exclamation-circle'"></mat-icon>
+            <span>{{ fileError }}</span>
+          </div>
+        }
+
+        <!-- Drop zone (same pattern as employee form step 7) -->
+        <div
+          class="relative overflow-hidden rounded-2xl border-2 border-dashed transition-all duration-200"
+          [ngClass]="
+            uploadDragActive
+              ? 'border-primary bg-primary-500/5 dark:bg-primary-400/10'
+              : 'border-zinc-300 dark:border-zinc-600'
+          "
+          (dragenter)="onUploadDragEnter($event)"
+          (dragleave)="onUploadDragLeave($event)"
+          (dragover)="onUploadDragOver($event)"
+          (drop)="onUploadDrop($event)"
+        >
+          <div
+            class="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary-500/10 via-transparent to-violet-500/10 dark:from-primary-400/10 dark:to-violet-400/10"
+          ></div>
+          <div class="relative flex flex-col items-center justify-center gap-3 px-6 py-12 text-center sm:py-14">
+            <div
+              class="flex h-16 w-16 items-center justify-center rounded-2xl bg-white shadow-sm ring-1 ring-zinc-200/80 dark:bg-zinc-800 dark:ring-zinc-600"
+            >
+              <mat-icon class="icon-size-10 text-primary-600 dark:text-primary-400" [svgIcon]="'heroicons_outline:arrow-up-tray'"></mat-icon>
+            </div>
+            <div>
+              <p class="text-base font-semibold text-zinc-900 dark:text-zinc-50">Drop image here</p>
+              <p class="mt-1 text-sm text-secondary">or</p>
+            </div>
+            <button mat-stroked-button color="primary" type="button" class="fuse-mat-dense" (click)="fileInput.click()">
+              <mat-icon class="icon-size-5">folder_open</mat-icon>
+              <span class="ms-2">Browse files</span>
+            </button>
+            <input
+              #fileInput
+              type="file"
+              class="sr-only"
+              accept="image/jpeg,image/png,.jpg,.jpeg,.png"
+              (change)="onFileInputChange($event)"
+            />
+            <p class="max-w-md text-xs text-secondary leading-relaxed">JPEG or PNG · max 5&nbsp;MB · 1200×1700–4000×5000 px</p>
+          </div>
+        </div>
+
+        <!-- Pending file (matches extra-documents pending card layout) -->
+        @if (selectedFile) {
+          <div class="rounded-xl border border-zinc-200 bg-white/80 dark:border-zinc-600 dark:bg-zinc-900/40 p-4 shadow-sm">
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-start">
+              <div
+                class="flex h-24 w-24 flex-shrink-0 items-center justify-center overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800"
+              >
+                @if (previewUrl) {
+                  <img [src]="previewUrl" alt="" class="h-full w-full object-cover" />
+                } @else {
+                  <mat-icon class="icon-size-10 text-zinc-400" [svgIcon]="'heroicons_outline:document-text'"></mat-icon>
+                }
+              </div>
+              <div class="min-w-0 flex-1 space-y-3">
+                <div>
+                  <p class="truncate font-medium text-zinc-900 dark:text-zinc-50">{{ selectedFile.name }}</p>
+                  <p class="text-sm text-secondary">{{ formatFileSize(selectedFile.size) }}</p>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                  <button mat-flat-button color="primary" type="button" [disabled]="loading" (click)="upload()">
+                    @if (loading) {
+                      <mat-progress-spinner
+                        class="inline-block align-middle me-2"
+                        diameter="20"
+                        mode="indeterminate"
+                      ></mat-progress-spinner>
+                    }
+                    <span>{{ loading ? 'Uploading…' : 'Upload' }}</span>
+                  </button>
+                  <button mat-stroked-button type="button" [disabled]="loading" (click)="clearPending()">Clear</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        } @else {
+          <div class="rounded-lg border border-dashed border-zinc-200 py-8 text-center text-sm text-secondary dark:border-zinc-600">
+            No file selected. Drop an image above or browse to choose one.
+          </div>
+        }
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <div class="px-6 pb-6 flex flex-wrap gap-3 justify-end">
+    <button mat-stroked-button type="button" (click)="cancel()" [disabled]="loading">Cancel</button>
+  </div>
+</div>

@@ -1,0 +1,35 @@
+<h2 mat-dialog-title class="text-center pt-5">
+    <mat-icon class="icon-size-20" color="warn" [svgIcon]="'heroicons_outline:information-circle'">
+    </mat-icon>
+</h2>
+
+<mat-dialog-content class="text-center p-5">
+    <h3 class="mat-title">Are you sure?</h3>
+
+    <p class="mat-body-1">
+        You are about to {{ data.action }}.
+    </p>
+
+    @if (data?.message) {
+    <p class="mat-body-2 text-secondary">
+        {{ data.message }}
+    </p>
+    }
+
+    @if (data?.showInput) {
+    <mat-form-field class="w-full mt-4">
+        <mat-label>{{ data.inputLabel }}</mat-label>
+        <input matInput [(ngModel)]="inputValue" [placeholder]="data.inputPlaceholder || ''" />
+    </mat-form-field>
+    }
+</mat-dialog-content>
+
+<mat-dialog-actions align="center" class="pb-5">
+    <button mat-stroked-button (click)="cancel()">
+        {{ data.cancelText || 'Cancel' }}
+    </button>
+
+    <button mat-flat-button color="warn" (click)="confirm()">
+        {{ data.confirmText || 'Confirm' }}
+    </button>
+</mat-dialog-actions>

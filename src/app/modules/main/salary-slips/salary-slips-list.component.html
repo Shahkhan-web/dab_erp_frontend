@@ -1,0 +1,160 @@
+<div class="flex min-w-0 flex-auto flex-col" [overlayLoader]="pageLoader">
+  <div
+    class="border-b bg-card px-4 py-4 sm:px-6 md:px-5 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+    <div class="flex items-start gap-3 min-w-0">
+      <div
+        class="flex-shrink-0 w-11 h-11 rounded-xl bg-neutral-100 dark:bg-primary/20 flex items-center justify-center">
+        <mat-icon class="icon-size-6 text-neutral-900 dark:text-white"
+          [svgIcon]="'heroicons_outline:document-text'"></mat-icon>
+      </div>
+      <div class="min-w-0">
+        <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-neutral-900 dark:text-white">Salary slips</h1>
+        <p class="text-sm text-secondary mt-0.5">Payroll slips</p>
+      </div>
+    </div>
+    <div class="flex gap-2">
+      @if (canWriteSalarySlip) {
+      <button mat-flat-button color="primary" (click)="goNew()">
+        <mat-icon class="icon-size-5" [svgIcon]="'heroicons_solid:plus'"></mat-icon>
+        <span class="ms-2">New salary slip</span>
+      </button>
+      }
+      <app-back-button></app-back-button>
+    </div>
+  </div>
+
+  <div class="flex-auto p-4 sm:p-6 md:p-5 flex flex-col gap-3">
+    <div class="flex justify-center">
+      <mat-card appearance="filled" class="bg-zinc-100 dark:bg-zinc-800/50 w-full max-w-6xl">
+        <mat-card-header class="flex flex-row items-center justify-between w-full">
+          <div class="flex items-center gap-x-2">
+            <mat-icon class="icon-size-5 text-zinc-900 dark:text-zinc-100"
+              [svgIcon]="'heroicons_outline:funnel'"></mat-icon>
+            <mat-card-title
+              class="text-zinc-900 dark:text-zinc-100 font-medium tracking-tight text-lg">Filters</mat-card-title>
+          </div>
+          <div class="flex items-center gap-1">
+            <button mat-icon-button color="primary" (click)="applyFilters()" matTooltip="Apply filters"
+              aria-label="Apply filters">
+              <mat-icon class="icon-size-5" [svgIcon]="'heroicons_outline:check'"></mat-icon>
+            </button>
+            <button mat-icon-button (click)="clearFilters()" matTooltip="Clear filters" aria-label="Clear filters">
+              <mat-icon class="icon-size-5" [svgIcon]="'heroicons_outline:x-mark'"></mat-icon>
+            </button>
+          </div>
+        </mat-card-header>
+        <mat-card-content class="border border-neutral-200 dark:border-neutral-700">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+            <mat-form-field class="fuse-mat-dense w-full">
+              <mat-label>Employee</mat-label>
+              <mat-select [(ngModel)]="filterEmployeeId" placeholder="All">
+                <mat-option [value]="null">All</mat-option>
+                @for (emp of employees; track emp.id) {
+                <mat-option [value]="emp.id">{{ employeeLabel(emp) }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+            <mat-form-field class="fuse-mat-dense w-full">
+              <mat-label>Payroll frequency</mat-label>
+              <mat-select [(ngModel)]="filterPayrollFrequency" placeholder="All">
+                <mat-option [value]="null">All</mat-option>
+                @for (f of payrollFrequencyOptions; track f) {
+                <mat-option [value]="f">{{ f | titlecase }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+            <mat-form-field class="fuse-mat-dense w-full">
+              <mat-label>Slip period start</mat-label>
+              <mat-date-range-input [rangePicker]="slipStartRangePicker">
+                <input matStartDate placeholder="From" [(ngModel)]="slipStartFromDate"
+                  [ngModelOptions]="{ standalone: true }" (keyup.enter)="applyFilters()" />
+                <input matEndDate placeholder="To" [(ngModel)]="slipStartToDate"
+                  [ngModelOptions]="{ standalone: true }" (keyup.enter)="applyFilters()" />
+              </mat-date-range-input>
+              <mat-datepicker-toggle matSuffix [for]="slipStartRangePicker"></mat-datepicker-toggle>
+              <mat-date-range-picker #slipStartRangePicker></mat-date-range-picker>
+            </mat-form-field>
+            <mat-form-field class="fuse-mat-dense w-full">
+              <mat-label>Slip period end</mat-label>
+              <mat-date-range-input [rangePicker]="slipEndRangePicker">
+                <input matStartDate placeholder="From" [(ngModel)]="slipEndFromDate"
+                  [ngModelOptions]="{ standalone: true }" (keyup.enter)="applyFilters()" />
+                <input matEndDate placeholder="To" [(ngModel)]="slipEndToDate"
+                  [ngModelOptions]="{ standalone: true }" (keyup.enter)="applyFilters()" />
+              </mat-date-range-input>
+              <mat-datepicker-toggle matSuffix [for]="slipEndRangePicker"></mat-datepicker-toggle>
+              <mat-date-range-picker #slipEndRangePicker></mat-date-range-picker>
+            </mat-form-field>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <div class="bg-card rounded-xl shadow overflow-hidden border border-slate-200/60 dark:border-zinc-700/60">
+      <div class="overflow-x-auto">
+        <table mat-table [dataSource]="rows" class="w-full min-w-[960px]">
+          <ng-container matColumnDef="employeeId">
+            <th mat-header-cell *matHeaderCellDef>Employee</th>
+            <td mat-cell *matCellDef="let item"><span class="font-mono text-xs">{{ item?.employeeCode }}</span></td>
+          </ng-container>
+          <ng-container matColumnDef="payrollFrequency">
+            <th mat-header-cell *matHeaderCellDef>Frequency</th>
+            <td mat-cell *matCellDef="let item">{{ item?.payrollFrequency | titlecase }}</td>
+          </ng-container>
+          <ng-container matColumnDef="period">
+            <th mat-header-cell *matHeaderCellDef>Period</th>
+            <td mat-cell *matCellDef="let item">
+              <span class="text-sm">{{ item?.startDate }} → {{ item?.endDate }}</span>
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="workingDays">
+            <th mat-header-cell *matHeaderCellDef>Days</th>
+            <td mat-cell *matCellDef="let item">{{ item?.workingDays }}</td>
+          </ng-container>
+          <ng-container matColumnDef="grossPayment">
+            <th mat-header-cell *matHeaderCellDef>Gross</th>
+            <td mat-cell *matCellDef="let item">AED {{ item?.grossPayment | number: '1.2-2' }}</td>
+          </ng-container>
+          <ng-container matColumnDef="totalDeduction">
+            <th mat-header-cell *matHeaderCellDef>Deductions</th>
+            <td mat-cell *matCellDef="let item">AED {{ item?.totalDeduction | number: '1.2-2' }}</td>
+          </ng-container>
+          <ng-container matColumnDef="netPayment">
+            <th mat-header-cell *matHeaderCellDef>Net</th>
+            <td mat-cell *matCellDef="let item" class="font-medium">AED {{ item?.netPayment | number: '1.2-2' }}</td>
+          </ng-container>
+          <ng-container matColumnDef="createdAt">
+            <th mat-header-cell *matHeaderCellDef>Created</th>
+            <td mat-cell *matCellDef="let item">{{ item?.createdAt | date: 'short' }}</td>
+          </ng-container>
+          <ng-container matColumnDef="actions" stickyEnd>
+            <th mat-header-cell *matHeaderCellDef class="min-w-[7.5rem] text-center"></th>
+            <td mat-cell *matCellDef="let item" class="text-center whitespace-nowrap">
+              <button mat-icon-button type="button" (click)="openDetail(item)" matTooltip="View full slip"
+                aria-label="View salary slip details">
+                <mat-icon class="text-secondary icon-size-5" [svgIcon]="'heroicons_outline:eye'"></mat-icon>
+              </button>
+              <button mat-icon-button type="button" (click)="openPdfViewer(item)" [disabled]="pdfLoadingSlipId === item.id"
+                matTooltip="View salary slip PDF" aria-label="View salary slip PDF">
+                <mat-icon class="text-secondary icon-size-5">picture_as_pdf</mat-icon>
+              </button>
+            </td>
+          </ng-container>
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"
+            class="bg-zinc-100 dark:bg-zinc-800/50 font-semibold leading-8 text-neutral-900 tracking-tight"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+          <tr *matNoDataRow>
+            <td class="py-16 text-center" [attr.colspan]="displayedColumns.length">
+              <div class="flex flex-col items-center justify-center gap-3 text-slate-500">
+                <mat-icon class="text-5xl text-slate-300">description</mat-icon>
+                <div class="text-base font-semibold">No salary slips found</div>
+              </div>
+            </td>
+          </tr>
+        </table>
+      </div>
+      <mat-paginator class="border-t text-sm" [length]="total" [pageSize]="pageSize" [pageIndex]="pageIndex"
+        [pageSizeOptions]="[5, 10, 20, 50]" (page)="handlePageEvent($event)" showFirstLastButtons></mat-paginator>
+    </div>
+  </div>
+</div>

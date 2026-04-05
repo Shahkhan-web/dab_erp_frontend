@@ -1,0 +1,74 @@
+<div class="print-dialog-content bg-white rounded-2xl overflow-hidden">
+  <!-- Header -->
+  <div class="bg-gradient-to-r from-primary-600 to-primary-700 px-6 py-5 text-white">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-white/20">
+          <mat-icon class="icon-size-8 text-white" [svgIcon]="'heroicons_outline:user-circle'"></mat-icon>
+        </div>
+        <div>
+          <h2 class="text-xl font-bold tracking-tight">Update Personal Details</h2>
+          <p class="text-sm text-white/90">Step 2 — Personal details</p>
+        </div>
+      </div>
+      <button mat-icon-button (click)="cancel()" class="text-white/90 hover:bg-white/20">
+        <mat-icon class="text-white">close</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  <div class="p-6 sm:p-8">
+  <form [formGroup]="form" class="grid grid-cols-1 md:grid-cols-3 gap-3 w-full">
+    <mat-form-field class="fuse-mat-dense w-full">
+      <mat-label>Father Number</mat-label>
+      <input matInput formControlName="fatherNumber" />
+    </mat-form-field>
+    <mat-form-field class="fuse-mat-dense w-full">
+      <mat-label>Birthplace</mat-label>
+      <input matInput formControlName="birthplace" />
+    </mat-form-field>
+    <mat-form-field class="fuse-mat-dense w-full">
+      <mat-label>Nationality</mat-label>
+      <mat-select formControlName="nationality">
+        <mat-option value="">— Select —</mat-option>
+        <mat-option *ngFor="let country of countryOptions" [value]="country">{{ country }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field class="fuse-mat-dense w-full">
+      <mat-label>Home Country</mat-label>
+      <input matInput formControlName="homeCountry" />
+    </mat-form-field>
+    <mat-form-field class="fuse-mat-dense w-full">
+      <mat-label>Marital Status</mat-label>
+      <mat-select formControlName="maritalStatus">
+        <mat-option *ngFor="let opt of maritalStatusOptions" [value]="opt">{{ opt | titlecase }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field class="fuse-mat-dense w-full">
+      <mat-label>Blood Group</mat-label>
+      <mat-select formControlName="bloodGroup">
+        <mat-option *ngFor="let opt of bloodGroupOptions" [value]="opt">{{ opt }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field class="fuse-mat-dense w-full">
+      <mat-label>Family Background</mat-label>
+      <textarea matInput formControlName="familyBackground" rows="1"></textarea>
+    </mat-form-field>
+    <mat-form-field class="fuse-mat-dense w-full">
+      <mat-label>Health Details</mat-label>
+      <textarea matInput formControlName="healthDetails" rows="1"></textarea>
+    </mat-form-field>
+    <mat-form-field class="fuse-mat-dense w-full">
+      <mat-label>Health Insurance Provider</mat-label>
+      <input matInput formControlName="healthInsuranceProvider" />
+    </mat-form-field>
+  </form>
+
+  <div class="mt-8 flex flex-wrap gap-3 justify-end">
+    <button mat-flat-button color="primary" [disabled]="loading" (click)="save()">
+      {{ loading ? 'Saving...' : 'Save' }}
+    </button>
+    <button mat-stroked-button (click)="cancel()">Cancel</button>
+  </div>
+  </div>
+</div>
