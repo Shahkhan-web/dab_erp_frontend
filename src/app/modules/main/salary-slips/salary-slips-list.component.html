@@ -97,9 +97,19 @@
             <th mat-header-cell *matHeaderCellDef>Employee</th>
             <td mat-cell *matCellDef="let item"><span class="font-mono text-xs">{{ item?.employeeCode }}</span></td>
           </ng-container>
-          <ng-container matColumnDef="payrollFrequency">
-            <th mat-header-cell *matHeaderCellDef>Frequency</th>
-            <td mat-cell *matCellDef="let item">{{ item?.payrollFrequency | titlecase }}</td>
+          <ng-container matColumnDef="employeeName">
+            <th mat-header-cell *matHeaderCellDef>Employee name</th>
+            <td mat-cell *matCellDef="let item">{{ employeeDisplayName(item?.employeeId) || '—' }}</td>
+          </ng-container>
+          <ng-container matColumnDef="status">
+            <th mat-header-cell *matHeaderCellDef>Status</th>
+            <td mat-cell *matCellDef="let item">
+              @if (item?.status) {
+              <span>{{ item.status | titlecase }}</span>
+              } @else {
+              <span class="text-secondary">—</span>
+              }
+            </td>
           </ng-container>
           <ng-container matColumnDef="period">
             <th mat-header-cell *matHeaderCellDef>Period</th>

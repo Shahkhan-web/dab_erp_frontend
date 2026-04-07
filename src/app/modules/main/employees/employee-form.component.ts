@@ -20,6 +20,14 @@ import { COUNTRY_NAMES } from 'app/core/utils/countries';
 import { Company, CompaniesService } from '../companies/companies.service';
 import { EmployeeExtraDocument, EmployeesService } from './employees.service';
 
+/** Queued file + label for step 7 before POST /extra-documents. */
+interface PendingExtraDocItem {
+    id: number;
+    file: File;
+    displayName: string;
+    previewUrl: string | null;
+}
+
 @Component({
     selector: 'app-employee-form',
     standalone: true,
@@ -67,6 +75,8 @@ export class EmployeeFormComponent implements OnInit, OnDestroy {
 
     /** Max 15MB per API; PDF + common images. */
     readonly extraDocMaxBytes = 15 * 1024 * 1024;
+    /** Max files per multipart request (API). */
+    readonly extraDocMaxFilesPerUpload = 30;
     readonly extraDocAcceptAttr = '.pdf,.jpg,.jpeg,.png,.webp,.gif';
 
     /** Profile picture: max 5MB; images only (API). */
@@ -82,9 +92,8 @@ export class EmployeeFormComponent implements OnInit, OnDestroy {
     removingProfilePicture = false;
 
     extraDocuments: EmployeeExtraDocument[] = [];
-    pendingFile: File | null = null;
-    pendingPreviewUrl: string | null = null;
-    uploadDisplayName = '';
+    pendingExtraDocs: PendingExtraDocItem[] = [];
+    private _nextPendingExtraId = 1;
     uploadDragActive = false;
     uploadingExtra = false;
     private _uploadDragDepth = 0;
@@ -120,6 +129,7 @@ export class EmployeeFormComponent implements OnInit, OnDestroy {
             lastName: ['', Validators.required],
             employeeNameArabic: [''],
             personalNumber: [''],
+            riderId: [''],
             workingStatus: ['active', Validators.required],
             occupation: ['', Validators.required],
             // dateOfJoining: [null as Date | null, Validators.required],
@@ -189,7 +199,7 @@ export class EmployeeFormComponent implements OnInit, OnDestroy {
     }
 
     ngOnDestroy(): void {
-        this._revokePendingPreview();
+        this._revokeAllPendingExtraPreviews();
         this._revokeProfilePreview();
     }
 
@@ -221,6 +231,7 @@ export class EmployeeFormComponent implements OnInit, OnDestroy {
                 lastName: emp.lastName,
                 employeeNameArabic: emp.employeeNameArabic,
                 personalNumber: emp.personalNumber,
+                riderId: emp.riderId ?? '',
                 workingStatus: emp.workingStatus ?? 'active',
                 occupation: emp.occupation ?? '',
                 // dateOfJoining: emp.dateOfJoining ? new Date(emp.dateOfJoining) : null,
@@ -317,6 +328,7 @@ export class EmployeeFormComponent implements OnInit, OnDestroy {
             lastName: raw.lastName,
             employeeNameArabic: raw.employeeNameArabic || undefined,
             personalNumber: raw.personalNumber || undefined,
+            riderId: raw.riderId || undefined,
             workingStatus: raw.workingStatus,
             occupation: raw.occupation,
             // dateOfJoining: this._dateToYmd(raw.dateOfJoining),
@@ -463,10 +475,20 @@ export class EmployeeFormComponent implements OnInit, OnDestroy {
             .filter((x): x is EmployeeExtraDocument => x !== null);
     }
 
-    private _revokePendingPreview(): void {
-        if (this.pendingPreviewUrl) {
-            URL.revokeObjectURL(this.pendingPreviewUrl);
-            this.pendingPreviewUrl = null;
+    private _revokeAllPendingExtraPreviews(): void {
+        for (const p of this.pendingExtraDocs) {
+            if (p.previewUrl) {
+                URL.revokeObjectURL(p.previewUrl);
+                p.previewUrl = null;
+            }
+        }
+        this.pendingExtraDocs = [];
+    }
+
+    private _revokePendingItemPreview(item: PendingExtraDocItem): void {
+        if (item.previewUrl) {
+            URL.revokeObjectURL(item.previewUrl);
+            item.previewUrl = null;
         }
     }
 
@@ -557,37 +579,69 @@ export class EmployeeFormComponent implements OnInit, OnDestroy {
         event.stopPropagation();
         this._uploadDragDepth = 0;
         this.uploadDragActive = false;
-        const file = event.dataTransfer?.files?.[0];
-        if (file) this.setPendingExtraDocFile(file);
+        const list = event.dataTransfer?.files;
+        if (list?.length) this.addPendingExtraDocFiles(list);
     }
 
     onExtraDocFileInputChange(event: Event): void {
         const input = event.target as HTMLInputElement;
-        const file = input.files?.[0];
+        const files = input.files;
         input.value = '';
-        if (file) this.setPendingExtraDocFile(file);
+        if (files?.length) this.addPendingExtraDocFiles(files);
     }
 
-    setPendingExtraDocFile(file: File): void {
-        const err = this._validateExtraDocFile(file);
-        if (err) {
-            this._toast.warning(err);
-            return;
+    trackByPendingExtraId(_index: number, item: PendingExtraDocItem): number {
+        return item.id;
+    }
+
+    addPendingExtraDocFiles(files: FileList | File[]): void {
+        const arr = Array.from(files);
+        if (!arr.length) return;
+
+        let stoppedByLimit = false;
+
+        for (const file of arr) {
+            if (this.pendingExtraDocs.length >= this.extraDocMaxFilesPerUpload) {
+                stoppedByLimit = true;
+                break;
+            }
+            const err = this._validateExtraDocFile(file);
+            if (err) {
+                this._toast.warning(`${file.name}: ${err}`);
+                continue;
+            }
+            const previewUrl = file.type.startsWith('image/') ? URL.createObjectURL(file) : null;
+            const defaultName = file.name.replace(/\.[^/.]+$/, '') || file.name;
+            this.pendingExtraDocs.push({
+                id: this._nextPendingExtraId++,
+                file,
+                displayName: defaultName,
+                previewUrl,
+            });
         }
-        this._revokePendingPreview();
-        this.pendingFile = file;
-        if (file.type.startsWith('image/')) {
-            this.pendingPreviewUrl = URL.createObjectURL(file);
-        }
-        if (!this.uploadDisplayName.trim()) {
-            this.uploadDisplayName = file.name.replace(/\.[^/.]+$/, '') || file.name;
+
+        if (stoppedByLimit) {
+            this._toast.warning(
+                `At most ${this.extraDocMaxFilesPerUpload} files per upload. Upload or remove some, then add more.`
+            );
         }
     }
 
-    clearPendingExtraDoc(): void {
-        this.pendingFile = null;
-        this.uploadDisplayName = '';
-        this._revokePendingPreview();
+    removePendingExtraDocItem(item: PendingExtraDocItem): void {
+        this._revokePendingItemPreview(item);
+        this.pendingExtraDocs = this.pendingExtraDocs.filter((p) => p.id !== item.id);
+    }
+
+    clearPendingExtraDocs(): void {
+        this._revokeAllPendingExtraPreviews();
+    }
+
+    /** True when there is at least one pending file and every row has a non-empty display name. */
+    pendingExtraUploadReady(): boolean {
+        return (
+            this.pendingExtraDocs.length > 0 &&
+            this.pendingExtraDocs.every((p) => p.displayName.trim().length > 0)
+        );
     }
 
     async refreshExtraDocuments(): Promise<void> {
@@ -706,36 +760,65 @@ export class EmployeeFormComponent implements OnInit, OnDestroy {
         }
     }
 
-    async uploadExtraDocument(): Promise<void> {
+    async uploadExtraDocuments(): Promise<void> {
         const id = this._requireEmployeeId();
-        if (!id || !this.pendingFile) return;
-        const name = this.uploadDisplayName.trim();
-        if (!name) {
-            this._toast.warning('Please enter a display name for the document.');
+        if (!id || !this.pendingExtraDocs.length) return;
+        if (!this.pendingExtraUploadReady()) {
+            this._toast.warning('Enter a display name for every file.');
             return;
         }
+        const files = this.pendingExtraDocs.map((p) => p.file);
+        const displayNames = this.pendingExtraDocs.map((p) => p.displayName.trim());
         this.uploadingExtra = true;
         try {
             const resp: any = await lastValueFrom(
-                this._employeesService.uploadExtraDocument(id, this.pendingFile, name)
+                this._employeesService.uploadExtraDocuments(id, files, displayNames)
             );
-            this._toast.success('Document uploaded');
-            this.clearPendingExtraDoc();
-            const created = resp?.document ?? resp?.extraDocument ?? resp;
-            if (created?.id) {
+            const n = files.length;
+            this._toast.success(n === 1 ? 'Document uploaded' : `${n} documents uploaded`);
+            this.clearPendingExtraDocs();
+
+            const rawList = Array.isArray(resp)
+                ? resp
+                : resp?.documents ?? resp?.extraDocuments ?? resp?.data;
+            if (Array.isArray(rawList) && rawList.length) {
+                const mapped: EmployeeExtraDocument[] = rawList
+                    .map((created: Record<string, unknown>) => {
+                        const docId = created['id'] ?? created['_id'];
+                        if (docId == null || docId === '') return null;
+                        return {
+                            ...created,
+                            id: String(docId),
+                            displayName: String(
+                                created['displayName'] ?? created['name'] ?? created['fileName'] ?? 'Document'
+                            ),
+                            mimeType: created['mimeType'] as string | undefined,
+                            url: (created['url'] ?? created['fileUrl'] ?? created['downloadUrl']) as
+                                | string
+                                | undefined,
+                        } as EmployeeExtraDocument;
+                    })
+                    .filter((x): x is EmployeeExtraDocument => x !== null);
+                if (mapped.length) {
+                    this.extraDocuments = [...mapped, ...this.extraDocuments];
+                    return;
+                }
+            }
+            const single = resp?.document ?? resp?.extraDocument;
+            if (single?.id) {
                 this.extraDocuments = [
                     {
-                        id: String(created.id),
-                        displayName: String(created.displayName ?? name),
-                        mimeType: created.mimeType,
-                        url: created.url ?? created.fileUrl,
-                        ...created,
+                        id: String(single.id),
+                        displayName: String(single.displayName ?? displayNames[0]),
+                        mimeType: single.mimeType,
+                        url: single.url ?? single.fileUrl,
+                        ...single,
                     },
                     ...this.extraDocuments,
                 ];
-            } else {
-                await this.refreshExtraDocuments();
+                return;
             }
+            await this.refreshExtraDocuments();
         } catch (e: any) {
             this._toast.error(e?.error?.message || 'Upload failed');
         } finally {

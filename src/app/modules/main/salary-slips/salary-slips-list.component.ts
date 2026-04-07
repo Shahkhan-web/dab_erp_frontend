@@ -57,7 +57,8 @@ import { SalarySlipListItem, SalarySlipsService } from './salary-slips.service';
 export class SalarySlipsListComponent implements OnInit {
     displayedColumns: string[] = [
         'employeeId',
-        'payrollFrequency',
+        'employeeName',
+        'status',
         'period',
         'workingDays',
         'grossPayment',

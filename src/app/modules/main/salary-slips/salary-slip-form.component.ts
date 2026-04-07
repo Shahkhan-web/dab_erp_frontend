@@ -586,10 +586,10 @@ export class SalarySlipFormComponent implements OnInit {
                 })),
         ];
 
-        if (lines.length === 0) {
-            this._toast.error('Add at least one earnings or deduction line');
-            return;
-        }
+        // if (lines.length === 0) {
+        //     this._toast.error('Add at least one earnings or deduction line');
+        //     return;
+        // }
 
         const loanRows = this.loanDeductions.value.filter(
             (r: { loanId: string; loanDeductionAmount: number }) =>

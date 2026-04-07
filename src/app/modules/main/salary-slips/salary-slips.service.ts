@@ -29,6 +29,8 @@ export interface SalarySlipListItem {
     id: string;
     employeeId: string;
     employeeCode: string;
+    /** Workflow state from API (e.g. draft, published). */
+    status?: string | null;
     /** When `staff` (case-insensitive), rider/Talabat and performance blocks are hidden in UI (see add form). */
     employeeOccupation?: string | null;
     payrollFrequency: string;

@@ -13,6 +13,7 @@ export interface EmployeeListItem {
     employeeNameArabic?: string;
     referenceEmployeeName?: string;
     personalNumber?: string;
+    riderId?: string;
     nationality?: string;
     workingStatus?: string;
     profileCompletion?: number;
@@ -74,6 +75,7 @@ export class EmployeesService {
         lastName: string;
         employeeNameArabic?: string;
         personalNumber?: string;
+        riderId?: string;
         workingStatus: string;
         occupation: string;
         dateOfJoining?: string;
@@ -112,11 +114,22 @@ export class EmployeesService {
         return this._http.patch(`${this._base}/${id}/documents`, payload);
     }
 
-    /** POST multipart: `file` + `displayName` (max 15MB; PDF / JPEG / PNG / WebP / GIF). */
-    uploadExtraDocument(employeeId: string, file: File, displayName: string): Observable<unknown> {
+    /**
+     * POST multipart: repeated `files` + `displayNames` as JSON array (same order and count).
+     * Up to 30 files; max 15MB each; PDF / JPEG / PNG / WebP / GIF.
+     */
+    uploadExtraDocuments(employeeId: string, files: File[], displayNames: string[]): Observable<unknown> {
+        if (files.length !== displayNames.length) {
+            throw new Error('files and displayNames must have the same length');
+        }
         const body = new FormData();
-        body.append('file', file);
-        body.append('displayName', displayName.trim());
+        for (const file of files) {
+            body.append('files', file);
+        }
+        body.append(
+            'displayNames',
+            JSON.stringify(displayNames.map((n) => String(n).trim()))
+        );
         return this._http.post(`${this._base}/${employeeId}/extra-documents`, body);
     }
 

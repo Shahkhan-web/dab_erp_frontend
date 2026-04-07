@@ -56,6 +56,10 @@
                   <mat-label>Personal Number</mat-label>
                   <input matInput formControlName="personalNumber" />
                 </mat-form-field>
+                <mat-form-field class="fuse-mat-dense w-full">
+                  <mat-label>Rider ID</mat-label>
+                  <input matInput formControlName="riderId" />
+                </mat-form-field>
                 <mat-form-field class="fuse-mat-dense w-full md:col-span-2">
                   <mat-label>Company</mat-label>
                   <mat-select formControlName="companyId">
@@ -377,7 +381,7 @@
             </mat-card-header>
             <mat-card-content class="border border-neutral-200 dark:border-neutral-700 space-y-6">
               <p class="text-sm text-secondary -mt-2 mb-2 max-w-2xl">
-                Set a profile photo (up to 5&nbsp;MB, JPEG/PNG/WebP/GIF) and attach other documents (up to 15&nbsp;MB each, with a display name).
+                Set a profile photo (up to 5&nbsp;MB, JPEG/PNG/WebP/GIF) and attach extra documents (up to 15&nbsp;MB each, up to {{ extraDocMaxFilesPerUpload }} files per upload, each with its own display name; order of names must match the files).
               </p>
               <div
                 *ngIf="!employeeId"
@@ -530,7 +534,7 @@
                     ></mat-icon>
                   </div>
                   <div>
-                    <p class="text-base font-semibold text-zinc-900 dark:text-zinc-50">Drop a file here</p>
+                    <p class="text-base font-semibold text-zinc-900 dark:text-zinc-50">Drop files here</p>
                     <p class="mt-1 text-sm text-secondary">or</p>
                   </div>
                   <button
@@ -548,62 +552,87 @@
                     #extraFileInput
                     type="file"
                     class="sr-only"
+                    multiple
                     [accept]="extraDocAcceptAttr"
                     (change)="onExtraDocFileInputChange($event)"
                   />
                   <p class="max-w-md text-xs text-secondary leading-relaxed">
-                    PDF, JPEG, PNG, WebP, or GIF · max {{ extraDocMaxBytes / (1024 * 1024) }}&nbsp;MB
+                    PDF, JPEG, PNG, WebP, or GIF · max {{ extraDocMaxBytes / (1024 * 1024) }}&nbsp;MB each · up to {{ extraDocMaxFilesPerUpload }} files per batch
                   </p>
                 </div>
               </div>
 
-              <!-- Pending upload -->
+              <!-- Pending upload (batch: files + display names in list order) -->
               <div
-                *ngIf="pendingFile"
-                class="rounded-xl border border-zinc-200 bg-white/80 dark:border-zinc-600 dark:bg-zinc-900/40 p-4 shadow-sm"
+                *ngIf="pendingExtraDocs.length"
+                class="rounded-xl border border-zinc-200 bg-white/80 dark:border-zinc-600 dark:bg-zinc-900/40 p-4 shadow-sm space-y-4"
               >
-                <div class="flex flex-col gap-4 sm:flex-row sm:items-start">
-                  <div
-                    class="flex h-24 w-24 flex-shrink-0 items-center justify-center overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800"
-                  >
-                    <img *ngIf="pendingPreviewUrl" [src]="pendingPreviewUrl" alt="" class="h-full w-full object-cover" />
-                    <mat-icon
-                      *ngIf="!pendingPreviewUrl"
-                      class="icon-size-10 text-zinc-400"
-                      [svgIcon]="'heroicons_outline:document-text'"
-                    ></mat-icon>
-                  </div>
-                  <div class="min-w-0 flex-1 space-y-3">
-                    <div>
-                      <p class="truncate font-medium text-zinc-900 dark:text-zinc-50">{{ pendingFile.name }}</p>
-                      <p class="text-sm text-secondary">{{ formatFileSize(pendingFile.size) }}</p>
-                    </div>
-                    <mat-form-field class="fuse-mat-dense w-full" subscriptSizing="dynamic">
-                      <mat-label>Display name</mat-label>
-                      <input matInput name="extraUploadDisplayName" [(ngModel)]="uploadDisplayName" [ngModelOptions]="{ standalone: true }" />
-                    </mat-form-field>
-                    <div class="flex flex-wrap gap-2">
-                      <button
-                        mat-flat-button
-                        color="primary"
-                        type="button"
-                        [disabled]="uploadingExtra || !uploadDisplayName.trim()"
-                        (click)="uploadExtraDocument()"
-                      >
-                        <mat-progress-spinner
-                          *ngIf="uploadingExtra"
-                          class="inline-block align-middle me-2"
-                          diameter="20"
-                          mode="indeterminate"
-                        ></mat-progress-spinner>
-                        <span>{{ uploadingExtra ? 'Uploading…' : 'Upload' }}</span>
-                      </button>
-                      <button mat-stroked-button type="button" [disabled]="uploadingExtra" (click)="clearPendingExtraDoc()">
-                        Clear
-                      </button>
-                    </div>
+                <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <p class="text-sm font-medium text-zinc-900 dark:text-zinc-50">
+                    Ready to upload ({{ pendingExtraDocs.length }}/{{ extraDocMaxFilesPerUpload }})
+                  </p>
+                  <div class="flex flex-wrap gap-2">
+                    <button
+                      mat-flat-button
+                      color="primary"
+                      type="button"
+                      [disabled]="uploadingExtra || !pendingExtraUploadReady()"
+                      (click)="uploadExtraDocuments()"
+                    >
+                      <mat-progress-spinner
+                        *ngIf="uploadingExtra"
+                        class="inline-block align-middle me-2"
+                        diameter="20"
+                        mode="indeterminate"
+                      ></mat-progress-spinner>
+                      <span>{{ uploadingExtra ? 'Uploading…' : (pendingExtraDocs.length === 1 ? 'Upload' : 'Upload all') }}</span>
+                    </button>
+                    <button mat-stroked-button type="button" [disabled]="uploadingExtra" (click)="clearPendingExtraDocs()">
+                      Clear all
+                    </button>
                   </div>
                 </div>
+                <ul class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <li
+                    *ngFor="let item of pendingExtraDocs; trackBy: trackByPendingExtraId"
+                    class="flex gap-3 rounded-lg border border-zinc-200/90 bg-zinc-50/80 p-3 dark:border-zinc-600 dark:bg-zinc-900/30"
+                  >
+                    <div
+                      class="flex h-20 w-20 flex-shrink-0 items-center justify-center overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800"
+                    >
+                      <img *ngIf="item.previewUrl" [src]="item.previewUrl" alt="" class="h-full w-full object-cover" />
+                      <mat-icon
+                        *ngIf="!item.previewUrl"
+                        class="icon-size-9 text-zinc-400"
+                        [svgIcon]="'heroicons_outline:document-text'"
+                      ></mat-icon>
+                    </div>
+                    <div class="min-w-0 flex-1 space-y-2">
+                      <div>
+                        <p class="truncate text-sm font-medium text-zinc-900 dark:text-zinc-50">{{ item.file.name }}</p>
+                        <p class="text-xs text-secondary">{{ formatFileSize(item.file.size) }}</p>
+                      </div>
+                      <mat-form-field class="fuse-mat-dense w-full" subscriptSizing="dynamic">
+                        <mat-label>Display name</mat-label>
+                        <input
+                          matInput
+                          [name]="'extraDisplay-' + item.id"
+                          [(ngModel)]="item.displayName"
+                          [ngModelOptions]="{ standalone: true }"
+                        />
+                      </mat-form-field>
+                    </div>
+                    <button
+                      mat-icon-button
+                      type="button"
+                      matTooltip="Remove from list"
+                      [disabled]="uploadingExtra"
+                      (click)="removePendingExtraDocItem(item)"
+                    >
+                      <mat-icon class="icon-size-5 text-zinc-500">close</mat-icon>
+                    </button>
+                  </li>
+                </ul>
               </div>
 
               <!-- Uploaded list -->
@@ -678,10 +707,10 @@
               </div>
 
               <div
-                *ngIf="employeeId && !extraDocuments.length && !pendingFile"
+                *ngIf="employeeId && !extraDocuments.length && !pendingExtraDocs.length"
                 class="rounded-lg border border-dashed border-zinc-200 py-8 text-center text-sm text-secondary dark:border-zinc-600"
               >
-                No extra documents yet. Upload one using the area above.
+                No extra documents yet. Add files using the area above, set a display name for each, then upload.
               </div>
 
               <div class="mt-2 flex flex-wrap gap-3 justify-end">
