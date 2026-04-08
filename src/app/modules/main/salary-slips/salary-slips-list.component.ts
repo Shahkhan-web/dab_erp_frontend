@@ -128,7 +128,7 @@ export class SalarySlipsListComponent implements OnInit {
     }
 
     private async _init(): Promise<void> {
-        await Promise.all([this._loadEmployees(), this.loadList()]);
+        await Promise.all([this.loadList()]);
     }
 
     private async _loadEmployees(): Promise<void> {
