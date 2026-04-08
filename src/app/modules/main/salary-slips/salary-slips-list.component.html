@@ -111,14 +111,17 @@
           {{ selectedCount }} slip{{ selectedCount === 1 ? '' : 's' }} selected
         </span>
         <div class="salary-slip-bulk-bar__actions flex flex-wrap items-center gap-2">
-          <mat-form-field appearance="outline" class="salary-slip-bulk-bar__select fuse-mat-dense w-[190px]">
-            <mat-label>Change status to</mat-label>
-            <mat-select [(ngModel)]="bulkStatus">
-              @for (s of statusOptions; track s) {
-              <mat-option [value]="s">{{ s | titlecase }}</mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
+          <div class="salary-slip-bulk-bar__status-group" role="group" aria-label="Change status to">
+            @for (s of bulkStatusOptions; track s) {
+            <button type="button" class="salary-slip-status-chip" [ngClass]="{
+                'is-pending-target': s === 'verified',
+                'is-paid-target': s === 'paid',
+                'is-active': bulkStatus === s
+              }" [disabled]="!canChooseBulkStatus(s) || bulkUpdating" (click)="selectBulkStatus(s)">
+              {{ s | titlecase }}
+            </button>
+            }
+          </div>
           <button mat-stroked-button class="salary-slip-bulk-bar__btn salary-slip-bulk-bar__btn--clear" type="button"
             (click)="clearSelection()">Clear</button>
           <button mat-flat-button class="salary-slip-bulk-bar__btn" color="primary" type="button"
@@ -133,11 +136,11 @@
           <ng-container matColumnDef="select">
             <th mat-header-cell *matHeaderCellDef class="w-14">
               <mat-checkbox color="primary" [checked]="isAllSelected()" [indeterminate]="isIndeterminate()"
-                (change)="toggleSelectAll($event.checked)" aria-label="Select all pending slips">
+                (change)="toggleSelectAll($event.checked)" aria-label="Select all changeable slips">
               </mat-checkbox>
             </th>
             <td mat-cell *matCellDef="let item" class="w-14">
-              <mat-checkbox color="primary" [checked]="isSelected(item.id)" [disabled]="!canEditSlip(item)"
+              <mat-checkbox color="primary" [checked]="isSelected(item.id)" [disabled]="!canSelectForStatusChange(item)"
                 (change)="toggleSelection(item)" [attr.aria-label]="'Select slip ' + item?.id">
               </mat-checkbox>
             </td>

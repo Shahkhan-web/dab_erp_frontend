@@ -94,6 +94,7 @@ export class SalarySlipsListComponent implements OnInit {
 
     payrollFrequencyOptions = ['monthly', 'fortnightly', 'bimonthly', 'weekly', 'daily'] as const;
     statusOptions: SalarySlipStatus[] = ['pending', 'verified', 'paid'];
+    bulkStatusOptions: SalarySlipStatus[] = ['verified', 'paid'];
     selectedIds = new Set<string>();
     bulkStatus: SalarySlipStatus | null = null;
     bulkUpdating = false;
@@ -226,6 +227,11 @@ export class SalarySlipsListComponent implements OnInit {
         return String(slip?.status ?? '').toLowerCase() === 'pending';
     }
 
+    canSelectForStatusChange(slip: SalarySlipListItem): boolean {
+        const status = String(slip?.status ?? '').toLowerCase();
+        return status === 'pending' || status === 'verified';
+    }
+
     employeeDisplayName(employeeId: string | undefined): string | null {
         if (!employeeId) return null;
         const e = this.employees.find((x) => x.id === employeeId);
@@ -306,25 +312,27 @@ export class SalarySlipsListComponent implements OnInit {
     }
 
     isAllSelected(): boolean {
-        const selectableRows = this.rows.filter((row) => this.canEditSlip(row));
+        const selectableRows = this.rows.filter((row) => this.canSelectForStatusChange(row));
         if (selectableRows.length === 0) return false;
         return selectableRows.every((row) => this.selectedIds.has(row.id));
     }
 
     isIndeterminate(): boolean {
-        const selectableRows = this.rows.filter((row) => this.canEditSlip(row));
+        const selectableRows = this.rows.filter((row) => this.canSelectForStatusChange(row));
         const selectableIds = new Set(selectableRows.map((row) => row.id));
         const selectedOnPage = Array.from(this.selectedIds).filter((id) => selectableIds.has(id)).length;
         return selectedOnPage > 0 && selectedOnPage < selectableRows.length;
     }
 
     toggleSelectAll(checked: boolean): void {
-        const selectableRows = this.rows.filter((row) => this.canEditSlip(row));
+        const selectableRows = this.rows.filter((row) => this.canSelectForStatusChange(row));
         if (!checked) {
             selectableRows.forEach((row) => this.selectedIds.delete(row.id));
+            this._ensureBulkStatusStillValid();
             return;
         }
         selectableRows.forEach((row) => this.selectedIds.add(row.id));
+        this._ensureBulkStatusStillValid();
     }
 
     isSelected(id: string): boolean {
@@ -332,26 +340,45 @@ export class SalarySlipsListComponent implements OnInit {
     }
 
     toggleSelection(slip: SalarySlipListItem): void {
-        if (!this.canEditSlip(slip)) return;
+        if (!this.canSelectForStatusChange(slip)) return;
         if (this.selectedIds.has(slip.id)) {
             this.selectedIds.delete(slip.id);
         } else {
             this.selectedIds.add(slip.id);
         }
+        this._ensureBulkStatusStillValid();
     }
 
     clearSelection(): void {
         this.selectedIds.clear();
+        this.bulkStatus = null;
+    }
+
+    selectBulkStatus(status: SalarySlipStatus): void {
+        if (!this.canChooseBulkStatus(status)) return;
+        this.bulkStatus = status;
+    }
+
+    canChooseBulkStatus(status: SalarySlipStatus): boolean {
+        const selectedRows = this._selectedRowsOnPage();
+        if (selectedRows.length === 0) return false;
+        return selectedRows.every((row) => this.canTransitionStatus(row.status, status));
     }
 
     async applyBulkStatus(): Promise<void> {
-        const ids = Array.from(this.selectedIds);
+        const selectedRows = this.rows.filter((row) => this.selectedIds.has(row.id));
+        const ids = selectedRows.map((row) => row.id);
         if (!this.bulkStatus) {
             this._toast.error('Choose a status');
             return;
         }
         if (ids.length === 0) {
-            this._toast.error('Select at least one pending salary slip');
+            this._toast.error('Select at least one salary slip');
+            return;
+        }
+        const invalidRows = selectedRows.filter((row) => !this.canTransitionStatus(row.status, this.bulkStatus!));
+        if (invalidRows.length > 0) {
+            this._toast.error('Invalid status change. Verified slips can only move to paid, and paid slips cannot be changed.');
             return;
         }
         this.bulkUpdating = true;
@@ -372,5 +399,25 @@ export class SalarySlipsListComponent implements OnInit {
         Array.from(this.selectedIds).forEach((id) => {
             if (!visibleIds.has(id)) this.selectedIds.delete(id);
         });
+        this._ensureBulkStatusStillValid();
+    }
+
+    private _selectedRowsOnPage(): SalarySlipListItem[] {
+        return this.rows.filter((row) => this.selectedIds.has(row.id));
+    }
+
+    private _ensureBulkStatusStillValid(): void {
+        if (!this.bulkStatus) return;
+        if (!this.canChooseBulkStatus(this.bulkStatus)) {
+            this.bulkStatus = null;
+        }
+    }
+
+    private canTransitionStatus(from: SalarySlipStatus | string | null | undefined, to: SalarySlipStatus): boolean {
+        const current = String(from ?? '').toLowerCase() as SalarySlipStatus;
+        if (current === 'paid') return false;
+        if (current === 'verified') return to === 'paid';
+        if (current === 'pending') return to === 'verified' || to === 'paid';
+        return false;
     }
 }
