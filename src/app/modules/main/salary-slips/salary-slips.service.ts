@@ -71,11 +71,14 @@ export interface SalarySlipsListResponse {
 export interface SalarySlipsListFilters {
     employeeId?: string | null;
     payrollFrequency?: string | null;
+    status?: SalarySlipStatus | null;
     slipStartFrom?: string | null;
     slipStartTo?: string | null;
     slipEndFrom?: string | null;
     slipEndTo?: string | null;
 }
+
+export type SalarySlipStatus = 'pending' | 'verified' | 'paid';
 
 export interface SalarySlipLineInput {
     payComponentId: string;
@@ -119,6 +122,8 @@ export interface SalarySlipCreatePayload {
     basicSalaryFromProfile?: number;
 }
 
+export type SalarySlipUpdatePayload = SalarySlipCreatePayload;
+
 @Injectable({ providedIn: 'root' })
 export class SalarySlipsService {
     private _http = inject(HttpClient);
@@ -133,6 +138,7 @@ export class SalarySlipsService {
         let params = new HttpParams().set('page', String(page)).set('limit', String(limit));
         if (filters?.employeeId) params = params.set('employeeId', filters.employeeId);
         if (filters?.payrollFrequency) params = params.set('payrollFrequency', filters.payrollFrequency);
+        if (filters?.status) params = params.set('status', filters.status);
         if (filters?.slipStartFrom) params = params.set('slipStartFrom', filters.slipStartFrom);
         if (filters?.slipStartTo) params = params.set('slipStartTo', filters.slipStartTo);
         if (filters?.slipEndFrom) params = params.set('slipEndFrom', filters.slipEndFrom);
@@ -150,6 +156,27 @@ export class SalarySlipsService {
 
     createSalarySlip(employeeId: string, payload: SalarySlipCreatePayload): Observable<unknown> {
         return this._http.post(`${this._baseEmployee}/${employeeId}/salary-slips`, payload);
+    }
+
+    getSalarySlip(employeeId: string, salarySlipId: string): Observable<SalarySlipListItem> {
+        return this._http.get<SalarySlipListItem>(`${this._baseEmployee}/${employeeId}/salary-slips/${salarySlipId}`);
+    }
+
+    updateSalarySlip(employeeId: string, salarySlipId: string, payload: SalarySlipUpdatePayload): Observable<unknown> {
+        return this._http.patch(`${this._baseEmployee}/${employeeId}/salary-slips/${salarySlipId}`, payload);
+    }
+
+    bulkUpdateStatus(ids: string[], status: SalarySlipStatus): Observable<unknown> {
+        return this._http.patch(`${this._baseSlips}/status`, { ids, status });
+    }
+
+    uploadSalarySlips(file: File, payrollFrequency: string, startDate: string, endDate: string): Observable<unknown> {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('payrollFrequency', payrollFrequency);
+        formData.append('startDate', startDate);
+        formData.append('endDate', endDate);
+        return this._http.post(`${this._baseSlips}/upload`, formData);
     }
 
     /**

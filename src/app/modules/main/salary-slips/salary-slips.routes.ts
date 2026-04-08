@@ -10,4 +10,9 @@ export const salarySlipsRoutes: Route[] = [
         canActivate: [moduleWriteGuard('salarySlip', '/main/salary-slips')],
         component: SalarySlipFormComponent,
     },
+    {
+        path: 'employee/:employeeId/salary-slips/:salarySlipId/edit',
+        canActivate: [moduleWriteGuard('salarySlip', '/main/salary-slips')],
+        component: SalarySlipFormComponent,
+    },
 ];

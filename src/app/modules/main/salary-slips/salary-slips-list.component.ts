@@ -3,6 +3,7 @@ import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -28,7 +29,8 @@ import {
 } from './salary-slip-detail-dialog.component';
 import { SalarySlipLetterheadChoiceDialogComponent } from './salary-slip-letterhead-choice-dialog.component';
 import { SalarySlipPdfDialogComponent } from './salary-slip-pdf-dialog.component';
-import { SalarySlipListItem, SalarySlipsService } from './salary-slips.service';
+import { SalarySlipListItem, SalarySlipsService, SalarySlipStatus } from './salary-slips.service';
+import { SalarySlipUploadDialogComponent } from './salary-slip-upload-dialog.component';
 
 @Component({
     selector: 'app-salary-slips-list',
@@ -39,6 +41,7 @@ import { SalarySlipListItem, SalarySlipsService } from './salary-slips.service';
         FormsModule,
         MatCardModule,
         MatTableModule,
+        MatCheckboxModule,
         MatPaginatorModule,
         MatButtonModule,
         MatIconModule,
@@ -55,18 +58,20 @@ import { SalarySlipListItem, SalarySlipsService } from './salary-slips.service';
     templateUrl: './salary-slips-list.component.html',
 })
 export class SalarySlipsListComponent implements OnInit {
-    displayedColumns: string[] = [
+    private readonly _allDisplayedColumns = [
+        'select',
         'employeeId',
         'employeeName',
-        'status',
         'period',
         'workingDays',
         'grossPayment',
         'totalDeduction',
         'netPayment',
         'createdAt',
+        'status',
         'actions',
-    ];
+    ] as const;
+    displayedColumns: string[] = [];
     rows: SalarySlipListItem[] = [];
     /** Row `slip.id` while its PDF is loading for the viewer (disables that row’s PDF button). */
     pdfLoadingSlipId: string | null = null;
@@ -77,6 +82,7 @@ export class SalarySlipsListComponent implements OnInit {
 
     filterEmployeeId: string | null = null;
     filterPayrollFrequency: string | null = null;
+    filterStatus: SalarySlipStatus | null = null;
     /** UI: mapped to `slipStartFrom` / `slipStartTo` query params as `YYYY-MM-DD` (local). */
     slipStartFromDate: Date | null = null;
     slipStartToDate: Date | null = null;
@@ -87,6 +93,10 @@ export class SalarySlipsListComponent implements OnInit {
     employees: EmployeeListItem[] = [];
 
     payrollFrequencyOptions = ['monthly', 'fortnightly', 'bimonthly', 'weekly', 'daily'] as const;
+    statusOptions: SalarySlipStatus[] = ['pending', 'verified', 'paid'];
+    selectedIds = new Set<string>();
+    bulkStatus: SalarySlipStatus | null = null;
+    bulkUpdating = false;
 
     constructor(
         private _service: SalarySlipsService,
@@ -97,7 +107,12 @@ export class SalarySlipsListComponent implements OnInit {
         private _matDialog: MatDialog,
         private _auth: AuthService,
         private _datePipe: DatePipe
-    ) {}
+    ) {
+        const write = hasModuleWrite(this._auth.profileData, 'salarySlip');
+        this.displayedColumns = write
+            ? [...this._allDisplayedColumns]
+            : this._allDisplayedColumns.filter((c) => c !== 'select' && c !== 'actions');
+    }
 
     get canWriteSalarySlip(): boolean {
         return hasModuleWrite(this._auth.profileData, 'salarySlip');
@@ -132,6 +147,7 @@ export class SalarySlipsListComponent implements OnInit {
                 this._service.getSalarySlips(this.pageIndex + 1, this.pageSize, {
                     employeeId: this.filterEmployeeId,
                     payrollFrequency: this.filterPayrollFrequency,
+                    status: this.filterStatus,
                     slipStartFrom: this._dateToYmd(this.slipStartFromDate),
                     slipStartTo: this._dateToYmd(this.slipStartToDate),
                     slipEndFrom: this._dateToYmd(this.slipEndFromDate),
@@ -139,6 +155,7 @@ export class SalarySlipsListComponent implements OnInit {
                 })
             );
             this.rows = resp.data ?? [];
+            this._retainSelectionOnlyVisibleRows();
             this.total = resp.count ?? this.rows.length;
         } catch (e: any) {
             this._toast.error(e?.error?.message || 'Failed to load salary slips');
@@ -163,6 +180,7 @@ export class SalarySlipsListComponent implements OnInit {
     clearFilters(): void {
         this.filterEmployeeId = null;
         this.filterPayrollFrequency = null;
+        this.filterStatus = null;
         this.slipStartFromDate = null;
         this.slipStartToDate = null;
         this.slipEndFromDate = null;
@@ -181,6 +199,31 @@ export class SalarySlipsListComponent implements OnInit {
 
     goNew(): void {
         this._router.navigate(['/main/salary-slips/new']);
+    }
+
+    async openUploadDialog(): Promise<void> {
+        const ref = this._matDialog.open(SalarySlipUploadDialogComponent, {
+            width: 'min(96vw, 760px)',
+            autoFocus: 'first-tabbable',
+            panelClass: 'salary-slip-upload-dialog-panel',
+        });
+        const uploaded = await firstValueFrom(ref.afterClosed());
+        if (uploaded) {
+            await this.loadList();
+        }
+    }
+
+    goEdit(slip: SalarySlipListItem): void {
+        if (!slip?.employeeId || !slip?.id) return;
+        if (!this.canEditSlip(slip)) {
+            this._toast.warning('Only pending salary slips can be edited');
+            return;
+        }
+        this._router.navigate(['/main/salary-slips/employee', slip.employeeId, 'salary-slips', slip.id, 'edit']);
+    }
+
+    canEditSlip(slip: SalarySlipListItem): boolean {
+        return String(slip?.status ?? '').toLowerCase() === 'pending';
     }
 
     employeeDisplayName(employeeId: string | undefined): string | null {
@@ -256,5 +299,78 @@ export class SalarySlipsListComponent implements OnInit {
         } finally {
             this.pdfLoadingSlipId = null;
         }
+    }
+
+    get selectedCount(): number {
+        return this.selectedIds.size;
+    }
+
+    isAllSelected(): boolean {
+        const selectableRows = this.rows.filter((row) => this.canEditSlip(row));
+        if (selectableRows.length === 0) return false;
+        return selectableRows.every((row) => this.selectedIds.has(row.id));
+    }
+
+    isIndeterminate(): boolean {
+        const selectableRows = this.rows.filter((row) => this.canEditSlip(row));
+        const selectableIds = new Set(selectableRows.map((row) => row.id));
+        const selectedOnPage = Array.from(this.selectedIds).filter((id) => selectableIds.has(id)).length;
+        return selectedOnPage > 0 && selectedOnPage < selectableRows.length;
+    }
+
+    toggleSelectAll(checked: boolean): void {
+        const selectableRows = this.rows.filter((row) => this.canEditSlip(row));
+        if (!checked) {
+            selectableRows.forEach((row) => this.selectedIds.delete(row.id));
+            return;
+        }
+        selectableRows.forEach((row) => this.selectedIds.add(row.id));
+    }
+
+    isSelected(id: string): boolean {
+        return this.selectedIds.has(id);
+    }
+
+    toggleSelection(slip: SalarySlipListItem): void {
+        if (!this.canEditSlip(slip)) return;
+        if (this.selectedIds.has(slip.id)) {
+            this.selectedIds.delete(slip.id);
+        } else {
+            this.selectedIds.add(slip.id);
+        }
+    }
+
+    clearSelection(): void {
+        this.selectedIds.clear();
+    }
+
+    async applyBulkStatus(): Promise<void> {
+        const ids = Array.from(this.selectedIds);
+        if (!this.bulkStatus) {
+            this._toast.error('Choose a status');
+            return;
+        }
+        if (ids.length === 0) {
+            this._toast.error('Select at least one pending salary slip');
+            return;
+        }
+        this.bulkUpdating = true;
+        try {
+            await lastValueFrom(this._service.bulkUpdateStatus(ids, this.bulkStatus));
+            this._toast.success(`Updated ${ids.length} salary slip${ids.length === 1 ? '' : 's'} to ${this.bulkStatus}`);
+            this.clearSelection();
+            await this.loadList();
+        } catch (e: any) {
+            this._toast.error(e?.error?.message || 'Failed to update status');
+        } finally {
+            this.bulkUpdating = false;
+        }
+    }
+
+    private _retainSelectionOnlyVisibleRows(): void {
+        const visibleIds = new Set(this.rows.map((r) => r.id));
+        Array.from(this.selectedIds).forEach((id) => {
+            if (!visibleIds.has(id)) this.selectedIds.delete(id);
+        });
     }
 }

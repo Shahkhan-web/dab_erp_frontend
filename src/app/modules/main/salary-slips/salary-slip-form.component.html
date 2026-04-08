@@ -8,8 +8,10 @@
           [svgIcon]="'heroicons_outline:banknotes'"></mat-icon>
       </div>
       <div class="min-w-0">
-        <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-neutral-900 dark:text-white">New salary slip</h1>
-        <p class="text-sm text-secondary mt-0.5">Complete each step, then save</p>
+        <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-neutral-900 dark:text-white">
+          {{ isEditMode ? 'Edit salary slip' : 'New salary slip' }}
+        </h1>
+        <p class="text-sm text-secondary mt-0.5">{{ isEditMode ? 'Update pending salary slip' : 'Complete each step, then save' }}</p>
       </div>
     </div>
     <div class="flex flex-wrap gap-2 items-center">
@@ -388,7 +390,7 @@
           </button>
           } @else {
           <button mat-flat-button color="primary" type="button" (click)="save()" [disabled]="saving || pageLoader">
-            {{ saving ? 'Saving…' : 'Save' }}
+            {{ saving ? (isEditMode ? 'Updating…' : 'Saving…') : (isEditMode ? 'Update' : 'Save') }}
           </button>
           }
         </div>

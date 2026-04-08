@@ -1,0 +1,59 @@
+<div class="print-dialog-content bg-white rounded-2xl overflow-hidden dark:bg-zinc-900" [overlayLoader]="uploading">
+  <div class="bg-gradient-to-r from-primary-600 to-primary-700 px-6 py-5 text-white">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-white/20">
+          <mat-icon class="icon-size-8 text-white" [svgIcon]="'heroicons_outline:arrow-up-tray'"></mat-icon>
+        </div>
+        <div>
+          <h2 class="text-xl font-bold tracking-tight">Upload Salary Slips</h2>
+          <p class="text-sm text-white/90">Bulk import from CSV/Excel file</p>
+        </div>
+      </div>
+      <button mat-icon-button (click)="cancel()" class="text-white/90 hover:bg-white/20" aria-label="Close">
+        <mat-icon class="text-white">close</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  <div class="p-6 sm:p-8">
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+    <mat-form-field class="fuse-mat-dense w-full">
+      <mat-label>Payroll frequency</mat-label>
+      <mat-select [(ngModel)]="payrollFrequency">
+        @for (f of payrollFrequencyOptions; track f) {
+        <mat-option [value]="f">{{ f | titlecase }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+    <div></div>
+    <mat-form-field class="fuse-mat-dense w-full">
+      <mat-label>Start date</mat-label>
+      <input matInput [matDatepicker]="startPicker" [(ngModel)]="startDate" [ngModelOptions]="{ standalone: true }" />
+      <mat-datepicker-toggle matSuffix [for]="startPicker"></mat-datepicker-toggle>
+      <mat-datepicker #startPicker></mat-datepicker>
+    </mat-form-field>
+    <mat-form-field class="fuse-mat-dense w-full">
+      <mat-label>End date</mat-label>
+      <input matInput [matDatepicker]="endPicker" [(ngModel)]="endDate" [ngModelOptions]="{ standalone: true }" />
+      <mat-datepicker-toggle matSuffix [for]="endPicker"></mat-datepicker-toggle>
+      <mat-datepicker #endPicker></mat-datepicker>
+    </mat-form-field>
+  </div>
+
+  <div class="mt-4 rounded-xl border border-neutral-200 dark:border-neutral-700 p-3">
+    <div class="flex flex-wrap items-center gap-2">
+      <input #uploadInput type="file" class="hidden" (change)="onUploadFilePicked($event)" accept=".csv,.xls,.xlsx" />
+      <button mat-stroked-button type="button" (click)="uploadInput.click()">Select file</button>
+      <span class="text-sm text-secondary truncate max-w-[320px]">{{ uploadFile?.name || 'No file selected' }}</span>
+    </div>
+  </div>
+
+  <div class="mt-8 flex flex-wrap gap-3 justify-end">
+    <button mat-flat-button color="primary" type="button" (click)="upload()" [disabled]="uploading">
+      {{ uploading ? 'Uploading…' : 'Upload' }}
+    </button>
+    <button mat-stroked-button type="button" (click)="cancel()" [disabled]="uploading">Cancel</button>
+  </div>
+  </div>
+</div>

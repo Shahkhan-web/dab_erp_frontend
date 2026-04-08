@@ -111,6 +111,9 @@ export class SalarySlipFormComponent implements OnInit {
     /** Kept in sync with `mat-step` count in the template (zero-based last index). */
     readonly lastStepIndex = 2;
     stepperIndex = 0;
+    isEditMode = false;
+    editEmployeeId: string | null = null;
+    editSalarySlipId: string | null = null;
 
     displayEmployee = (value: EmployeeListItem | string | null): string => {
         if (!value) return '';
@@ -341,8 +344,9 @@ export class SalarySlipFormComponent implements OnInit {
             this.deductionComponents = pcs.filter((p) => p.type === 'deduction');
             this.refreshEmployeeFilterList();
             await this._applyPreselectedEmployeeFromQuery();
-            this.addEarningRow();
-            this.addDeductionRow();
+            await this._initEditIfNeeded();
+            if (this.earningLines.length === 0) this.addEarningRow();
+            if (this.deductionLines.length === 0) this.addDeductionRow();
             await this._refreshEmployeeOccupationFromDetailsIfAny();
         } catch (e: any) {
             this._toast.error(e?.error?.message || 'Failed to load form data');
@@ -379,6 +383,7 @@ export class SalarySlipFormComponent implements OnInit {
 
     /** When opened from e.g. employees list with `?employeeId=`. */
     private async _applyPreselectedEmployeeFromQuery(): Promise<void> {
+        if (this.isEditMode) return;
         const id = this._route.snapshot.queryParamMap.get('employeeId')?.trim();
         if (!id) return;
         let emp = this.employees.find((e) => e.id === id);
@@ -519,6 +524,98 @@ export class SalarySlipFormComponent implements OnInit {
         await this._save();
     }
 
+    private _toLocalDate(value: unknown): Date | null {
+        if (!value || typeof value !== 'string') return null;
+        const d = new Date(value);
+        return isNaN(d.getTime()) ? null : d;
+    }
+
+    private _setLineArray(arr: FormArray<FormGroup>, items: Array<{ payComponentId: string; amount: number }>): void {
+        arr.clear();
+        items.forEach((row) => {
+            const g = this._lineGroup();
+            g.patchValue({
+                payComponentId: row.payComponentId,
+                amount: Number(row.amount) || 0,
+            });
+            arr.push(g);
+        });
+    }
+
+    private async _initEditIfNeeded(): Promise<void> {
+        const employeeId = this._route.snapshot.paramMap.get('employeeId')?.trim();
+        const salarySlipId = this._route.snapshot.paramMap.get('salarySlipId')?.trim();
+        if (!employeeId || !salarySlipId) return;
+        this.isEditMode = true;
+        this.editEmployeeId = employeeId;
+        this.editSalarySlipId = salarySlipId;
+        const slip = await lastValueFrom(this._salarySlipsService.getSalarySlip(employeeId, salarySlipId));
+        if (String(slip.status ?? '').toLowerCase() !== 'pending') {
+            this._toast.error('Only pending salary slips can be edited');
+            await this._router.navigate(['/main/salary-slips']);
+            return;
+        }
+        const selectedEmployee = this.employees.find((e) => e.id === employeeId) ?? null;
+        this.detailsForm.patchValue({
+            employee: selectedEmployee,
+            payrollFrequency: slip.payrollFrequency ?? 'monthly',
+            startDate: this._toLocalDate(slip.startDate),
+            endDate: this._toLocalDate(slip.endDate),
+        });
+        this.detailsForm.get('employee')!.disable({ emitEvent: false });
+        this.paymentForm.patchValue({
+            workingDays: Number(slip.workingDays) || 0,
+            absentDays: Number(slip.absentDays) || 0,
+            leaveDaysWithoutPay: Number(slip.leaveDaysWithoutPay) || 0,
+        });
+        this.bankForm.patchValue({
+            bankName: typeof slip.bankName === 'string' ? slip.bankName : '',
+            bankAccountNo: typeof slip.bankAccountNo === 'string' ? slip.bankAccountNo : '',
+        });
+        this.riderForm.patchValue({
+            talabatCaseRiderEarning: this._numOrUndef(slip.talabatCaseRiderEarning) ?? null,
+            codDeduction: this._numOrUndef(slip.codDeduction) ?? null,
+            deliveryIncentive: this._numOrUndef(slip.deliveryIncentive) ?? null,
+            inventoryDeduction: this._numOrUndef(slip.inventoryDeduction) ?? null,
+            fuelIncentive: this._numOrUndef(slip.fuelIncentive) ?? null,
+            clawbackDeduction: this._numOrUndef(slip.clawbackDeduction) ?? null,
+        });
+        this.performanceForm.patchValue({
+            totalCompletedDeliveries: Number(slip.performance?.totalCompletedDeliveries) || 0,
+            pickupsCount: Number(slip.performance?.pickupsCount) || 0,
+            dropoffsCount: Number(slip.performance?.dropoffsCount) || 0,
+            deliveriesReturnLc: Number(slip.performance?.deliveriesReturnLc) || 0,
+            distanceLc: Number(slip.performance?.distanceLc) || 0,
+        });
+        const earningPayComponentIds = new Set(this.earningComponents.map((c) => c.id));
+        const deductionPayComponentIds = new Set(this.deductionComponents.map((c) => c.id));
+        const earnings =
+            slip.lines
+                ?.filter((line) => earningPayComponentIds.has(line.payComponentId) || line.componentType === 'earning')
+                .map((line) => ({
+                    payComponentId: line.payComponentId,
+                    amount: Number(line.amount) || 0,
+                })) ?? [];
+        const deductions =
+            slip.lines
+                ?.filter((line) => deductionPayComponentIds.has(line.payComponentId) || line.componentType === 'deduction')
+                .map((line) => ({
+                    payComponentId: line.payComponentId,
+                    amount: Number(line.amount) || 0,
+                })) ?? [];
+        this._setLineArray(this.earningLines, earnings);
+        this._setLineArray(this.deductionLines, deductions);
+        this.loanDeductions.clear();
+        slip.loanDeductions?.forEach((d) => {
+            const g = this._loanDeductionGroup();
+            g.patchValue({
+                loanId: d.loanId,
+                loanDeductionAmount: Number(d.loanDeductedAmount) || null,
+            });
+            this.loanDeductions.push(g);
+        });
+    }
+
     private async _save(): Promise<void> {
         const empCtrl = this.detailsForm.get('employee')!;
         if (this.detailsForm.invalid || this.paymentForm.invalid) {
@@ -529,8 +626,15 @@ export class SalarySlipFormComponent implements OnInit {
             return;
         }
         const emp = empCtrl.value as EmployeeListItem;
+        const employeeId = this.editEmployeeId || emp?.id;
         if (!emp?.id) {
-            this._toast.error('Select an employee');
+            if (!this.editEmployeeId) {
+                this._toast.error('Select an employee');
+                return;
+            }
+        }
+        if (!employeeId) {
+            this._toast.error('Missing employee id');
             return;
         }
 
@@ -653,12 +757,21 @@ export class SalarySlipFormComponent implements OnInit {
 
         this.saving = true;
         try {
-            await lastValueFrom(this._salarySlipsService.createSalarySlip(emp.id, payload));
-            this._toast.success('Salary slip created');
+            if (this.isEditMode && this.editEmployeeId && this.editSalarySlipId) {
+                await lastValueFrom(
+                    this._salarySlipsService.updateSalarySlip(this.editEmployeeId, this.editSalarySlipId, payload)
+                );
+                this._toast.success('Salary slip updated');
+            } else {
+                await lastValueFrom(this._salarySlipsService.createSalarySlip(employeeId, payload));
+                this._toast.success('Salary slip created');
+            }
 
             await this._router.navigate(['/main/salary-slips']);
         } catch (e: any) {
-            this._toast.error(e?.error?.message || 'Failed to create salary slip');
+            this._toast.error(
+                e?.error?.message || (this.isEditMode ? 'Failed to update salary slip' : 'Failed to create salary slip')
+            );
         } finally {
             this.saving = false;
         }

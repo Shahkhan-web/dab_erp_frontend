@@ -484,3 +484,52 @@ fuse-vertical-navigation {
     }
 }
 
+/* Salary slip upload: compact form dialog matching salary module dialogs */
+.cdk-overlay-pane.salary-slip-upload-dialog-panel {
+    .mat-mdc-dialog-container .mat-mdc-dialog-surface.mdc-dialog__surface,
+    .mat-mdc-dialog-container .mdc-dialog__surface {
+        padding: 0 !important;
+        border-radius: 16px !important;
+        overflow: hidden !important;
+    }
+}
+
+/* Salary slips list: selected rows bulk action bar */
+.salary-slip-bulk-bar {
+    backdrop-filter: saturate(160%) blur(2px);
+}
+
+.salary-slip-bulk-bar__count {
+    letter-spacing: 0.01em;
+}
+
+.salary-slip-bulk-bar__actions {
+    .salary-slip-bulk-bar__select.mat-mdc-form-field {
+        margin-bottom: -1.2em; /* Remove Material hint reserve space */
+    }
+
+    .salary-slip-bulk-bar__select {
+        .mat-mdc-text-field-wrapper {
+            border-radius: 12px;
+            background: color-mix(in srgb, var(--fuse-bg-card) 88%, transparent);
+        }
+
+        .mdc-notched-outline__leading,
+        .mdc-notched-outline__notch,
+        .mdc-notched-outline__trailing {
+            border-color: color-mix(in srgb, var(--mat-divider-color) 85%, transparent) !important;
+        }
+    }
+
+    .salary-slip-bulk-bar__btn {
+        min-width: 88px;
+        height: 40px;
+        border-radius: 10px;
+        font-weight: 600;
+    }
+
+    .salary-slip-bulk-bar__btn--clear {
+        border-color: color-mix(in srgb, var(--mat-divider-color) 88%, transparent);
+    }
+}
+
