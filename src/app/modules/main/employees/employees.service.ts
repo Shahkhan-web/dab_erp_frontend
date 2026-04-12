@@ -48,6 +48,7 @@ export class EmployeesService {
         limit: number,
         filters?: {
             employeeId?: string | null;
+            riderId?: string | null;
             name?: string | null;
             nationality?: string | null;
             workingStatus?: string | null;
@@ -55,6 +56,7 @@ export class EmployeesService {
     ): Observable<EmployeesListResponse> {
         let params = new HttpParams().set('page', String(page)).set('limit', String(limit));
         if (filters?.employeeId) params = params.set('employeeId', filters.employeeId);
+        if (filters?.riderId) params = params.set('riderId', filters.riderId);
         if (filters?.name) params = params.set('name', filters.name);
         if (filters?.nationality) params = params.set('nationality', filters.nationality);
         if (filters?.workingStatus) params = params.set('workingStatus', filters.workingStatus);

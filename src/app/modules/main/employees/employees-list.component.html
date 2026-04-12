@@ -47,6 +47,10 @@
         <mat-card-content class="border border-neutral-200 dark:border-neutral-700">
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
             <mat-form-field class="fuse-mat-dense w-full">
+              <mat-label>Rider ID</mat-label>
+              <input matInput [(ngModel)]="filterRiderId" placeholder="Rider ID" (keyup.enter)="applyFilters()" />
+            </mat-form-field>
+            <mat-form-field class="fuse-mat-dense w-full">
               <mat-label>Employee ID</mat-label>
               <input matInput [(ngModel)]="filterEmployeeId" placeholder="e.g. DXB-001" (keyup.enter)="applyFilters()" />
             </mat-form-field>
@@ -56,8 +60,12 @@
             </mat-form-field>
             <mat-form-field class="fuse-mat-dense w-full">
               <mat-label>Nationality</mat-label>
-              <input matInput [(ngModel)]="filterNationality" placeholder="Nationality"
-                (keyup.enter)="applyFilters()" />
+              <mat-select [(ngModel)]="filterNationality" placeholder="All">
+                <mat-option [value]="null">All</mat-option>
+                @for (country of countryOptions; track country) {
+                  <mat-option [value]="country">{{ country }}</mat-option>
+                }
+              </mat-select>
             </mat-form-field>
             <mat-form-field class="fuse-mat-dense w-full">
               <mat-label>Working Status</mat-label>

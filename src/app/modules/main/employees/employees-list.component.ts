@@ -19,6 +19,7 @@ import { ToastrService } from 'ngx-toastr';
 import { lastValueFrom } from 'rxjs';
 import { AuthService } from 'app/core/auth/auth.service';
 import { hasModuleWrite } from 'app/core/auth/module-access.util';
+import { COUNTRY_NAMES } from 'app/core/utils/countries';
 import { BackButtonComponent } from 'app/core/components/back-button/back-button.component';
 import { OverlayLoaderDirective } from 'app/core/directives/overlay-loader.directive';
 import { EmployeesService, EmployeeListItem } from './employees.service';
@@ -80,9 +81,13 @@ export class EmployeesListComponent implements OnInit {
     selectedIds = new Set<string>();
 
     filterEmployeeId: string | null = null;
+    filterRiderId: string | null = null;
     filterName: string | null = null;
     filterNationality: string | null = null;
     filterWorkingStatus: string | null = null;
+
+    /** Same list as employee form / personal dialog nationality field. */
+    readonly countryOptions = COUNTRY_NAMES;
 
     constructor(
         private _employeesService: EmployeesService,
@@ -115,6 +120,7 @@ export class EmployeesListComponent implements OnInit {
             const resp = await lastValueFrom(
                 this._employeesService.getEmployees(this.pageIndex + 1, this.pageSize, {
                     employeeId: this.filterEmployeeId?.trim() || null,
+                    riderId: this.filterRiderId?.trim() || null,
                     name: this.filterName,
                     nationality: this.filterNationality,
                     workingStatus: this.filterWorkingStatus,
@@ -144,6 +150,7 @@ export class EmployeesListComponent implements OnInit {
 
     clearFilters(): void {
         this.filterEmployeeId = null;
+        this.filterRiderId = null;
         this.filterName = null;
         this.filterNationality = null;
         this.filterWorkingStatus = null;
