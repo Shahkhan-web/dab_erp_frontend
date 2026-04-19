@@ -78,6 +78,7 @@ export class EmployeesService {
         employeeNameArabic?: string;
         personalNumber?: string;
         riderId?: string;
+        employeeIdIndex?: number;
         workingStatus: string;
         occupation: string;
         dateOfJoining?: string;

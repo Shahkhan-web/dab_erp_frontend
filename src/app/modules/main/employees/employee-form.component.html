@@ -70,13 +70,40 @@
                     <mat-error>Company is required</mat-error>
                   }
                 </mat-form-field>
+                @if (isEdit) {
+                  <mat-form-field class="fuse-mat-dense w-full md:col-span-2">
+                    <mat-label>Assigned employee Id</mat-label>
+                    <input matInput formControlName="employeeId" readonly />
+                  </mat-form-field>
+                }
+                <mat-form-field class="fuse-mat-dense w-full md:col-span-2">
+                  <mat-label>Employee ID</mat-label>
+                  @if (overviewForm.get('companyId')?.value) {
+                    <span matTextPrefix class="text-secondary me-1 whitespace-nowrap">{{ selectedEmployeeIdPrefix || '—' }}&nbsp;|&nbsp;</span>
+                  }
+                  <input
+                    matInput
+                    type="number"
+                    formControlName="employeeIdIndex"
+                    min="1"
+                    step="1"
+                    [placeholder]="isEdit ? 'Enter number' : 'Optional — auto-assigned if empty'"
+                  />
+                  @if (overviewForm.get('employeeIdIndex')?.invalid && overviewForm.get('employeeIdIndex')?.touched) {
+                    <mat-error>
+                      @if (overviewForm.get('employeeIdIndex')?.errors?.['min']) {
+                        Enter a whole number of at least 1
+                      }
+                    </mat-error>
+                  }
+                </mat-form-field>
                 <mat-form-field class="fuse-mat-dense w-full">
                   <mat-label>Working Status</mat-label>
                   <mat-select formControlName="workingStatus">
                     <mat-option value="active">Active</mat-option>
                     <mat-option value="non_active">Non Active</mat-option>
                     <mat-option value="suspended">Suspended</mat-option>
-                    <mat-option value="left ">Left</mat-option>
+                    <mat-option value="left">Left</mat-option>
                   </mat-select>
                 </mat-form-field>
                 <mat-form-field class="fuse-mat-dense w-full">
@@ -93,9 +120,25 @@
                 </mat-form-field> -->
                 <mat-form-field class="fuse-mat-dense w-full">
                   <mat-label>Posting Date</mat-label>
-                  <input matInput [matDatepicker]="postingDatePicker" formControlName="postingDate" />
-                  <mat-datepicker-toggle matSuffix [for]="postingDatePicker"></mat-datepicker-toggle>
+                  <input
+                    matInput
+                    [matDatepicker]="postingDatePicker"
+                    formControlName="postingDate"
+                    [readonly]="isManagerRole && !isEdit"
+                    [min]="postingDateMin"
+                    [max]="postingDateMax"
+                    [matDatepickerFilter]="postingDatePickerFilter"
+                  />
+                  @if (!(isManagerRole && isEdit)) {
+                    <mat-datepicker-toggle matSuffix [for]="postingDatePicker"></mat-datepicker-toggle>
+                  }
                   <mat-datepicker #postingDatePicker></mat-datepicker>
+                  @if (isManagerRole && !isEdit) {
+                    <mat-hint>Managers: today only</mat-hint>
+                  }
+                  @if (isManagerRole && isEdit) {
+                    <mat-hint>From server (read-only)</mat-hint>
+                  }
                 </mat-form-field>
                 <mat-form-field class="fuse-mat-dense w-full md:col-span-2">
                   <mat-label>Reference Employee Name</mat-label>

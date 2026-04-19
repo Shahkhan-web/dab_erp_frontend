@@ -15,6 +15,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
 import { lastValueFrom } from 'rxjs';
+import { AuthService } from 'app/core/auth/auth.service';
 import { OverlayLoaderDirective } from 'app/core/directives/overlay-loader.directive';
 import { COUNTRY_NAMES } from 'app/core/utils/countries';
 import { Company, CompaniesService } from '../companies/companies.service';
@@ -115,13 +116,28 @@ export class EmployeeFormComponent implements OnInit, OnDestroy {
 
     companies: Company[] = [];
 
+    /**
+     * Mat datepicker filter: on **create**, managers may pick only today.
+     * On **edit**, posting date is read-only (backend value); filter is not applied.
+     */
+    postingDatePickerFilter = (d: Date | null): boolean => {
+        if (!this.isManagerRole || this.isEdit) {
+            return true;
+        }
+        if (!d) {
+            return false;
+        }
+        return this._isSameCalendarDay(d, this._startOfLocalToday());
+    };
+
     constructor(
         private _fb: FormBuilder,
         private _route: ActivatedRoute,
         private _router: Router,
         private _employeesService: EmployeesService,
         private _companiesService: CompaniesService,
-        private _toast: ToastrService
+        private _toast: ToastrService,
+        private _auth: AuthService
     ) {
         this.overviewForm = this._fb.group({
             firstName: ['', Validators.required],
@@ -136,6 +152,9 @@ export class EmployeeFormComponent implements OnInit, OnDestroy {
             postingDate: [null as Date | null, Validators.required],
             referenceEmployeeName: [''],
             companyId: ['', Validators.required],
+            /** Human-readable code from API, e.g. `{employeeIdPrefix}-{index}` — read-only when editing. */
+            employeeId: [{ value: '', disabled: true }],
+            employeeIdIndex: [null as number | null],
         });
 
         this.personalForm = this._fb.group({
@@ -206,10 +225,65 @@ export class EmployeeFormComponent implements OnInit, OnDestroy {
     ngOnInit(): void {
         this.employeeId = this._route.snapshot.paramMap.get('id');
         this.isEdit = !!this.employeeId;
-        void this.loadCompanies();
-        if (this.isEdit && this.employeeId) {
-            this.loadEmployee(this.employeeId);
+
+        const idxCtrl = this.overviewForm.get('employeeIdIndex');
+        if (!this.isEdit) {
+            // Optional on create: backend assigns employee id when omitted. Min applies only when a value is entered.
+            idxCtrl?.addValidators([Validators.min(1)]);
         }
+        idxCtrl?.updateValueAndValidity({ emitEvent: false });
+
+        this.overviewForm.get('companyId')?.valueChanges.subscribe((companyId: string) => {
+            const ctrl = this.overviewForm.get('employeeIdIndex');
+            if (!ctrl) return;
+            if (companyId) {
+                ctrl.enable({ emitEvent: false });
+            } else {
+                ctrl.disable({ emitEvent: false });
+                ctrl.setValue(null, { emitEvent: false });
+            }
+        });
+        if (!this.overviewForm.get('companyId')?.value) {
+            idxCtrl?.disable({ emitEvent: false });
+        }
+
+        if (!this.isEdit && this.isManagerRole) {
+            this.overviewForm.patchValue({ postingDate: this._startOfLocalToday() }, { emitEvent: false });
+        }
+
+        void (async () => {
+            await this.loadCompanies();
+            if (this.isEdit && this.employeeId) {
+                await this.loadEmployee(this.employeeId);
+            }
+        })();
+    }
+
+    get isManagerRole(): boolean {
+        return this._auth.profileData?.role === 'manager';
+    }
+
+    /** Min posting date for Material picker: manager **create** only (today). */
+    get postingDateMin(): Date | null {
+        if (!this.isManagerRole || this.isEdit) {
+            return null;
+        }
+        return this._startOfLocalToday();
+    }
+
+    /** Max posting date for Material picker: manager **create** only (today). */
+    get postingDateMax(): Date | null {
+        if (!this.isManagerRole || this.isEdit) {
+            return null;
+        }
+        return this._endOfLocalToday();
+    }
+
+    /** `employeeIdPrefix` from the company selected in overview (for Employee ID display). */
+    get selectedEmployeeIdPrefix(): string {
+        const id = this.overviewForm.get('companyId')?.value as string | undefined;
+        if (!id) return '';
+        return this.companies.find((c) => c.id === id)?.employeeIdPrefix?.trim() ?? '';
     }
 
     async loadCompanies(): Promise<void> {
@@ -221,24 +295,75 @@ export class EmployeeFormComponent implements OnInit, OnDestroy {
         }
     }
 
+    /**
+     * Sets read-only `employeeId` (display code) and `employeeIdIndex` from GET /employee (or equivalent) payload.
+     */
+    private _syncOverviewAssignedEmployeeIdFromEmployee(emp: any): void {
+        const companyId = emp.companyId ?? (this.overviewForm.get('companyId')?.value as string) ?? '';
+        const prefix =
+            this.companies.find((c) => c.id === companyId)?.employeeIdPrefix?.trim() ?? '';
+        const displayCode = typeof emp.employeeId === 'string' ? emp.employeeId : '';
+        const indexFromDisplay = this._indexFromEmployeeDisplayCode(displayCode, prefix);
+        const indexFromField =
+            emp.employeeIdIndex != null && emp.employeeIdIndex !== ''
+                ? Number(emp.employeeIdIndex)
+                : null;
+        const resolvedIndex =
+            indexFromDisplay != null && !Number.isNaN(indexFromDisplay)
+                ? indexFromDisplay
+                : indexFromField != null && !Number.isNaN(indexFromField)
+                  ? indexFromField
+                  : null;
+
+        const empIdCtrl = this.overviewForm.get('employeeId');
+        empIdCtrl?.enable({ emitEvent: false });
+        try {
+            this.overviewForm.patchValue(
+                { employeeId: displayCode, employeeIdIndex: resolvedIndex },
+                { emitEvent: false }
+            );
+        } finally {
+            empIdCtrl?.disable({ emitEvent: false });
+        }
+        if (companyId) {
+            this.overviewForm.get('employeeIdIndex')?.enable({ emitEvent: false });
+        } else {
+            this.overviewForm.get('employeeIdIndex')?.disable({ emitEvent: false });
+        }
+    }
+
     async loadEmployee(id: string): Promise<void> {
         this.pageLoader = true;
         try {
             const emp: any = await lastValueFrom(this._employeesService.getEmployee(id));
-            this.overviewForm.patchValue({
-                firstName: emp.firstName,
-                middleName: emp.middleName,
-                lastName: emp.lastName,
-                employeeNameArabic: emp.employeeNameArabic,
-                personalNumber: emp.personalNumber,
-                riderId: emp.riderId ?? '',
-                workingStatus: emp.workingStatus ?? 'active',
-                occupation: emp.occupation ?? '',
-                // dateOfJoining: emp.dateOfJoining ? new Date(emp.dateOfJoining) : null,
-                postingDate: emp.postingDate ? new Date(emp.postingDate) : null,
-                referenceEmployeeName: emp.referenceEmployeeName,
-                companyId: emp.companyId ?? '',
-            });
+            const companyId = emp.companyId ?? '';
+
+            this.overviewForm.patchValue(
+                {
+                    firstName: emp.firstName,
+                    middleName: emp.middleName,
+                    lastName: emp.lastName,
+                    employeeNameArabic: emp.employeeNameArabic,
+                    personalNumber: emp.personalNumber,
+                    riderId: emp.riderId ?? '',
+                    workingStatus: emp.workingStatus ?? 'active',
+                    occupation: emp.occupation ?? '',
+                    // dateOfJoining: emp.dateOfJoining ? new Date(emp.dateOfJoining) : null,
+                    postingDate: emp.postingDate ? new Date(emp.postingDate) : null,
+                    referenceEmployeeName: emp.referenceEmployeeName,
+                    companyId,
+                },
+                { emitEvent: false }
+            );
+            this._syncOverviewAssignedEmployeeIdFromEmployee(emp);
+
+            const postingCtrl = this.overviewForm.get('postingDate');
+            if (this.isManagerRole && this.isEdit) {
+                postingCtrl?.disable({ emitEvent: false });
+            } else {
+                postingCtrl?.enable({ emitEvent: false });
+            }
+
             this.personalForm.patchValue({
                 fatherNumber: emp.fatherNumber ?? '',
                 birthplace: emp.birthplace ?? '',
@@ -300,6 +425,52 @@ export class EmployeeFormComponent implements OnInit, OnDestroy {
         }
     }
 
+    private _startOfLocalToday(): Date {
+        const d = new Date();
+        d.setHours(0, 0, 0, 0);
+        return d;
+    }
+
+    private _endOfLocalToday(): Date {
+        const d = new Date();
+        d.setHours(23, 59, 59, 999);
+        return d;
+    }
+
+    private _isSameCalendarDay(a: Date, b: Date): boolean {
+        return (
+            a.getFullYear() === b.getFullYear() &&
+            a.getMonth() === b.getMonth() &&
+            a.getDate() === b.getDate()
+        );
+    }
+
+    /**
+     * Parses the numeric index from the stored employee display id (`prefix-number`, usually `prefix-index`).
+     */
+    private _indexFromEmployeeDisplayCode(displayId: unknown, prefix: string): number | null {
+        if (typeof displayId !== 'string' || !displayId.trim() || !prefix?.trim()) {
+            return null;
+        }
+        const id = displayId.trim();
+        const p = prefix.trim();
+        const withHyphen = `${p}-`;
+        if (id.startsWith(withHyphen)) {
+            const tail = id.slice(withHyphen.length);
+            const n = Number(tail);
+            return Number.isFinite(n) ? n : null;
+        }
+        if (id.startsWith(p) && id.length > p.length) {
+            let tail = id.slice(p.length);
+            if (tail.startsWith('-')) {
+                tail = tail.slice(1);
+            }
+            const n = Number(tail);
+            return Number.isFinite(n) ? n : null;
+        }
+        return null;
+    }
+
     private _dateToYmd(value: unknown): string | null {
         if (!value) return null;
         if (value instanceof Date) return value.toISOString().split('T')[0];
@@ -321,7 +492,7 @@ export class EmployeeFormComponent implements OnInit, OnDestroy {
             return;
         }
         this.saving.overview = true;
-        const raw = this.overviewForm.value;
+        const raw = this.overviewForm.getRawValue();
         const payload: any = {
             firstName: raw.firstName,
             middleName: raw.middleName || undefined,
@@ -332,10 +503,19 @@ export class EmployeeFormComponent implements OnInit, OnDestroy {
             workingStatus: raw.workingStatus,
             occupation: raw.occupation,
             // dateOfJoining: this._dateToYmd(raw.dateOfJoining),
-            postingDate: this._dateToYmd(raw.postingDate),
+            postingDate: this._dateToYmd(
+                this.isManagerRole && !this.employeeId ? this._startOfLocalToday() : raw.postingDate
+            ),
             referenceEmployeeName: raw.referenceEmployeeName || undefined,
             companyId: raw.companyId,
         };
+        const idx = raw.employeeIdIndex as number | string | null | undefined;
+        if (idx !== null && idx !== undefined && idx !== '') {
+            const n = Number(idx);
+            if (!Number.isNaN(n)) {
+                payload.employeeIdIndex = n;
+            }
+        }
         try {
             if (!this.employeeId) {
                 const resp: any = await lastValueFrom(this._employeesService.createEmployee(payload));
@@ -348,6 +528,14 @@ export class EmployeeFormComponent implements OnInit, OnDestroy {
                 return;
             }
             await lastValueFrom(this._employeesService.updateEmployeeOverview(this.employeeId, payload));
+            try {
+                const refreshed: any = await lastValueFrom(
+                    this._employeesService.getEmployee(this.employeeId)
+                );
+                this._syncOverviewAssignedEmployeeIdFromEmployee(refreshed);
+            } catch {
+                // Assigned ID in the form may be stale; overview fields were still saved.
+            }
             this._toast.success('Overview updated');
         } catch (e: any) {
             this._toast.error(e?.error?.message || e?.message || 'Failed to save overview');
