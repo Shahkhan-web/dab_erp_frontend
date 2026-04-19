@@ -107,6 +107,19 @@ export class EmployeeDetailDialogComponent implements OnInit {
         return p != null ? (this.decimalPipe.transform(p, '1.1-1') ?? '0') + '%' : '—';
     }
 
+    /** Same URL resolution as employee form / list. */
+    get profilePictureSrc(): string | null {
+        const d = this.data;
+        if (!d) return null;
+        const u = d.profilePictureUrl ?? d.profilePicture ?? d.profileImageUrl;
+        return typeof u === 'string' && u.trim() ? u.trim() : null;
+    }
+
+    get profilePhotoAlt(): string {
+        const n = this.fullName;
+        return n && n !== '—' ? `Photo of ${n}` : 'Employee photo';
+    }
+
     close(): void {
         this.dialogRef.close();
     }

@@ -26,7 +26,13 @@ export interface LoanListItem {
     employeeId: string;
     createdAt: string;
     updatedAt: string;
+    /** Present on list / GET single loan responses. */
+    employeeName?: string;
+    employeeCode?: string;
 }
+
+/** GET `/employee/:employeeId/loans/:loanId` — same shape as list/create. */
+export type LoanResponseDto = LoanListItem;
 
 /** Loan row returned by GET `/employee/{id}/loans/history` */
 export interface EmployeeLoanHistoryItem extends LoanListItem {
@@ -73,6 +79,20 @@ export interface UpdateLoanStatusPayload {
     remarks?: string;
 }
 
+/** PATCH `/employee/:employeeId/loans/:loanId` — all optional; at least one field required. */
+export interface UpdateLoanDto {
+    applicantType?: string;
+    loanName?: string;
+    loanAmount?: number;
+    reason?: string | null;
+    remarks?: string | null;
+}
+
+/** DELETE `/employee/:employeeId/loans/:loanId` — 200 `{ message: "Loan deleted" }`. */
+export interface DeleteLoanResponse {
+    message?: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class LoansService {
     private _http = inject(HttpClient);
@@ -92,6 +112,18 @@ export class LoansService {
 
     createLoan(employeeId: string, payload: CreateLoanPayload): Observable<unknown> {
         return this._http.post(`${this._baseEmployee}/${employeeId}/loans`, payload);
+    }
+
+    getLoan(employeeId: string, loanId: string): Observable<LoanResponseDto> {
+        return this._http.get<LoanResponseDto>(`${this._baseEmployee}/${employeeId}/loans/${loanId}`);
+    }
+
+    updateLoan(employeeId: string, loanId: string, payload: UpdateLoanDto): Observable<unknown> {
+        return this._http.patch(`${this._baseEmployee}/${employeeId}/loans/${loanId}`, payload);
+    }
+
+    deleteLoan(employeeId: string, loanId: string): Observable<DeleteLoanResponse> {
+        return this._http.delete<DeleteLoanResponse>(`${this._baseEmployee}/${employeeId}/loans/${loanId}`);
     }
 
     updateLoanStatus(id: string, payload: UpdateLoanStatusPayload): Observable<unknown> {

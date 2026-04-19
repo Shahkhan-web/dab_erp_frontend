@@ -166,7 +166,7 @@ export class SalarySlipFormComponent implements OnInit {
             deliveriesReturnLc: [0, [Validators.min(0)]],
             distanceLc: [0, [Validators.min(0)]],
         });
-        this.performanceForm.get('totalCompletedDeliveries')!.disable({ emitEvent: false });
+        this.performanceForm.get('totalCompletedDeliveries');
         this.riderForm.get('talabatCaseRiderEarning')!.disable({ emitEvent: false });
 
         merge(
@@ -423,7 +423,7 @@ export class SalarySlipFormComponent implements OnInit {
     private async _loadLoansForEmployee(employeeId: string): Promise<void> {
         try {
             const resp = await lastValueFrom(
-                this._loansService.getLoans(1, 100, { employeeId })
+                this._loansService.getLoans(1, 100, { employeeId, status: 'paid' })
             );
             this.employeeLoans = resp.data ?? [];
         } catch {

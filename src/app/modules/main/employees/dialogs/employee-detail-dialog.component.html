@@ -36,6 +36,22 @@
     <div class="p-6 sm:p-8 max-h-[70vh] overflow-y-auto">
       <!-- Summary strip -->
       <div class="mb-6 flex flex-wrap items-center gap-4 rounded-xl border border-slate-200 bg-neutral-100 px-4 py-3 dark:border-zinc-700 dark:bg-zinc-800/50">
+        <div class="shrink-0">
+          @if (profilePictureSrc) {
+            <img
+              [src]="profilePictureSrc"
+              [alt]="profilePhotoAlt"
+              class="h-16 w-16 rounded-full border border-slate-200 object-cover dark:border-zinc-600"
+            />
+          } @else {
+            <div
+              class="flex h-16 w-16 items-center justify-center rounded-full border border-slate-200 bg-neutral-200/80 dark:border-zinc-600 dark:bg-zinc-700"
+              aria-hidden="true"
+            >
+              <mat-icon class="icon-size-8 text-neutral-500 dark:text-neutral-400">person</mat-icon>
+            </div>
+          }
+        </div>
         <span class="flex items-center gap-2 text-sm font-medium"
               [ngClass]="{
                 'text-emerald-600 dark:text-emerald-400': data?.workingStatus === 'active',
@@ -53,7 +69,7 @@
           <span class="text-sm text-slate-600 dark:text-zinc-400">Personal #: {{ data.personalNumber }}</span>
         }
       </div>
-
+ 
       <!-- Personal -->
       <div class="detail-section mb-6">
         <div class="section-title">

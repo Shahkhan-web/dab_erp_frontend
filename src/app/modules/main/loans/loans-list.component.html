@@ -46,16 +46,24 @@
         <mat-card-content class="border border-neutral-200 dark:border-neutral-700">
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
             <mat-form-field class="fuse-mat-dense w-full">
-              <mat-label>Employee ID</mat-label>
-              <input matInput [(ngModel)]="filterEmployeeId" placeholder="UUID" (keyup.enter)="applyFilters()" />
+              <mat-label>Employee</mat-label>
+              <input matInput [(ngModel)]="employeeFilter" placeholder="Search by name or ID"
+                [matAutocomplete]="empAuto" #empTrigger="matAutocompleteTrigger"
+                (focus)="openEmployeePanel(empTrigger)" (click)="openEmployeePanel(empTrigger)"
+                (ngModelChange)="onEmployeeFilterChange($event)" (keyup.enter)="applyFilters()" />
+              <mat-autocomplete #empAuto="matAutocomplete" [displayWith]="displayEmployee">
+                @for (emp of filteredEmployees; track emp.id) {
+                <mat-option [value]="emp">{{ employeeLabel(emp) }}</mat-option>
+                }
+              </mat-autocomplete>
             </mat-form-field>
-            <mat-form-field class="fuse-mat-dense w-full">
+            <!-- <mat-form-field class="fuse-mat-dense w-full">
               <mat-label>Applicant type</mat-label>
               <mat-select [(ngModel)]="filterApplicantType" placeholder="All">
                 <mat-option [value]="null">All</mat-option>
                 <mat-option value="employee">Employee</mat-option>
               </mat-select>
-            </mat-form-field>
+            </mat-form-field> -->
             <mat-form-field class="fuse-mat-dense w-full">
               <mat-label>Status</mat-label>
               <mat-select [(ngModel)]="filterStatus" placeholder="All">
@@ -72,12 +80,17 @@
             </mat-form-field>
             <mat-form-field class="fuse-mat-dense w-full">
               <mat-label>Created from</mat-label>
-              <input matInput [(ngModel)]="filterCreatedFrom" placeholder="2025-01-01"
+              <input matInput [matDatepicker]="createdFromPicker" [(ngModel)]="createdFromDate"
                 (keyup.enter)="applyFilters()" />
+              <mat-datepicker-toggle matSuffix [for]="createdFromPicker"></mat-datepicker-toggle>
+              <mat-datepicker #createdFromPicker></mat-datepicker>
             </mat-form-field>
             <mat-form-field class="fuse-mat-dense w-full">
               <mat-label>Created to</mat-label>
-              <input matInput [(ngModel)]="filterCreatedTo" placeholder="2025-12-31" (keyup.enter)="applyFilters()" />
+              <input matInput [matDatepicker]="createdToPicker" [(ngModel)]="createdToDate"
+                (keyup.enter)="applyFilters()" />
+              <mat-datepicker-toggle matSuffix [for]="createdToPicker"></mat-datepicker-toggle>
+              <mat-datepicker #createdToPicker></mat-datepicker>
             </mat-form-field>
           </div>
         </mat-card-content>
@@ -97,9 +110,9 @@
             </td>
           </ng-container>
           <ng-container matColumnDef="employeeId">
-            <th mat-header-cell *matHeaderCellDef>Employee ID</th>
+            <th mat-header-cell *matHeaderCellDef>Employee Name</th>
             <td mat-cell *matCellDef="let item">
-              <span class="font-mono text-xs">{{ item?.employeeCode }}</span>
+              <span class="font-mono text-s">{{ item?.employeeName }}</span>
             </td>
           </ng-container>
           <ng-container matColumnDef="applicantType">
@@ -137,6 +150,18 @@
                 <mat-icon class="icon-size-4 text-neutral-500 dark:text-neutral-100">more_vert</mat-icon>
               </button>
               <mat-menu #loanMenu="matMenu">
+                @if (canEditLoan(item)) {
+                <button mat-menu-item (click)="editLoan(item)">
+                  <mat-icon class="text-secondary icon-size-4" [svgIcon]="'heroicons_outline:pencil-square'"></mat-icon>
+                  <span>Edit loan</span>
+                </button>
+                }
+                @if (canEditLoan(item)) {
+                <button mat-menu-item (click)="confirmDeleteLoan(item)" class="text-warn">
+                  <mat-icon class="icon-size-4" [svgIcon]="'heroicons_outline:trash'"></mat-icon>
+                  <span>Delete loan</span>
+                </button>
+                }
                 <button mat-menu-item (click)="openStatusDialog(item)">
                   <mat-icon class="text-secondary icon-size-4" [svgIcon]="'heroicons_outline:arrow-path'"></mat-icon>
                   <span>Update status</span>

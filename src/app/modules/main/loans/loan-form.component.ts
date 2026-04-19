@@ -16,13 +16,13 @@ import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
 import { lastValueFrom, map, startWith } from 'rxjs';
 import { BackButtonComponent } from 'app/core/components/back-button/back-button.component';
 import { OverlayLoaderDirective } from 'app/core/directives/overlay-loader.directive';
 import { EmployeesService, EmployeeListItem } from '../employees/employees.service';
-import { LoansService } from './loans.service';
+import { LoanListItem, LoansService } from './loans.service';
 
 type LabeledOption = { value: string; label: string };
 
@@ -67,6 +67,13 @@ export class LoanFormComponent implements OnInit {
 
     pageLoader = false;
     saving = false;
+    /** Set when URL is `/main/loans/:employeeId/edit/:loanId`. */
+    editMode = false;
+    /** Minimum loan amount (≥ total deducted so far) when editing. */
+    minLoanAmount = 0.01;
+    private _editEmployeeId: string | null = null;
+    private _editLoanId: string | null = null;
+
     form: FormGroup;
     employees: EmployeeListItem[] = [];
     applicantTypeOptions: LabeledOption[] = [{ value: 'employee', label: 'Employee' }];
@@ -78,6 +85,7 @@ export class LoanFormComponent implements OnInit {
     constructor(
         private _fb: FormBuilder,
         private _router: Router,
+        private _route: ActivatedRoute,
         private _loansService: LoansService,
         private _employeesService: EmployeesService,
         private _toast: ToastrService
@@ -131,15 +139,93 @@ export class LoanFormComponent implements OnInit {
     }
 
     async ngOnInit(): Promise<void> {
+        const employeeId = this._route.snapshot.paramMap.get('employeeId');
+        const loanId = this._route.snapshot.paramMap.get('loanId');
         this.pageLoader = true;
         try {
-            const resp = await lastValueFrom(this._employeesService.getEmployees(1, 100, {}));
-            this.employees = resp.employees ?? [];
+            if (employeeId && loanId) {
+                await this._loadEditMode(employeeId, loanId);
+            } else {
+                const resp = await lastValueFrom(this._employeesService.getEmployees(1, 100, {}));
+                this.employees = resp.employees ?? [];
+                this.refreshEmployeeFilterList();
+            }
         } catch (e: any) {
-            this._toast.error(e?.error?.message || 'Failed to load employees');
+            this._toast.error(e?.error?.message || 'Failed to load page');
         } finally {
             this.pageLoader = false;
-            this.refreshEmployeeFilterList();
+            if (!this.editMode) {
+                this.refreshEmployeeFilterList();
+            }
+        }
+    }
+
+    private async _loadEditMode(employeeId: string, loanId: string): Promise<void> {
+        let loan: LoanListItem;
+        try {
+            const loanRaw = await lastValueFrom(this._loansService.getLoan(employeeId, loanId));
+            const raw = (loanRaw as { data?: LoanListItem })?.data ?? loanRaw;
+            loan = raw as LoanListItem;
+        } catch (e: any) {
+            this._toast.error(e?.error?.message || 'Loan not found');
+            await this._router.navigate(['/main/loans']);
+            return;
+        }
+        if ((loan.status || '').toLowerCase() !== 'open') {
+            this._toast.error('Only open loans can be edited');
+            await this._router.navigate(['/main/loans']);
+            return;
+        }
+
+        let emp: EmployeeListItem;
+        try {
+            const empRaw = await lastValueFrom(this._employeesService.getEmployee(employeeId));
+            const raw = (empRaw as { data?: EmployeeListItem })?.data ?? empRaw;
+            emp = raw as EmployeeListItem;
+        } catch (e: any) {
+            this._toast.error(e?.error?.message || 'Failed to load employee');
+            await this._router.navigate(['/main/loans']);
+            return;
+        }
+
+        this.editMode = true;
+        this._editEmployeeId = employeeId;
+        this._editLoanId = loanId;
+        const deducted = Number(loan.totalDeductedSoFar);
+        this.minLoanAmount = Math.max(Number.isFinite(deducted) ? deducted : 0, 0.01);
+
+        this.employees = [emp];
+        this.filteredEmployees = [emp];
+
+        this.form.patchValue({
+            employee: emp,
+            applicantType: loan.applicantType,
+            loanName: loan.loanName,
+            loanAmount: loan.loanAmount,
+            reason: this._unknownToFormString(loan.reason),
+            remarks: this._unknownToFormString(loan.remarks),
+            status: 'open',
+        });
+
+        this.form.get('employee')?.disable();
+        this.form.get('status')?.disable();
+        this.form.get('reason')?.clearValidators();
+        this.form.get('reason')?.updateValueAndValidity();
+
+        this.form
+            .get('loanAmount')
+            ?.setValidators([Validators.required, Validators.min(this.minLoanAmount)]);
+        this.form.get('loanAmount')?.updateValueAndValidity();
+    }
+
+    private _unknownToFormString(value: unknown): string {
+        if (value == null) return '';
+        if (typeof value === 'string') return value;
+        if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+        try {
+            return JSON.stringify(value);
+        } catch {
+            return '';
         }
     }
 
@@ -205,24 +291,48 @@ export class LoanFormComponent implements OnInit {
             this.form.markAllAsTouched();
             return;
         }
-        const v = this.form.value;
-        const emp = v.employee as EmployeeListItem;
+        const v = this.form.getRawValue();
+        const loanName = String(v.loanName ?? '').trim();
+        if (!loanName) {
+            this._toast.error('Loan name is required');
+            return;
+        }
+
         this.saving = true;
         try {
-            await lastValueFrom(
-                this._loansService.createLoan(emp.id, {
-                    applicantType: v.applicantType,
-                    loanName: v.loanName,
-                    loanAmount: Number(v.loanAmount),
-                    reason: v.reason,
-                    remarks: v.remarks || '',
-                    status: v.status,
-                })
-            );
-            this._toast.success('Loan created');
+            if (this.editMode && this._editEmployeeId && this._editLoanId) {
+                const reasonTrim = String(v.reason ?? '').trim();
+                const remarksTrim = String(v.remarks ?? '').trim();
+                await lastValueFrom(
+                    this._loansService.updateLoan(this._editEmployeeId, this._editLoanId, {
+                        applicantType: v.applicantType,
+                        loanName,
+                        loanAmount: Number(v.loanAmount),
+                        reason: reasonTrim === '' ? null : reasonTrim,
+                        remarks: remarksTrim === '' ? null : remarksTrim,
+                    })
+                );
+                this._toast.success('Loan updated');
+            } else {
+                const emp = v.employee as EmployeeListItem;
+                await lastValueFrom(
+                    this._loansService.createLoan(emp.id, {
+                        applicantType: v.applicantType,
+                        loanName,
+                        loanAmount: Number(v.loanAmount),
+                        reason: v.reason,
+                        remarks: v.remarks || '',
+                        status: v.status,
+                    })
+                );
+                this._toast.success('Loan created');
+            }
             await this._router.navigate(['/main/loans']);
         } catch (e: any) {
-            this._toast.error(e?.error?.message || 'Failed to create loan');
+            this._toast.error(
+                e?.error?.message ||
+                    (this.editMode ? 'Failed to update loan' : 'Failed to create loan')
+            );
         } finally {
             this.saving = false;
         }

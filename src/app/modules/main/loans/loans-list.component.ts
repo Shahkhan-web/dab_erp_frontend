@@ -3,6 +3,9 @@ import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
+import { MatNativeDateModule } from '@angular/material/core';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatAutocompleteModule, MatAutocompleteTrigger } from '@angular/material/autocomplete';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
@@ -18,7 +21,9 @@ import { lastValueFrom } from 'rxjs';
 import { AuthService } from 'app/core/auth/auth.service';
 import { hasModuleWrite } from 'app/core/auth/module-access.util';
 import { BackButtonComponent } from 'app/core/components/back-button/back-button.component';
+import { ConfirmDeleteDialogComponent } from 'app/core/components/confirm-delete-dialog/confirm-delete-dialog.component';
 import { OverlayLoaderDirective } from 'app/core/directives/overlay-loader.directive';
+import { EmployeeListItem, EmployeesService } from '../employees/employees.service';
 import { LoanStatusDialogComponent } from './loan-status-dialog.component';
 import { LoanListItem, LoansService } from './loans.service';
 
@@ -36,6 +41,9 @@ import { LoanListItem, LoansService } from './loans.service';
         MatMenuModule,
         MatFormFieldModule,
         MatInputModule,
+        MatDatepickerModule,
+        MatNativeDateModule,
+        MatAutocompleteModule,
         MatSelectModule,
         MatTooltipModule,
         DatePipe,
@@ -64,15 +72,20 @@ export class LoansListComponent implements OnInit {
     pageSize = 10;
     pageLoader = false;
 
-    filterEmployeeId: string | null = null;
+    /** Bound to employee autocomplete: `EmployeeListItem` when chosen, or search string while typing. */
+    employeeFilter: EmployeeListItem | string | null = null;
+    employees: EmployeeListItem[] = [];
+    filteredEmployees: EmployeeListItem[] = [];
     filterApplicantType: string | null = null;
     filterStatus: string | null = null;
     filterLoanName: string | null = null;
-    filterCreatedFrom: string | null = null;
-    filterCreatedTo: string | null = null;
+    /** Local calendar dates; sent to API as `YYYY-MM-DD` via `_dateToYmd`. */
+    createdFromDate: Date | null = null;
+    createdToDate: Date | null = null;
 
     constructor(
         private _loansService: LoansService,
+        private _employeesService: EmployeesService,
         private _router: Router,
         private _toast: ToastrService,
         private _matDialog: MatDialog,
@@ -89,7 +102,70 @@ export class LoansListComponent implements OnInit {
     }
 
     ngOnInit(): void {
-        this.loadLoans();
+        void this._init();
+    }
+
+    employeeLabel(e: EmployeeListItem): string {
+        const name = [e.firstName, e.middleName, e.lastName].filter(Boolean).join(' ') || 'Employee';
+        const code = e.employeeId ? `${e.employeeId} · ` : '';
+        return `${code}${name}`;
+    }
+
+    displayEmployee = (value: EmployeeListItem | string | null): string => {
+        if (value == null) return '';
+        if (typeof value === 'string') return value;
+        return this.employeeLabel(value);
+    };
+
+    onEmployeeFilterChange(value: EmployeeListItem | string | null): void {
+        const q =
+            typeof value === 'string'
+                ? value
+                : value
+                  ? this.employeeLabel(value)
+                  : '';
+        this.filteredEmployees = this._filterEmployees(q);
+    }
+
+    openEmployeePanel(trigger: MatAutocompleteTrigger): void {
+        this.onEmployeeFilterChange(this.employeeFilter);
+        setTimeout(() => {
+            trigger.updatePosition();
+            trigger.openPanel();
+        });
+    }
+
+    private _selectedEmployeeId(): string | null {
+        const v = this.employeeFilter;
+        return v && typeof v === 'object' && 'id' in v ? (v as EmployeeListItem).id : null;
+    }
+
+    private _filterEmployees(query: string): EmployeeListItem[] {
+        const q = query.trim().toLowerCase();
+        if (!q) return this.employees;
+        return this.employees.filter(
+            (e) =>
+                this.employeeLabel(e).toLowerCase().includes(q) ||
+                e.id.toLowerCase().includes(q) ||
+                `${e.firstName ?? ''} ${e.middleName ?? ''} ${e.lastName ?? ''}`.toLowerCase().includes(q) ||
+                String(e.employeeId ?? '').toLowerCase().includes(q) ||
+                String(e.employeeNameArabic ?? '').toLowerCase().includes(q)
+        );
+    }
+
+    private async _init(): Promise<void> {
+        await Promise.all([this._loadEmployees(), this.loadLoans()]);
+    }
+
+    private async _loadEmployees(): Promise<void> {
+        try {
+            const resp = await lastValueFrom(this._employeesService.getEmployees(1, 100, {}));
+            this.employees = resp.employees ?? [];
+            this.filteredEmployees = [...this.employees];
+        } catch {
+            this.employees = [];
+            this.filteredEmployees = [];
+        }
     }
 
     formatJsonField(value: unknown): string {
@@ -108,12 +184,12 @@ export class LoansListComponent implements OnInit {
         try {
             const resp = await lastValueFrom(
                 this._loansService.getLoans(this.pageIndex + 1, this.pageSize, {
-                    employeeId: this.filterEmployeeId,
+                    employeeId: this._selectedEmployeeId(),
                     applicantType: this.filterApplicantType,
                     status: this.filterStatus,
                     loanName: this.filterLoanName,
-                    createdFrom: this.filterCreatedFrom,
-                    createdTo: this.filterCreatedTo,
+                    createdFrom: this._dateToYmd(this.createdFromDate),
+                    createdTo: this._dateToYmd(this.createdToDate),
                 })
             );
             this.loans = resp.data ?? [];
@@ -139,17 +215,55 @@ export class LoansListComponent implements OnInit {
     }
 
     clearFilters(): void {
-        this.filterEmployeeId = null;
+        this.employeeFilter = null;
+        this.filteredEmployees = [...this.employees];
         this.filterApplicantType = null;
         this.filterStatus = null;
         this.filterLoanName = null;
-        this.filterCreatedFrom = null;
-        this.filterCreatedTo = null;
+        this.createdFromDate = null;
+        this.createdToDate = null;
         this.applyFilters();
+    }
+
+    /** Same shape as manual `YYYY-MM-DD` text filters; local calendar date, no timezone shift. */
+    private _dateToYmd(d: Date | null): string | null {
+        if (!d) return null;
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
     }
 
     addLoan(): void {
         this._router.navigate(['/main/loans/new']);
+    }
+
+    editLoan(loan: LoanListItem): void {
+        this._router.navigate(['/main/loans', loan.employeeId, 'edit', loan.id]);
+    }
+
+    canEditLoan(loan: LoanListItem): boolean {
+        return this.canWriteLoan && (loan.status || '').toLowerCase() === 'open';
+    }
+
+    async confirmDeleteLoan(loan: LoanListItem): Promise<void> {
+        const label = loan.loanName?.trim() || 'this loan';
+        const confirmed = await lastValueFrom(
+            this._matDialog
+                .open(ConfirmDeleteDialogComponent, {
+                    data: { message: `Delete “${label}”? This cannot be undone.` },
+                    width: '420px',
+                })
+                .afterClosed()
+        );
+        if (!confirmed) return;
+        try {
+            const resp = await lastValueFrom(this._loansService.deleteLoan(loan.employeeId, loan.id));
+            this._toast.success(resp?.message?.trim() || 'Loan deleted');
+            await this.loadLoans();
+        } catch (e: any) {
+            this._toast.error(e?.error?.message || 'Failed to delete loan');
+        }
     }
 
     statusChipClass(status: string | undefined): Record<string, boolean> {

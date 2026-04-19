@@ -10,4 +10,9 @@ export const loansRoutes: Route[] = [
         canActivate: [moduleWriteGuard('loan', '/main/loans')],
         component: LoanFormComponent,
     },
+    {
+        path: ':employeeId/edit/:loanId',
+        canActivate: [moduleWriteGuard('loan', '/main/loans')],
+        component: LoanFormComponent,
+    },
 ];

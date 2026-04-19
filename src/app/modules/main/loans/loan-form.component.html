@@ -8,15 +8,19 @@
           [svgIcon]="'heroicons_outline:banknotes'"></mat-icon>
       </div>
       <div class="min-w-0">
-        <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-neutral-900 dark:text-white">New loan</h1>
-        <p class="text-sm text-secondary mt-0.5">Create a loan for an employee</p>
+        <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-neutral-900 dark:text-white">
+          {{ editMode ? 'Edit loan' : 'New loan' }}
+        </h1>
+        <p class="text-sm text-secondary mt-0.5">
+          {{ editMode ? 'Update this open loan (amount must cover deductions already made)' : 'Create a loan for an employee' }}
+        </p>
       </div>
     </div>
     <div class="flex gap-2">
       
               <button mat-raised-button color="primary" type="submit" [disabled]="saving" (click)="submit()">
                 <mat-icon>save</mat-icon>
-          {{ saving ? 'Saving…' : 'Create loan' }}
+          {{ saving ? 'Saving…' : (editMode ? 'Save changes' : 'Create loan') }}
         </button>
 
       <app-back-button></app-back-button>
@@ -70,6 +74,7 @@
                 <mat-error>Select a valid option</mat-error>
                 }
               </mat-form-field>
+              @if (!editMode) {
               <mat-form-field class="fuse-mat-dense w-full">
                 <mat-label>Status</mat-label>
                 <input matInput formControlName="status" [matAutocomplete]="statusAuto" placeholder="Open" />
@@ -85,6 +90,7 @@
                 <mat-error>Select a valid option</mat-error>
                 }
               </mat-form-field>
+              }
               <mat-form-field class="fuse-mat-dense w-full">
                 <mat-label>Loan name</mat-label>
                 <input matInput formControlName="loanName" placeholder="Car loan" />
@@ -95,6 +101,9 @@
               <mat-form-field class="fuse-mat-dense w-full">
                 <mat-label>Loan amount </mat-label>
                 <input matInput type="number" formControlName="loanAmount" placeholder="5000" />
+                @if (editMode) {
+                <mat-hint>Must be at least AED {{ minLoanAmount | number: '1.2-2' }} (total deducted so far)</mat-hint>
+                }
                 @if (form.get('loanAmount')?.invalid && form.get('loanAmount')?.touched) {
                 <mat-error>Enter a valid amount</mat-error>
                 }
