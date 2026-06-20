@@ -21,6 +21,7 @@ import { AuthService } from 'app/core/auth/auth.service';
 import { hasModuleWrite } from 'app/core/auth/module-access.util';
 import { BackButtonComponent } from 'app/core/components/back-button/back-button.component';
 import { OverlayLoaderDirective } from 'app/core/directives/overlay-loader.directive';
+import { createDebouncedFilterApply } from 'app/core/utils/filter-debounce.util';
 import { CompaniesService } from '../companies/companies.service';
 import { EmployeeListItem, EmployeesService } from '../employees/employees.service';
 import {
@@ -142,7 +143,8 @@ export class SalarySlipsListComponent implements OnInit {
     }
 
     async loadList(): Promise<void> {
-        this.pageLoader = true;
+        const showOverlay = this.rows.length === 0;
+        if (showOverlay) this.pageLoader = true;
         try {
             const resp = await lastValueFrom(
                 this._service.getSalarySlips(this.pageIndex + 1, this.pageSize, {
@@ -163,7 +165,7 @@ export class SalarySlipsListComponent implements OnInit {
             this.rows = [];
             this.total = 0;
         } finally {
-            this.pageLoader = false;
+            if (showOverlay) this.pageLoader = false;
         }
     }
 
@@ -173,12 +175,23 @@ export class SalarySlipsListComponent implements OnInit {
         this.loadList();
     }
 
-    applyFilters(): void {
+    private _suppressFilterApply = false;
+    private readonly _filterApply = createDebouncedFilterApply(() => {
+        if (this._suppressFilterApply) return;
         this.pageIndex = 0;
         this.loadList();
+    });
+
+    applyFilters(): void {
+        this._filterApply.now();
+    }
+
+    scheduleApplyFilters(): void {
+        this._filterApply.schedule();
     }
 
     clearFilters(): void {
+        this._suppressFilterApply = true;
         this.filterEmployeeId = null;
         this.filterPayrollFrequency = null;
         this.filterStatus = null;
@@ -186,7 +199,8 @@ export class SalarySlipsListComponent implements OnInit {
         this.slipStartToDate = null;
         this.slipEndFromDate = null;
         this.slipEndToDate = null;
-        this.applyFilters();
+        this._suppressFilterApply = false;
+        this._filterApply.now();
     }
 
     /** Same shape as manual `YYYY-MM-DD` text filters; local calendar date, no timezone shift. */

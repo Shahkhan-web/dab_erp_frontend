@@ -17,6 +17,7 @@ import { lastValueFrom } from 'rxjs';
 import { AuthService } from 'app/core/auth/auth.service';
 import { ActivityLog, LogsService } from 'app/core/services/logs.service';
 import { OverlayLoaderDirective } from 'app/core/directives/overlay-loader.directive';
+import { createDebouncedFilterApply } from 'app/core/utils/filter-debounce.util';
 import { ToastrService } from 'ngx-toastr';
 
 @Component({
@@ -90,7 +91,8 @@ export class MainDashboardComponent implements OnInit {
     }
 
     async loadLogs(): Promise<void> {
-        this.logsLoader = true;
+        const showOverlay = this.logs.length === 0;
+        if (showOverlay) this.logsLoader = true;
         try {
             const resp = await lastValueFrom(
                 this._logsService.getLogs(this.pageIndex + 1, this.pageSize, {
@@ -108,7 +110,7 @@ export class MainDashboardComponent implements OnInit {
             this.logs = [];
             this.total = 0;
         } finally {
-            this.logsLoader = false;
+            if (showOverlay) this.logsLoader = false;
         }
     }
 
@@ -118,16 +120,28 @@ export class MainDashboardComponent implements OnInit {
         this.loadLogs();
     }
 
-    applyFilters(): void {
+    private _suppressFilterApply = false;
+    private readonly _filterApply = createDebouncedFilterApply(() => {
+        if (this._suppressFilterApply) return;
         this.pageIndex = 0;
         this.loadLogs();
+    });
+
+    applyFilters(): void {
+        this._filterApply.now();
+    }
+
+    scheduleApplyFilters(): void {
+        this._filterApply.schedule();
     }
 
     clearFilters(): void {
+        this._suppressFilterApply = true;
         this.filterUserId = null;
         this.filterAction = null;
         this.filterStartDate = null;
         this.filterEndDate = null;
-        this.applyFilters();
+        this._suppressFilterApply = false;
+        this._filterApply.now();
     }
 }

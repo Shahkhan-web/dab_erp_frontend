@@ -1,0 +1,146 @@
+<div class="bg-white dark:bg-zinc-900 rounded-2xl overflow-hidden flex flex-col max-h-[90vh]">
+  <div class="bg-gradient-to-r from-primary-600 to-primary-700 px-6 py-5 text-white shrink-0">
+    <div class="flex items-center justify-between gap-3">
+      <div class="flex items-center gap-3 min-w-0">
+        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-white/20 shrink-0">
+          <mat-icon class="icon-size-8 text-white" [svgIcon]="'heroicons_outline:banknotes'"></mat-icon>
+        </div>
+        <div class="min-w-0">
+          <h2 class="text-xl font-bold tracking-tight">Loan details</h2>
+          @if (loan) {
+            <p class="text-sm text-white/90 truncate">
+              {{ loan.loanName }} · {{ loan.employeeName || loan.employeeCode || 'Employee' }}
+            </p>
+          }
+        </div>
+      </div>
+      <button mat-icon-button (click)="close()" class="text-white/90 hover:bg-white/20 shrink-0" aria-label="Close">
+        <mat-icon class="text-white">close</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  @if (loading) {
+    <div class="flex flex-col items-center justify-center gap-4 py-16">
+      <mat-spinner diameter="48"></mat-spinner>
+      <p class="text-sm text-slate-500 dark:text-zinc-400">Loading loan...</p>
+    </div>
+  } @else if (error && !loan) {
+    <div class="flex flex-col items-center justify-center gap-4 py-16 px-6">
+      <mat-icon class="text-5xl text-red-400">error_outline</mat-icon>
+      <p class="text-center text-slate-700 dark:text-zinc-300">{{ error }}</p>
+      <button mat-flat-button (click)="close()">Close</button>
+    </div>
+  } @else if (loan) {
+    <div class="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 space-y-6">
+      <div class="rounded-xl border border-slate-200/80 dark:border-zinc-700/80 p-4 sm:p-5 space-y-4">
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="text-lg font-semibold text-neutral-900 dark:text-white">{{ loan.loanName }}</span>
+          <span class="px-2 py-0.5 rounded-full text-xs font-medium" [ngClass]="statusChipClass(loan.status)">
+            {{ loan.status | titlecase }}
+          </span>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-3 text-sm">
+          <div>
+            <div class="text-slate-500 dark:text-zinc-500">Employee</div>
+            <div class="font-medium text-slate-800 dark:text-zinc-200">
+              {{ loan.employeeName || '—' }}
+              @if (loan.employeeCode) {
+                <span class="text-secondary font-mono text-xs ms-1">({{ loan.employeeCode }})</span>
+              }
+            </div>
+          </div>
+          <div>
+            <div class="text-slate-500 dark:text-zinc-500">Loan amount</div>
+            <div class="font-medium text-slate-800 dark:text-zinc-200">AED {{ loan.loanAmount | number: '1.2-2' }}</div>
+          </div>
+          <div>
+            <div class="text-slate-500 dark:text-zinc-500">Total deducted</div>
+            <div class="font-medium text-slate-800 dark:text-zinc-200">
+              AED {{ loan.totalDeductedSoFar | number: '1.2-2' }}
+            </div>
+          </div>
+          <div>
+            <div class="text-slate-500 dark:text-zinc-500">Remaining</div>
+            <div class="font-medium text-slate-800 dark:text-zinc-200">AED {{ loan.remaining | number: '1.2-2' }}</div>
+          </div>
+          <div>
+            <div class="text-slate-500 dark:text-zinc-500">Applicant type</div>
+            <div class="font-medium text-slate-800 dark:text-zinc-200">{{ loan.applicantType | titlecase }}</div>
+          </div>
+          <div>
+            <div class="text-slate-500 dark:text-zinc-500">Created</div>
+            <div class="font-medium text-slate-800 dark:text-zinc-200">{{ loan.createdAt | date: 'short' }}</div>
+          </div>
+          @if (showsApproverInfo()) {
+            <div>
+              <div class="text-slate-500 dark:text-zinc-500">Approved by</div>
+              <div class="font-medium text-slate-800 dark:text-zinc-200">{{ loan.approvedByName || '—' }}</div>
+            </div>
+            <div>
+              <div class="text-slate-500 dark:text-zinc-500">Approved at</div>
+              <div class="font-medium text-slate-800 dark:text-zinc-200">
+                {{ loan.approvedAt ? (loan.approvedAt | date: 'short') : '—' }}
+              </div>
+            </div>
+          }
+          <div class="sm:col-span-2 lg:col-span-3">
+            <div class="text-slate-500 dark:text-zinc-500">Reason</div>
+            <div class="font-medium text-slate-800 dark:text-zinc-200 break-all">{{ formatJsonField(loan.reason) }}</div>
+          </div>
+          @if (loan.remarks) {
+            <div class="sm:col-span-2 lg:col-span-3">
+              <div class="text-slate-500 dark:text-zinc-500">Remarks</div>
+              <div class="font-medium text-slate-800 dark:text-zinc-200 break-all">{{ formatJsonField(loan.remarks) }}</div>
+            </div>
+          }
+        </div>
+      </div>
+
+      <div>
+        <div class="text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-zinc-400 mb-2">
+          Deduction history
+        </div>
+        @if (deductions.length === 0) {
+          <p class="text-sm text-slate-500 dark:text-zinc-500">No deductions recorded yet.</p>
+        } @else {
+          <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-zinc-700">
+            <table mat-table [dataSource]="deductions" class="w-full min-w-[520px]">
+              <ng-container matColumnDef="period">
+                <th mat-header-cell *matHeaderCellDef>Pay period</th>
+                <td mat-cell *matCellDef="let row">{{ deductionPeriod(row) }}</td>
+              </ng-container>
+              <ng-container matColumnDef="frequency">
+                <th mat-header-cell *matHeaderCellDef>Frequency</th>
+                <td mat-cell *matCellDef="let row">{{ row.payrollFrequency | titlecase }}</td>
+              </ng-container>
+              <ng-container matColumnDef="amount">
+                <th mat-header-cell *matHeaderCellDef>Amount</th>
+                <td mat-cell *matCellDef="let row">AED {{ row.loanDeductedAmount | number: '1.2-2' }}</td>
+              </ng-container>
+              <ng-container matColumnDef="salarySlip">
+                <th mat-header-cell *matHeaderCellDef>Salary slip</th>
+                <td mat-cell *matCellDef="let row">
+                  <button
+                    mat-stroked-button
+                    type="button"
+                    class="!min-w-0 !px-3 !py-1 !text-xs"
+                    (click)="viewSalarySlip(row)"
+                    [disabled]="slipLoadingId === row.salarySlipId"
+                  >
+                    {{ slipLoadingId === row.salarySlipId ? 'Loading…' : 'View slip' }}
+                  </button>
+                </td>
+              </ng-container>
+              <tr mat-header-row *matHeaderRowDef="deductionColumns" class="bg-zinc-50 dark:bg-zinc-800/50"></tr>
+              <tr mat-row *matRowDef="let row; columns: deductionColumns"></tr>
+            </table>
+          </div>
+        }
+      </div>
+    </div>
+    <div class="px-4 py-3 border-t border-slate-200 dark:border-zinc-700 flex justify-end shrink-0">
+      <button mat-stroked-button (click)="close()">Close</button>
+    </div>
+  }
+</div>

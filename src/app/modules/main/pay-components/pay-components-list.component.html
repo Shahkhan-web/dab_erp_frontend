@@ -1,4 +1,4 @@
-<div class="flex min-w-0 flex-auto flex-col" [overlayLoader]="pageLoader">
+<div class="flex min-w-0 flex-auto flex-col">
   <div
     class="border-b bg-card px-4 py-4 sm:px-6 md:px-5 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
     <div class="flex items-start gap-3 min-w-0">
@@ -34,10 +34,6 @@
               class="text-zinc-900 dark:text-zinc-100 font-medium tracking-tight text-lg">Filters</mat-card-title>
           </div>
           <div class="flex items-center gap-1">
-            <button mat-icon-button color="primary" (click)="applyFilters()" matTooltip="Apply filters"
-              aria-label="Apply filters">
-              <mat-icon class="icon-size-5" [svgIcon]="'heroicons_outline:check'"></mat-icon>
-            </button>
             <button mat-icon-button (click)="clearFilters()" matTooltip="Clear filters" aria-label="Clear filters">
               <mat-icon class="icon-size-5" [svgIcon]="'heroicons_outline:x-mark'"></mat-icon>
             </button>
@@ -47,11 +43,11 @@
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
             <mat-form-field class="fuse-mat-dense w-full">
               <mat-label>Name</mat-label>
-              <input matInput [(ngModel)]="filterName" placeholder="Search name" (keyup.enter)="applyFilters()" />
+              <input matInput [(ngModel)]="filterName" placeholder="Search name" (ngModelChange)="scheduleApplyFilters()" />
             </mat-form-field>
             <mat-form-field class="fuse-mat-dense w-full">
               <mat-label>Type</mat-label>
-              <mat-select [(ngModel)]="filterType" placeholder="All">
+              <mat-select [(ngModel)]="filterType" placeholder="All" (ngModelChange)="applyFilters()">
                 <mat-option [value]="null">All</mat-option>
                 <mat-option value="earning">Earning</mat-option>
                 <mat-option value="deduction">Deduction</mat-option>
@@ -59,7 +55,7 @@
             </mat-form-field>
             <mat-form-field class="fuse-mat-dense w-full">
               <mat-label>Active</mat-label>
-              <mat-select [(ngModel)]="filterIsActive" placeholder="All">
+              <mat-select [(ngModel)]="filterIsActive" placeholder="All" (ngModelChange)="applyFilters()">
                 <mat-option [value]="null">All</mat-option>
                 <mat-option [value]="true">Active</mat-option>
                 <mat-option [value]="false">Inactive</mat-option>
@@ -70,7 +66,7 @@
       </mat-card>
     </div>
 
-    <div class="bg-card rounded-xl shadow overflow-hidden border border-slate-200/60 dark:border-zinc-700/60">
+    <div class="bg-card rounded-xl shadow overflow-hidden border border-slate-200/60 dark:border-zinc-700/60" [overlayLoader]="pageLoader">
       <div class="overflow-x-auto">
         <table mat-table [dataSource]="items" class="w-full min-w-[640px]">
           <ng-container matColumnDef="name">

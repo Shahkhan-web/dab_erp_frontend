@@ -1,4 +1,4 @@
-<div class="flex min-w-0 flex-auto flex-col" [overlayLoader]="pageLoader">
+<div class="flex min-w-0 flex-auto flex-col">
   <div
     class="border-b bg-card px-4 py-4 sm:px-6 md:px-5 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
     <div class="flex items-start gap-3 min-w-0">
@@ -34,10 +34,6 @@
               class="text-zinc-900 dark:text-zinc-100 font-medium tracking-tight text-lg">Filters</mat-card-title>
           </div>
           <div class="flex items-center gap-1">
-            <button mat-icon-button color="primary" (click)="applyFilters()" matTooltip="Apply filters"
-              aria-label="Apply filters">
-              <mat-icon class="icon-size-5" [svgIcon]="'heroicons_outline:check'"></mat-icon>
-            </button>
             <button mat-icon-button (click)="clearFilters()" matTooltip="Clear filters" aria-label="Clear filters">
               <mat-icon class="icon-size-5" [svgIcon]="'heroicons_outline:x-mark'"></mat-icon>
             </button>
@@ -50,7 +46,7 @@
               <input matInput [(ngModel)]="employeeFilter" placeholder="Search by name or ID"
                 [matAutocomplete]="empAuto" #empTrigger="matAutocompleteTrigger"
                 (focus)="openEmployeePanel(empTrigger)" (click)="openEmployeePanel(empTrigger)"
-                (ngModelChange)="onEmployeeFilterChange($event)" (keyup.enter)="applyFilters()" />
+                (ngModelChange)="onEmployeeFilterChange($event)" />
               <mat-autocomplete #empAuto="matAutocomplete" [displayWith]="displayEmployee">
                 @for (emp of filteredEmployees; track emp.id) {
                 <mat-option [value]="emp">{{ employeeLabel(emp) }}</mat-option>
@@ -66,7 +62,7 @@
             </mat-form-field> -->
             <mat-form-field class="fuse-mat-dense w-full">
               <mat-label>Status</mat-label>
-              <mat-select [(ngModel)]="filterStatus" placeholder="All">
+              <mat-select [(ngModel)]="filterStatus" placeholder="All" (ngModelChange)="applyFilters()">
                 <mat-option [value]="null">All</mat-option>
                 <mat-option value="open">Open</mat-option>
                 <mat-option value="rejected">Rejected</mat-option>
@@ -76,19 +72,19 @@
             </mat-form-field>
             <mat-form-field class="fuse-mat-dense w-full">
               <mat-label>Loan name</mat-label>
-              <input matInput [(ngModel)]="filterLoanName" placeholder="Car loan" (keyup.enter)="applyFilters()" />
+              <input matInput [(ngModel)]="filterLoanName" placeholder="Car loan" (ngModelChange)="scheduleApplyFilters()" />
             </mat-form-field>
             <mat-form-field class="fuse-mat-dense w-full">
               <mat-label>Created from</mat-label>
               <input matInput [matDatepicker]="createdFromPicker" [(ngModel)]="createdFromDate"
-                (keyup.enter)="applyFilters()" />
+                (ngModelChange)="applyFilters()" />
               <mat-datepicker-toggle matSuffix [for]="createdFromPicker"></mat-datepicker-toggle>
               <mat-datepicker #createdFromPicker></mat-datepicker>
             </mat-form-field>
             <mat-form-field class="fuse-mat-dense w-full">
               <mat-label>Created to</mat-label>
               <input matInput [matDatepicker]="createdToPicker" [(ngModel)]="createdToDate"
-                (keyup.enter)="applyFilters()" />
+                (ngModelChange)="applyFilters()" />
               <mat-datepicker-toggle matSuffix [for]="createdToPicker"></mat-datepicker-toggle>
               <mat-datepicker #createdToPicker></mat-datepicker>
             </mat-form-field>
@@ -97,7 +93,7 @@
       </mat-card>
     </div>
 
-    <div class="bg-card rounded-xl shadow overflow-hidden border border-slate-200/60 dark:border-zinc-700/60">
+    <div class="bg-card rounded-xl shadow overflow-hidden border border-slate-200/60 dark:border-zinc-700/60" [overlayLoader]="pageLoader">
       <div class="overflow-x-auto">
         <table mat-table [dataSource]="loans" class="w-full min-w-[960px]">
           <ng-container matColumnDef="loanName">
@@ -150,6 +146,10 @@
                 <mat-icon class="icon-size-4 text-neutral-500 dark:text-neutral-100">more_vert</mat-icon>
               </button>
               <mat-menu #loanMenu="matMenu">
+                <button mat-menu-item (click)="openLoanDetail(item)">
+                  <mat-icon class="text-secondary icon-size-4" [svgIcon]="'heroicons_outline:eye'"></mat-icon>
+                  <span>View loan</span>
+                </button>
                 @if (canEditLoan(item)) {
                 <button mat-menu-item (click)="editLoan(item)">
                   <mat-icon class="text-secondary icon-size-4" [svgIcon]="'heroicons_outline:pencil-square'"></mat-icon>

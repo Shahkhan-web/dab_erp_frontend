@@ -18,6 +18,7 @@ import { AuthService } from 'app/core/auth/auth.service';
 import { hasModuleWrite } from 'app/core/auth/module-access.util';
 import { BackButtonComponent } from 'app/core/components/back-button/back-button.component';
 import { OverlayLoaderDirective } from 'app/core/directives/overlay-loader.directive';
+import { createDebouncedFilterApply } from 'app/core/utils/filter-debounce.util';
 import { PayComponentFormDialogComponent } from './pay-component-form-dialog.component';
 import { PayComponent, PayComponentsService } from './pay-components.service';
 
@@ -77,7 +78,8 @@ export class PayComponentsListComponent implements OnInit {
     }
 
     async loadItems(): Promise<void> {
-        this.pageLoader = true;
+        const showOverlay = this.items.length === 0;
+        if (showOverlay) this.pageLoader = true;
         try {
             const resp = await lastValueFrom(
                 this._service.getPayComponents(this.pageIndex + 1, this.pageSize, {
@@ -93,7 +95,7 @@ export class PayComponentsListComponent implements OnInit {
             this.items = [];
             this.total = 0;
         } finally {
-            this.pageLoader = false;
+            if (showOverlay) this.pageLoader = false;
         }
     }
 
@@ -103,16 +105,28 @@ export class PayComponentsListComponent implements OnInit {
         this.loadItems();
     }
 
-    applyFilters(): void {
+    private _suppressFilterApply = false;
+    private readonly _filterApply = createDebouncedFilterApply(() => {
+        if (this._suppressFilterApply) return;
         this.pageIndex = 0;
         this.loadItems();
+    });
+
+    applyFilters(): void {
+        this._filterApply.now();
+    }
+
+    scheduleApplyFilters(): void {
+        this._filterApply.schedule();
     }
 
     clearFilters(): void {
+        this._suppressFilterApply = true;
         this.filterName = null;
         this.filterType = null;
         this.filterIsActive = null;
-        this.applyFilters();
+        this._suppressFilterApply = false;
+        this._filterApply.now();
     }
 
     typeChipClass(type: string | undefined): Record<string, boolean> {

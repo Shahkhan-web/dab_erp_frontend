@@ -23,7 +23,9 @@ import { hasModuleWrite } from 'app/core/auth/module-access.util';
 import { BackButtonComponent } from 'app/core/components/back-button/back-button.component';
 import { ConfirmDeleteDialogComponent } from 'app/core/components/confirm-delete-dialog/confirm-delete-dialog.component';
 import { OverlayLoaderDirective } from 'app/core/directives/overlay-loader.directive';
+import { createDebouncedFilterApply } from 'app/core/utils/filter-debounce.util';
 import { EmployeeListItem, EmployeesService } from '../employees/employees.service';
+import { LoanDetailDialogComponent } from './loan-detail-dialog.component';
 import { LoanStatusDialogComponent } from './loan-status-dialog.component';
 import { LoanListItem, LoansService } from './loans.service';
 
@@ -91,10 +93,7 @@ export class LoansListComponent implements OnInit {
         private _matDialog: MatDialog,
         private _auth: AuthService
     ) {
-        const write = hasModuleWrite(this._auth.profileData, 'loan');
-        this.displayedColumns = write
-            ? [...this._allDisplayedColumns]
-            : this._allDisplayedColumns.filter((c) => c !== 'actions');
+        this.displayedColumns = [...this._allDisplayedColumns];
     }
 
     get canWriteLoan(): boolean {
@@ -125,6 +124,9 @@ export class LoansListComponent implements OnInit {
                   ? this.employeeLabel(value)
                   : '';
         this.filteredEmployees = this._filterEmployees(q);
+        if (value == null || typeof value === 'object' || (typeof value === 'string' && value === '')) {
+            this.applyFilters();
+        }
     }
 
     openEmployeePanel(trigger: MatAutocompleteTrigger): void {
@@ -180,7 +182,8 @@ export class LoansListComponent implements OnInit {
     }
 
     async loadLoans(): Promise<void> {
-        this.pageLoader = true;
+        const showOverlay = this.loans.length === 0;
+        if (showOverlay) this.pageLoader = true;
         try {
             const resp = await lastValueFrom(
                 this._loansService.getLoans(this.pageIndex + 1, this.pageSize, {
@@ -199,7 +202,7 @@ export class LoansListComponent implements OnInit {
             this.loans = [];
             this.total = 0;
         } finally {
-            this.pageLoader = false;
+            if (showOverlay) this.pageLoader = false;
         }
     }
 
@@ -209,12 +212,23 @@ export class LoansListComponent implements OnInit {
         this.loadLoans();
     }
 
-    applyFilters(): void {
+    private _suppressFilterApply = false;
+    private readonly _filterApply = createDebouncedFilterApply(() => {
+        if (this._suppressFilterApply) return;
         this.pageIndex = 0;
         this.loadLoans();
+    });
+
+    applyFilters(): void {
+        this._filterApply.now();
+    }
+
+    scheduleApplyFilters(): void {
+        this._filterApply.schedule();
     }
 
     clearFilters(): void {
+        this._suppressFilterApply = true;
         this.employeeFilter = null;
         this.filteredEmployees = [...this.employees];
         this.filterApplicantType = null;
@@ -222,7 +236,8 @@ export class LoansListComponent implements OnInit {
         this.filterLoanName = null;
         this.createdFromDate = null;
         this.createdToDate = null;
-        this.applyFilters();
+        this._suppressFilterApply = false;
+        this._filterApply.now();
     }
 
     /** Same shape as manual `YYYY-MM-DD` text filters; local calendar date, no timezone shift. */
@@ -276,6 +291,18 @@ export class LoansListComponent implements OnInit {
             'bg-zinc-100 text-zinc-800 dark:bg-zinc-500/15 dark:text-zinc-300':
                 !['open', 'approved', 'rejected', 'paid'].includes(s),
         };
+    }
+
+    openLoanDetail(loan: LoanListItem): void {
+        if (!loan?.employeeId || !loan?.id) return;
+        this._matDialog.open(LoanDetailDialogComponent, {
+            data: { employeeId: loan.employeeId, loanId: loan.id },
+            width: 'min(96vw, 720px)',
+            maxWidth: '720px',
+            maxHeight: 'calc(100dvh - 16px)',
+            autoFocus: 'first-tabbable',
+            panelClass: 'loan-detail-dialog-panel',
+        });
     }
 
     async openStatusDialog(loan: LoanListItem): Promise<void> {

@@ -22,6 +22,7 @@ import { hasModuleWrite } from 'app/core/auth/module-access.util';
 import { COUNTRY_NAMES } from 'app/core/utils/countries';
 import { BackButtonComponent } from 'app/core/components/back-button/back-button.component';
 import { OverlayLoaderDirective } from 'app/core/directives/overlay-loader.directive';
+import { createDebouncedFilterApply } from 'app/core/utils/filter-debounce.util';
 import { EmployeesService, EmployeeListItem } from './employees.service';
 import { EmployeePersonalDialogComponent } from './dialogs/employee-personal-dialog.component';
 import { EmployeeSalaryDialogComponent } from './dialogs/employee-salary-dialog.component';
@@ -115,7 +116,8 @@ export class EmployeesListComponent implements OnInit {
     }
 
     async loadEmployees(): Promise<void> {
-        this.pageLoader = true;
+        const showOverlay = this.employees.length === 0;
+        if (showOverlay) this.pageLoader = true;
         try {
             const resp = await lastValueFrom(
                 this._employeesService.getEmployees(this.pageIndex + 1, this.pageSize, {
@@ -133,7 +135,7 @@ export class EmployeesListComponent implements OnInit {
             this.employees = [];
             this.total = 0;
         } finally {
-            this.pageLoader = false;
+            if (showOverlay) this.pageLoader = false;
         }
     }
 
@@ -143,18 +145,30 @@ export class EmployeesListComponent implements OnInit {
         this.loadEmployees();
     }
 
-    applyFilters(): void {
+    private _suppressFilterApply = false;
+    private readonly _filterApply = createDebouncedFilterApply(() => {
+        if (this._suppressFilterApply) return;
         this.pageIndex = 0;
         this.loadEmployees();
+    });
+
+    applyFilters(): void {
+        this._filterApply.now();
+    }
+
+    scheduleApplyFilters(): void {
+        this._filterApply.schedule();
     }
 
     clearFilters(): void {
+        this._suppressFilterApply = true;
         this.filterEmployeeId = null;
         this.filterRiderId = null;
         this.filterName = null;
         this.filterNationality = null;
         this.filterWorkingStatus = null;
-        this.applyFilters();
+        this._suppressFilterApply = false;
+        this._filterApply.now();
     }
 
     addEmployee(): void {

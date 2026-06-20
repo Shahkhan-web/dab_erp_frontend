@@ -20,6 +20,7 @@ import { BackButtonComponent } from 'app/core/components/back-button/back-button
 import { ConfirmDialogComponent } from 'app/core/components/confirm-dialog/confirm-dialog.component';
 import { ConfirmDeleteDialogComponent } from 'app/core/components/confirm-delete-dialog/confirm-delete-dialog.component';
 import { OverlayLoaderDirective } from 'app/core/directives/overlay-loader.directive';
+import { createDebouncedFilterApply } from 'app/core/utils/filter-debounce.util';
 import { UsersService, UserListItem, UsersListParams } from './users.service';
 import { UserFormDialogComponent } from './dialogs/user-form-dialog.component';
 import { UserProfilePictureDialogComponent } from './dialogs/user-profile-picture-dialog.component';
@@ -109,7 +110,8 @@ export class UsersListComponent implements OnInit {
     }
 
     async load(): Promise<void> {
-        this.pageLoader = true;
+        const showOverlay = this.users.length === 0;
+        if (showOverlay) this.pageLoader = true;
         try {
             const resp = await lastValueFrom(this._usersService.getList(this.getParams()));
             this.users = resp.users ?? [];
@@ -119,7 +121,7 @@ export class UsersListComponent implements OnInit {
             this.users = [];
             this.total = 0;
         } finally {
-            this.pageLoader = false;
+            if (showOverlay) this.pageLoader = false;
         }
     }
 
@@ -129,18 +131,30 @@ export class UsersListComponent implements OnInit {
         this.load();
     }
 
-    applyFilters(): void {
+    private _suppressFilterApply = false;
+    private readonly _filterApply = createDebouncedFilterApply(() => {
+        if (this._suppressFilterApply) return;
         this.pageIndex = 0;
         this.load();
+    });
+
+    applyFilters(): void {
+        this._filterApply.now();
+    }
+
+    scheduleApplyFilters(): void {
+        this._filterApply.schedule();
     }
 
     clearFilters(): void {
+        this._suppressFilterApply = true;
         this.filterId = null;
         this.filterDisplayName = null;
         this.filterEmail = null;
         this.filterRole = null;
         this.filterIsSuspended = null;
-        this.applyFilters();
+        this._suppressFilterApply = false;
+        this._filterApply.now();
     }
 
     isSuspended(user: UserListItem): boolean {

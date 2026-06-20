@@ -29,10 +29,16 @@ export interface LoanListItem {
     /** Present on list / GET single loan responses. */
     employeeName?: string;
     employeeCode?: string;
+    /** User who last approved; null for open/rejected or legacy approved loans not re-approved via status PATCH. */
+    approvedByUserId?: string | null;
+    approvedByName?: string | null;
+    approvedAt?: string | null;
 }
 
-/** GET `/employee/:employeeId/loans/:loanId` — same shape as list/create. */
-export type LoanResponseDto = LoanListItem;
+/** GET `/employee/:employeeId/loans/:loanId` — loan fields plus deduction history. */
+export interface LoanResponseDto extends LoanListItem {
+    deductionHistory?: LoanDeductionHistoryEntry[];
+}
 
 /** Loan row returned by GET `/employee/{id}/loans/history` */
 export interface EmployeeLoanHistoryItem extends LoanListItem {
@@ -91,6 +97,12 @@ export interface UpdateLoanDto {
 /** DELETE `/employee/:employeeId/loans/:loanId` — 200 `{ message: "Loan deleted" }`. */
 export interface DeleteLoanResponse {
     message?: string;
+}
+
+/** Approver fields are populated when status is approved (kept through paid); null for open/rejected. */
+export function loanShowsApproverInfo(status: string | null | undefined): boolean {
+    const s = (status ?? '').toLowerCase();
+    return s === 'approved' || s === 'paid';
 }
 
 @Injectable({ providedIn: 'root' })

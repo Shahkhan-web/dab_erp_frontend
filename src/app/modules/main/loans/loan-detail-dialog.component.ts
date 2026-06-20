@@ -3,32 +3,30 @@ import { Component, Inject, OnInit } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
-import { MatExpansionModule } from '@angular/material/expansion';
 import { MatIconModule } from '@angular/material/icon';
-import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTableModule } from '@angular/material/table';
 import { ToastrService } from 'ngx-toastr';
 import { lastValueFrom } from 'rxjs';
 import {
-    EmployeeLoanHistoryItem,
-    LoanDeductionHistoryEntry,
-    LoansService,
-    loanShowsApproverInfo,
-} from '../../loans/loans.service';
-import {
     SalarySlipDetailDialogComponent,
     SalarySlipDetailDialogData,
-} from '../../salary-slips/salary-slip-detail-dialog.component';
-import { SalarySlipsService } from '../../salary-slips/salary-slips.service';
+} from '../salary-slips/salary-slip-detail-dialog.component';
+import { SalarySlipsService } from '../salary-slips/salary-slips.service';
+import {
+    LoanDeductionHistoryEntry,
+    LoanResponseDto,
+    LoansService,
+    loanShowsApproverInfo,
+} from './loans.service';
 
-export interface EmployeeLoanHistoryDialogData {
+export interface LoanDetailDialogData {
     employeeId: string;
-    employeeName: string;
+    loanId: string;
 }
 
 @Component({
-    selector: 'app-employee-loan-history-dialog',
+    selector: 'app-loan-detail-dialog',
     standalone: true,
     imports: [
         CommonModule,
@@ -36,29 +34,24 @@ export interface EmployeeLoanHistoryDialogData {
         MatButtonModule,
         MatIconModule,
         MatProgressSpinnerModule,
-        MatExpansionModule,
         MatTableModule,
-        MatPaginatorModule,
         DatePipe,
     ],
     providers: [DatePipe],
-    templateUrl: './employee-loan-history-dialog.component.html',
-    styleUrl: './employee-loan-history-dialog.component.scss',
+    templateUrl: './loan-detail-dialog.component.html',
+    styleUrl: './loan-detail-dialog.component.scss',
 })
-export class EmployeeLoanHistoryDialogComponent implements OnInit {
-    loans: EmployeeLoanHistoryItem[] = [];
-    total = 0;
-    pageIndex = 0;
-    pageSize = 10;
+export class LoanDetailDialogComponent implements OnInit {
+    loan: LoanResponseDto | null = null;
     loading = true;
     error: string | null = null;
     slipLoadingId: string | null = null;
 
-    deductionColumns: string[] = ['period', 'frequency', 'amount', 'salarySlip', 'deductedAt'];
+    deductionColumns: string[] = ['period', 'frequency', 'amount', 'salarySlip'];
 
     constructor(
-        private _dialogRef: MatDialogRef<EmployeeLoanHistoryDialogComponent>,
-        @Inject(MAT_DIALOG_DATA) public dialogData: EmployeeLoanHistoryDialogData,
+        private _dialogRef: MatDialogRef<LoanDetailDialogComponent>,
+        @Inject(MAT_DIALOG_DATA) public dialogData: LoanDetailDialogData,
         private _loansService: LoansService,
         private _salarySlipsService: SalarySlipsService,
         private _toast: ToastrService,
@@ -67,42 +60,36 @@ export class EmployeeLoanHistoryDialogComponent implements OnInit {
     ) {}
 
     ngOnInit(): void {
-        this.loadHistory();
+        void this.loadLoan();
     }
 
-    async loadHistory(): Promise<void> {
-        const id = this.dialogData?.employeeId;
-        if (!id) {
-            this.error = 'Invalid employee.';
+    get deductions(): LoanDeductionHistoryEntry[] {
+        return this.loan?.deductionHistory ?? [];
+    }
+
+    showsApproverInfo(): boolean {
+        return loanShowsApproverInfo(this.loan?.status);
+    }
+
+    async loadLoan(): Promise<void> {
+        const { employeeId, loanId } = this.dialogData ?? {};
+        if (!employeeId || !loanId) {
+            this.error = 'Invalid loan.';
             this.loading = false;
             return;
         }
         this.loading = true;
         this.error = null;
         try {
-            const resp = await lastValueFrom(
-                this._loansService.getEmployeeLoanHistory(id, {
-                    page: this.pageIndex + 1,
-                    limit: this.pageSize,
-                })
-            );
-            this.loans = resp.data ?? [];
-            this.total = resp.count ?? this.loans.length;
+            this.loan = await lastValueFrom(this._loansService.getLoan(employeeId, loanId));
         } catch (err: unknown) {
             const httpErr = err as HttpErrorResponse;
-            this.error = httpErr?.error?.message ?? 'Failed to load loan history.';
+            this.error = httpErr?.error?.message ?? 'Failed to load loan.';
             this._toast.error(this.error);
-            this.loans = [];
-            this.total = 0;
+            this.loan = null;
         } finally {
             this.loading = false;
         }
-    }
-
-    handlePageEvent(event: PageEvent): void {
-        this.pageIndex = event.pageIndex;
-        this.pageSize = event.pageSize;
-        this.loadHistory();
     }
 
     close(): void {
@@ -140,14 +127,6 @@ export class EmployeeLoanHistoryDialogComponent implements OnInit {
         return a || b || '—';
     }
 
-    deductionsFor(loan: EmployeeLoanHistoryItem): LoanDeductionHistoryEntry[] {
-        return loan.deductionHistory ?? [];
-    }
-
-    showsApproverInfo(loan: EmployeeLoanHistoryItem): boolean {
-        return loanShowsApproverInfo(loan.status);
-    }
-
     async viewSalarySlip(entry: LoanDeductionHistoryEntry): Promise<void> {
         const employeeId = this.dialogData?.employeeId;
         if (!employeeId || !entry?.salarySlipId) return;
@@ -158,7 +137,7 @@ export class EmployeeLoanHistoryDialogComponent implements OnInit {
             );
             const data: SalarySlipDetailDialogData = {
                 slip,
-                employeeDisplayName: this.dialogData.employeeName ?? null,
+                employeeDisplayName: this.loan?.employeeName ?? null,
             };
             this._matDialog.open(SalarySlipDetailDialogComponent, {
                 data,

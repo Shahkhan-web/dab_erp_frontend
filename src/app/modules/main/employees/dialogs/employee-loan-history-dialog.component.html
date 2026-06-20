@@ -65,6 +65,18 @@
                     <span class="text-slate-500 dark:text-zinc-500">Created</span>
                     <span class="font-medium text-slate-800 dark:text-zinc-200">{{ loan.createdAt | date: 'short' }}</span>
                   </div>
+                  @if (showsApproverInfo(loan)) {
+                    <div class="flex flex-wrap gap-x-2">
+                      <span class="text-slate-500 dark:text-zinc-500">Approved by</span>
+                      <span class="font-medium text-slate-800 dark:text-zinc-200">{{ loan.approvedByName || '—' }}</span>
+                    </div>
+                    <div class="flex flex-wrap gap-x-2">
+                      <span class="text-slate-500 dark:text-zinc-500">Approved at</span>
+                      <span class="font-medium text-slate-800 dark:text-zinc-200">
+                        {{ loan.approvedAt ? (loan.approvedAt | date: 'short') : '—' }}
+                      </span>
+                    </div>
+                  }
                   <div class="sm:col-span-2 flex flex-wrap gap-x-2">
                     <span class="text-slate-500 dark:text-zinc-500">Reason</span>
                     <span class="font-medium text-slate-800 dark:text-zinc-200 break-all">{{ formatJsonField(loan.reason) }}</span>
@@ -94,7 +106,15 @@
                         <ng-container matColumnDef="salarySlip">
                           <th mat-header-cell *matHeaderCellDef>Salary slip</th>
                           <td mat-cell *matCellDef="let row">
-                            <span class="font-mono text-xs">{{ row.salarySlipId }}</span>
+                            <button
+                              mat-stroked-button
+                              type="button"
+                              class="!min-w-0 !px-3 !py-1 !text-xs"
+                              (click)="viewSalarySlip(row)"
+                              [disabled]="slipLoadingId === row.salarySlipId"
+                            >
+                              {{ slipLoadingId === row.salarySlipId ? 'Loading…' : 'View slip' }}
+                            </button>
                           </td>
                         </ng-container>
                         <ng-container matColumnDef="deductedAt">

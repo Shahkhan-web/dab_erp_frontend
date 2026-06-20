@@ -13,7 +13,7 @@
   </div>
 
   <!-- Activity logs -->
-  <div class="flex min-w-0 flex-auto flex-col" [overlayLoader]="logsLoader">
+  <div class="flex min-w-0 flex-auto flex-col">
     <mat-card appearance="outlined" class="overflow-hidden">
       <mat-card-header class="border-b bg-zinc-50 dark:bg-zinc-800/50 px-4 py-3">
         <div class="flex items-center gap-2">
@@ -31,9 +31,6 @@
                 <mat-card-title class="text-zinc-900 dark:text-zinc-100 font-medium tracking-tight text-lg">Filters</mat-card-title>
               </div>
               <div class="flex items-center gap-1">
-                <button mat-icon-button color="primary" (click)="applyFilters()" matTooltip="Apply filters" aria-label="Apply filters">
-                  <mat-icon class="icon-size-5" [svgIcon]="'heroicons_outline:check'"></mat-icon>
-                </button>
                 <button mat-icon-button (click)="clearFilters()" matTooltip="Clear filters" aria-label="Clear filters">
                   <mat-icon class="icon-size-5" [svgIcon]="'heroicons_outline:x-mark'"></mat-icon>
                 </button>
@@ -44,12 +41,12 @@
                 @if (isAdmin) {
                   <mat-form-field class="fuse-mat-dense w-full">
                     <mat-label>User ID (admin)</mat-label>
-                    <input matInput [(ngModel)]="filterUserId" placeholder="Filter by user UUID" (keyup.enter)="applyFilters()" />
+                    <input matInput [(ngModel)]="filterUserId" placeholder="Filter by user UUID" (ngModelChange)="scheduleApplyFilters()" />
                   </mat-form-field>
                 }
                 <mat-form-field class="fuse-mat-dense w-full">
                   <mat-label>Action</mat-label>
-                  <mat-select [(ngModel)]="filterAction" placeholder="All">
+                  <mat-select [(ngModel)]="filterAction" placeholder="All" (ngModelChange)="applyFilters()">
                     @for (opt of actionOptions; track opt.value) {
                       <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
                     }
@@ -57,13 +54,13 @@
                 </mat-form-field>
                 <mat-form-field class="fuse-mat-dense w-full">
                   <mat-label>Start date</mat-label>
-                  <input matInput [matDatepicker]="startDatePicker" [(ngModel)]="filterStartDate" (keyup.enter)="applyFilters()" />
+                  <input matInput [matDatepicker]="startDatePicker" [(ngModel)]="filterStartDate" (ngModelChange)="applyFilters()" />
                   <mat-datepicker-toggle matSuffix [for]="startDatePicker"></mat-datepicker-toggle>
                   <mat-datepicker #startDatePicker></mat-datepicker>
                 </mat-form-field>
                 <mat-form-field class="fuse-mat-dense w-full">
                   <mat-label>End date</mat-label>
-                  <input matInput [matDatepicker]="endDatePicker" [(ngModel)]="filterEndDate" (keyup.enter)="applyFilters()" />
+                  <input matInput [matDatepicker]="endDatePicker" [(ngModel)]="filterEndDate" (ngModelChange)="applyFilters()" />
                   <mat-datepicker-toggle matSuffix [for]="endDatePicker"></mat-datepicker-toggle>
                   <mat-datepicker #endDatePicker></mat-datepicker>
                 </mat-form-field>
@@ -73,7 +70,7 @@
         </div>
 
         <!-- Table -->
-        <div class="rounded-xl border border-slate-200/60 dark:border-zinc-700/60 overflow-hidden">
+        <div class="rounded-xl border border-slate-200/60 dark:border-zinc-700/60 overflow-hidden" [overlayLoader]="logsLoader">
           <div class="overflow-x-auto">
             <table mat-table [dataSource]="logs" class="w-full min-w-[700px]">
               <ng-container matColumnDef="userEmail">
