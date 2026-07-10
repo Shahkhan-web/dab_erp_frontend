@@ -95,6 +95,17 @@
                     <span class="font-medium text-slate-800 dark:text-zinc-200 break-all">{{ formatJsonField(loan.reason) }}</span>
                   </div>
                 </div>
+                @if (loan.attachments?.length) {
+                  <app-loan-attachments-panel
+                    [employeeId]="dialogData.employeeId"
+                    [loanId]="loan.id"
+                    [loanStatus]="loan.status"
+                    [attachments]="loan.attachments ?? []"
+                    [canWrite]="false"
+                    [showUploader]="false"
+                    [compact]="true"
+                  ></app-loan-attachments-panel>
+                }
                 <div>
                   <div class="text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-zinc-400 mb-2">
                     Payroll deductions

@@ -23,6 +23,7 @@ import {
     loanStatusLabel,
     normalizeLoanStatus,
 } from '../../loans/loans.service';
+import { LoanAttachmentsPanelComponent } from '../../loans/loan-attachments-panel.component';
 import {
     SalarySlipDetailDialogComponent,
     SalarySlipDetailDialogData,
@@ -64,6 +65,7 @@ const LOAN_STATUS_SORT_ORDER: Record<string, number> = {
         MatPaginatorModule,
         MatSelectModule,
         DatePipe,
+        LoanAttachmentsPanelComponent,
     ],
     providers: [DatePipe],
     templateUrl: './employee-loan-history-dialog.component.html',

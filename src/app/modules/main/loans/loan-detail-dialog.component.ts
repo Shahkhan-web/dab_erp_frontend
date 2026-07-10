@@ -8,12 +8,16 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTableModule } from '@angular/material/table';
 import { ToastrService } from 'ngx-toastr';
 import { lastValueFrom } from 'rxjs';
+import { AuthService } from 'app/core/auth/auth.service';
+import { hasModuleWrite } from 'app/core/auth/module-access.util';
 import {
     SalarySlipDetailDialogComponent,
     SalarySlipDetailDialogData,
 } from '../salary-slips/salary-slip-detail-dialog.component';
 import { SalarySlipsService } from '../salary-slips/salary-slips.service';
+import { LoanAttachmentsPanelComponent } from './loan-attachments-panel.component';
 import {
+    LoanAttachment,
     LoanDeductionHistoryEntry,
     LoanResponseDto,
     LoansService,
@@ -39,6 +43,7 @@ export interface LoanDetailDialogData {
         MatProgressSpinnerModule,
         MatTableModule,
         DatePipe,
+        LoanAttachmentsPanelComponent,
     ],
     providers: [DatePipe],
     templateUrl: './loan-detail-dialog.component.html',
@@ -46,6 +51,7 @@ export interface LoanDetailDialogData {
 })
 export class LoanDetailDialogComponent implements OnInit {
     loan: LoanResponseDto | null = null;
+    attachments: LoanAttachment[] = [];
     loading = true;
     error: string | null = null;
     slipLoadingId: string | null = null;
@@ -59,8 +65,13 @@ export class LoanDetailDialogComponent implements OnInit {
         private _salarySlipsService: SalarySlipsService,
         private _toast: ToastrService,
         private _datePipe: DatePipe,
-        private _matDialog: MatDialog
+        private _matDialog: MatDialog,
+        private _auth: AuthService
     ) {}
+
+    get canWriteLoan(): boolean {
+        return hasModuleWrite(this._auth.profileData, 'loan');
+    }
 
     ngOnInit(): void {
         void this.loadLoan();
@@ -89,6 +100,7 @@ export class LoanDetailDialogComponent implements OnInit {
         this.error = null;
         try {
             this.loan = await lastValueFrom(this._loansService.getLoan(employeeId, loanId));
+            this.attachments = this.loan?.attachments ?? [];
         } catch (err: unknown) {
             const httpErr = err as HttpErrorResponse;
             this.error = httpErr?.error?.message ?? 'Failed to load loan.';
@@ -96,6 +108,13 @@ export class LoanDetailDialogComponent implements OnInit {
             this.loan = null;
         } finally {
             this.loading = false;
+        }
+    }
+
+    onAttachmentsChange(list: LoanAttachment[]): void {
+        this.attachments = list;
+        if (this.loan) {
+            this.loan = { ...this.loan, attachments: list };
         }
     }
 

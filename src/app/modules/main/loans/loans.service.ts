@@ -13,6 +13,23 @@ export interface LoanDeductionHistoryEntry {
     createdAt: string;
 }
 
+/** Loan workflow step attachment (S3 + presigned downloadUrl). */
+export interface LoanAttachment {
+    id: string;
+    step: LoanStatus | string;
+    displayName: string;
+    contentType?: string;
+    fileSize?: number;
+    downloadUrl?: string;
+    uploadedByUserId?: string;
+    uploadedByName?: string;
+    createdAt?: string;
+}
+
+export const LOAN_ATTACHMENT_MAX_BYTES = 15 * 1024 * 1024;
+export const LOAN_ATTACHMENT_MAX_FILES_PER_UPLOAD = 30;
+export const LOAN_ATTACHMENT_ACCEPT_ATTR = '.pdf,.jpg,.jpeg,.png,.webp,.gif';
+
 export interface LoanListItem {
     id: string;
     applicantType: string;
@@ -33,6 +50,7 @@ export interface LoanListItem {
     approvedByUserId?: string | null;
     approvedByName?: string | null;
     approvedAt?: string | null;
+    attachments?: LoanAttachment[];
 }
 
 /** GET `/employee/:employeeId/loans/:loanId` — loan fields plus deduction history. */
@@ -172,6 +190,28 @@ export function loanShowsApproverInfo(status: string | null | undefined): boolea
     return s === 'approved' || s === 'disbursed' || s === 'reimbursed';
 }
 
+/** Upload/delete disabled when loan has reached terminal reimbursed status. */
+export function loanAllowsAttachmentUpload(status: string | null | undefined): boolean {
+    return normalizeLoanStatus(status) !== 'reimbursed';
+}
+
+/** Workflow steps shown in attachment timeline (lifecycle order). */
+export const LOAN_ATTACHMENT_TIMELINE_STEPS: readonly LoanStatus[] = [
+    'open',
+    'approved',
+    'rejected',
+    'disbursed',
+    'reimbursed',
+];
+
+export function attachmentsForLoanStep(
+    attachments: LoanAttachment[] | undefined,
+    step: string
+): LoanAttachment[] {
+    const s = normalizeLoanStatus(step);
+    return (attachments ?? []).filter((a) => normalizeLoanStatus(a.step) === s);
+}
+
 @Injectable({ providedIn: 'root' })
 export class LoansService {
     private _http = inject(HttpClient);
@@ -217,5 +257,37 @@ export class LoansService {
         return this._http.get<EmployeeLoanHistoryResponse>(`${this._baseEmployee}/${employeeId}/loans/history`, {
             params,
         });
+    }
+
+    getLoanAttachments(employeeId: string, loanId: string): Observable<LoanAttachment[]> {
+        return this._http.get<LoanAttachment[]>(
+            `${this._baseEmployee}/${employeeId}/loans/${loanId}/attachments`
+        );
+    }
+
+    uploadLoanAttachments(
+        employeeId: string,
+        loanId: string,
+        files: File[],
+        displayNames: string[]
+    ): Observable<unknown> {
+        if (files.length !== displayNames.length) {
+            throw new Error('files and displayNames must have the same length');
+        }
+        const body = new FormData();
+        for (const file of files) {
+            body.append('files', file);
+        }
+        body.append(
+            'displayNames',
+            JSON.stringify(displayNames.map((n) => String(n).trim()))
+        );
+        return this._http.post(`${this._baseEmployee}/${employeeId}/loans/${loanId}/attachments`, body);
+    }
+
+    deleteLoanAttachment(employeeId: string, loanId: string, attachmentId: string): Observable<unknown> {
+        return this._http.delete(
+            `${this._baseEmployee}/${employeeId}/loans/${loanId}/attachments/${attachmentId}`
+        );
     }
 }

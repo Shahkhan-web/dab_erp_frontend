@@ -150,6 +150,30 @@
         </mat-card>
       </div>
 
+      @if (editMode && editEmployeeId && editLoanId) {
+        <mat-card appearance="filled" class="bg-zinc-100 dark:bg-zinc-800/50 w-full border border-neutral-200/80 dark:border-neutral-700/80 rounded-xl overflow-hidden shadow-sm">
+          <mat-card-header class="px-4 py-3 border-b border-neutral-200 dark:border-neutral-700 bg-zinc-50/80 dark:bg-zinc-900/30">
+            <div class="flex items-center gap-x-2">
+              <mat-icon class="icon-size-5 text-zinc-700 dark:text-zinc-200 shrink-0"
+                [svgIcon]="'heroicons_outline:paper-clip'"></mat-icon>
+              <mat-card-title class="text-zinc-900 dark:text-zinc-100 font-medium tracking-tight text-lg !mb-0">
+                Supporting documents
+              </mat-card-title>
+            </div>
+          </mat-card-header>
+          <mat-card-content class="p-4">
+            <app-loan-attachments-panel
+              [employeeId]="editEmployeeId"
+              [loanId]="editLoanId"
+              [loanStatus]="editLoanStatus"
+              [attachments]="attachments"
+              [canWrite]="canWriteLoan"
+              (attachmentsChange)="onAttachmentsChange($event)"
+            ></app-loan-attachments-panel>
+          </mat-card-content>
+        </mat-card>
+      }
+
     </form>
   </div>
 </div>

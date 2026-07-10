@@ -13,18 +13,23 @@ import {
 import { MatAutocompleteModule, MatAutocompleteTrigger, MatAutocomplete } from '@angular/material/autocomplete';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
+import { MatDialog } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
 import { lastValueFrom, map, startWith } from 'rxjs';
+import { AuthService } from 'app/core/auth/auth.service';
+import { hasModuleWrite } from 'app/core/auth/module-access.util';
 import { BackButtonComponent } from 'app/core/components/back-button/back-button.component';
 import { OverlayLoaderDirective } from 'app/core/directives/overlay-loader.directive';
 import { createDebouncedFilterApply } from 'app/core/utils/filter-debounce.util';
 import { EmployeeAutocompleteSearch } from '../employees/employee-autocomplete-search';
 import { EmployeesService, EmployeeListItem } from '../employees/employees.service';
-import { LoanListItem, LoansService } from './loans.service';
+import { LoanAttachmentsPanelComponent } from './loan-attachments-panel.component';
+import { LoanDetailDialogComponent } from './loan-detail-dialog.component';
+import { LoanAttachment, LoanListItem, LoansService } from './loans.service';
 
 type LabeledOption = { value: string; label: string };
 
@@ -61,6 +66,7 @@ function permittedValueValidator(allowed: string[]): ValidatorFn {
         MatAutocompleteModule,
         BackButtonComponent,
         OverlayLoaderDirective,
+        LoanAttachmentsPanelComponent,
     ],
     templateUrl: './loan-form.component.html',
 })
@@ -75,6 +81,8 @@ export class LoanFormComponent implements OnInit, OnDestroy {
     minLoanAmount = 0.01;
     private _editEmployeeId: string | null = null;
     private _editLoanId: string | null = null;
+    attachments: LoanAttachment[] = [];
+    editLoanStatus = 'open';
 
     form: FormGroup;
     readonly employeeSearch: EmployeeAutocompleteSearch;
@@ -86,6 +94,9 @@ export class LoanFormComponent implements OnInit, OnDestroy {
     private readonly _employeeSearchApply = createDebouncedFilterApply(() => {
         void this._scheduleEmployeeSearch();
     });
+
+    private _auth = inject(AuthService);
+    private _matDialog = inject(MatDialog);
 
     constructor(
         private _fb: FormBuilder,
@@ -136,6 +147,10 @@ export class LoanFormComponent implements OnInit, OnDestroy {
             .subscribe((list) => {
                 this.filteredStatusOptions = list;
             });
+    }
+
+    get canWriteLoan(): boolean {
+        return hasModuleWrite(this._auth.profileData, 'loan');
     }
 
     async ngOnInit(): Promise<void> {
@@ -199,6 +214,8 @@ export class LoanFormComponent implements OnInit, OnDestroy {
         this.editMode = true;
         this._editEmployeeId = employeeId;
         this._editLoanId = loanId;
+        this.editLoanStatus = loan.status || 'open';
+        this.attachments = loan.attachments ?? [];
         const deducted = Number(loan.totalDeductedSoFar);
         this.minLoanAmount = Math.max(Number.isFinite(deducted) ? deducted : 0, 0.01);
 
@@ -309,9 +326,10 @@ export class LoanFormComponent implements OnInit, OnDestroy {
                     })
                 );
                 this._toast.success('Loan updated');
+                await this._router.navigate(['/main/loans']);
             } else {
                 const emp = v.employee as EmployeeListItem;
-                await lastValueFrom(
+                const resp = await lastValueFrom(
                     this._loansService.createLoan(emp.id, {
                         applicantType: v.applicantType,
                         loanName,
@@ -322,8 +340,12 @@ export class LoanFormComponent implements OnInit, OnDestroy {
                     })
                 );
                 this._toast.success('Loan created');
+                const createdId = this._extractCreatedLoanId(resp);
+                await this._router.navigate(['/main/loans']);
+                if (createdId) {
+                    this._openLoanDetail(emp.id, createdId);
+                }
             }
-            await this._router.navigate(['/main/loans']);
         } catch (e: any) {
             this._toast.error(
                 e?.error?.message ||
@@ -334,7 +356,44 @@ export class LoanFormComponent implements OnInit, OnDestroy {
         }
     }
 
+    get editEmployeeId(): string | null {
+        return this._editEmployeeId;
+    }
+
+    get editLoanId(): string | null {
+        return this._editLoanId;
+    }
+
     cancel(): void {
         this._router.navigate(['/main/loans']);
+    }
+
+    onAttachmentsChange(list: LoanAttachment[]): void {
+        this.attachments = list;
+    }
+
+    private _extractCreatedLoanId(resp: unknown): string | null {
+        if (!resp || typeof resp !== 'object') return null;
+        const r = resp as Record<string, unknown>;
+        const direct = r['id'] ?? r['_id'];
+        if (direct) return String(direct);
+        const data = r['data'];
+        if (data && typeof data === 'object') {
+            const d = data as Record<string, unknown>;
+            const nested = d['id'] ?? d['_id'];
+            if (nested) return String(nested);
+        }
+        return null;
+    }
+
+    private _openLoanDetail(employeeId: string, loanId: string): void {
+        this._matDialog.open(LoanDetailDialogComponent, {
+            data: { employeeId, loanId },
+            width: 'min(96vw, 800px)',
+            maxWidth: '800px',
+            maxHeight: 'calc(100dvh - 16px)',
+            autoFocus: 'first-tabbable',
+            panelClass: 'loan-detail-dialog-panel',
+        });
     }
 }

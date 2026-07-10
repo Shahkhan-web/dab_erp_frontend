@@ -99,6 +99,15 @@
         </div>
       </div>
 
+      <app-loan-attachments-panel
+        [employeeId]="dialogData.employeeId"
+        [loanId]="dialogData.loanId"
+        [loanStatus]="loan.status"
+        [attachments]="attachments"
+        [canWrite]="canWriteLoan"
+        (attachmentsChange)="onAttachmentsChange($event)"
+      ></app-loan-attachments-panel>
+
       <div>
         <div class="text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-zinc-400 mb-2">
           Deduction history

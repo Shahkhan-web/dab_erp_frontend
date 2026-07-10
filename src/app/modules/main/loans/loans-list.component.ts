@@ -1,11 +1,11 @@
 import { CommonModule, DatePipe } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatAutocompleteModule, MatAutocompleteTrigger } from '@angular/material/autocomplete';
+import { MatAutocompleteModule, MatAutocomplete, MatAutocompleteTrigger } from '@angular/material/autocomplete';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
@@ -24,6 +24,7 @@ import { BackButtonComponent } from 'app/core/components/back-button/back-button
 import { ConfirmDeleteDialogComponent } from 'app/core/components/confirm-delete-dialog/confirm-delete-dialog.component';
 import { OverlayLoaderDirective } from 'app/core/directives/overlay-loader.directive';
 import { createDebouncedFilterApply } from 'app/core/utils/filter-debounce.util';
+import { EmployeeAutocompleteSearch } from '../employees/employee-autocomplete-search';
 import { EmployeeListItem, EmployeesService } from '../employees/employees.service';
 import { LoanDetailDialogComponent } from './loan-detail-dialog.component';
 import { LoanStatusDialogComponent } from './loan-status-dialog.component';
@@ -54,7 +55,7 @@ import { LoanListItem, LoansService, canChangeLoanStatus, loanShowsRemainingBala
     ],
     templateUrl: './loans-list.component.html',
 })
-export class LoansListComponent implements OnInit {
+export class LoansListComponent implements OnInit, OnDestroy {
     private readonly _allDisplayedColumns = [
         'loanName',
         'employeeId',
@@ -76,14 +77,18 @@ export class LoansListComponent implements OnInit {
 
     /** Bound to employee autocomplete: `EmployeeListItem` when chosen, or search string while typing. */
     employeeFilter: EmployeeListItem | string | null = null;
-    employees: EmployeeListItem[] = [];
-    filteredEmployees: EmployeeListItem[] = [];
+    readonly employeeSearch: EmployeeAutocompleteSearch;
     filterApplicantType: string | null = null;
     filterStatus: string | null = null;
     filterLoanName: string | null = null;
     /** Local calendar dates; sent to API as `YYYY-MM-DD` via `_dateToYmd`. */
     createdFromDate: Date | null = null;
     createdToDate: Date | null = null;
+
+    private _suppressNextEmployeePanelOpen = false;
+    private readonly _employeeSearchApply = createDebouncedFilterApply(() => {
+        void this._scheduleEmployeeSearch();
+    });
 
     constructor(
         private _loansService: LoansService,
@@ -93,6 +98,7 @@ export class LoansListComponent implements OnInit {
         private _matDialog: MatDialog,
         private _auth: AuthService
     ) {
+        this.employeeSearch = new EmployeeAutocompleteSearch(this._employeesService);
         this.displayedColumns = [...this._allDisplayedColumns];
     }
 
@@ -116,25 +122,54 @@ export class LoansListComponent implements OnInit {
         return this.employeeLabel(value);
     };
 
+    ngOnDestroy(): void {
+        this.employeeSearch.unbindPanelScroll();
+    }
+
     onEmployeeFilterChange(value: EmployeeListItem | string | null): void {
-        const q =
-            typeof value === 'string'
-                ? value
-                : value
-                  ? this.employeeLabel(value)
-                  : '';
-        this.filteredEmployees = this._filterEmployees(q);
-        if (value == null || typeof value === 'object' || (typeof value === 'string' && value === '')) {
+        if (value && typeof value === 'object' && value.id) {
+            this.employeeSearch.ensureInList(value);
+            this.applyFilters();
+            return;
+        }
+        this._employeeSearchApply.schedule();
+        if (value == null || (typeof value === 'string' && value.trim() === '')) {
             this.applyFilters();
         }
     }
 
+    onEmployeeOptionSelected(): void {
+        this._suppressNextEmployeePanelOpen = true;
+    }
+
     openEmployeePanel(trigger: MatAutocompleteTrigger): void {
-        this.onEmployeeFilterChange(this.employeeFilter);
-        setTimeout(() => {
-            trigger.updatePosition();
-            trigger.openPanel();
+        if (this._suppressNextEmployeePanelOpen) {
+            this._suppressNextEmployeePanelOpen = false;
+            return;
+        }
+        void this.employeeSearch.resetAndLoad(this._employeeSearchQuery()).then(() => {
+            setTimeout(() => {
+                trigger.updatePosition();
+                trigger.openPanel();
+            });
         });
+    }
+
+    onEmployeeAutocompleteOpened(auto: MatAutocomplete): void {
+        this.employeeSearch.bindPanelScroll(auto);
+    }
+
+    onEmployeeAutocompleteClosed(): void {
+        this.employeeSearch.unbindPanelScroll();
+    }
+
+    private _employeeSearchQuery(): string {
+        const v = this.employeeFilter;
+        return typeof v === 'string' ? v.trim() : '';
+    }
+
+    private async _scheduleEmployeeSearch(): Promise<void> {
+        await this.employeeSearch.resetAndLoad(this._employeeSearchQuery());
     }
 
     private _selectedEmployeeId(): string | null {
@@ -142,32 +177,8 @@ export class LoansListComponent implements OnInit {
         return v && typeof v === 'object' && 'id' in v ? (v as EmployeeListItem).id : null;
     }
 
-    private _filterEmployees(query: string): EmployeeListItem[] {
-        const q = query.trim().toLowerCase();
-        if (!q) return this.employees;
-        return this.employees.filter(
-            (e) =>
-                this.employeeLabel(e).toLowerCase().includes(q) ||
-                e.id.toLowerCase().includes(q) ||
-                `${e.firstName ?? ''} ${e.middleName ?? ''} ${e.lastName ?? ''}`.toLowerCase().includes(q) ||
-                String(e.employeeId ?? '').toLowerCase().includes(q) ||
-                String(e.employeeNameArabic ?? '').toLowerCase().includes(q)
-        );
-    }
-
     private async _init(): Promise<void> {
-        await Promise.all([this._loadEmployees(), this.loadLoans()]);
-    }
-
-    private async _loadEmployees(): Promise<void> {
-        try {
-            const resp = await lastValueFrom(this._employeesService.getEmployees(1, 100, {}));
-            this.employees = resp.employees ?? [];
-            this.filteredEmployees = [...this.employees];
-        } catch {
-            this.employees = [];
-            this.filteredEmployees = [];
-        }
+        await Promise.all([this.employeeSearch.resetAndLoad(), this.loadLoans()]);
     }
 
     formatJsonField(value: unknown): string {
@@ -230,7 +241,6 @@ export class LoansListComponent implements OnInit {
     clearFilters(): void {
         this._suppressFilterApply = true;
         this.employeeFilter = null;
-        this.filteredEmployees = [...this.employees];
         this.filterApplicantType = null;
         this.filterStatus = null;
         this.filterLoanName = null;
@@ -293,8 +303,8 @@ export class LoansListComponent implements OnInit {
         if (!loan?.employeeId || !loan?.id) return;
         this._matDialog.open(LoanDetailDialogComponent, {
             data: { employeeId: loan.employeeId, loanId: loan.id },
-            width: 'min(96vw, 720px)',
-            maxWidth: '720px',
+            width: 'min(96vw, 800px)',
+            maxWidth: '800px',
             maxHeight: 'calc(100dvh - 16px)',
             autoFocus: 'first-tabbable',
             panelClass: 'loan-detail-dialog-panel',
@@ -302,22 +312,17 @@ export class LoansListComponent implements OnInit {
     }
 
     async openStatusDialog(loan: LoanListItem): Promise<void> {
-        const result = await lastValueFrom(
+        const updated = await lastValueFrom(
             this._matDialog
                 .open(LoanStatusDialogComponent, {
-                    data: { loan },
+                    data: { loan, employeeId: loan.employeeId },
                     width: '96vw',
-                    maxWidth: '440px',
+                    maxWidth: '640px',
+                    maxHeight: 'calc(100dvh - 16px)',
                 })
                 .afterClosed()
         );
-        if (!result) return;
-        try {
-            await lastValueFrom(this._loansService.updateLoanStatus(loan.id, result));
-            this._toast.success('Loan status updated');
-            this.loadLoans();
-        } catch (e: any) {
-            this._toast.error(e?.error?.message || 'Failed to update loan status');
-        }
+        if (!updated) return;
+        this.loadLoans();
     }
 }
