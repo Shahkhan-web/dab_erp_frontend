@@ -33,7 +33,7 @@ import {
 } from './salary-slip-detail-dialog.component';
 import { SalarySlipLetterheadChoiceDialogComponent } from './salary-slip-letterhead-choice-dialog.component';
 import { SalarySlipPdfDialogComponent } from './salary-slip-pdf-dialog.component';
-import { SalarySlipListItem, SalarySlipsService, SalarySlipStatus } from './salary-slips.service';
+import { SalarySlipListItem, SalarySlipsService, SalarySlipStatus, normalizeSalarySlipStatus, salarySlipAllowsPdfDownload, salarySlipStatusChipClass, salarySlipStatusLabel } from './salary-slips.service';
 import { SalarySlipUploadDialogComponent } from './salary-slip-upload-dialog.component';
 
 @Component({
@@ -98,8 +98,8 @@ export class SalarySlipsListComponent implements OnInit, OnDestroy {
     slipEndToDate: Date | null = null;
 
     payrollFrequencyOptions = ['monthly', 'fortnightly', 'bimonthly', 'weekly', 'daily'] as const;
-    statusOptions: SalarySlipStatus[] = ['pending', 'verified', 'paid'];
-    bulkStatusOptions: SalarySlipStatus[] = ['verified', 'paid'];
+    statusOptions: SalarySlipStatus[] = ['pending', 'approved', 'reimbursed'];
+    bulkStatusOptions: SalarySlipStatus[] = ['approved', 'reimbursed'];
     selectedIds = new Set<string>();
     bulkStatus: SalarySlipStatus | null = null;
     bulkUpdating = false;
@@ -343,9 +343,15 @@ export class SalarySlipsListComponent implements OnInit, OnDestroy {
     }
 
     canSelectForStatusChange(slip: SalarySlipListItem): boolean {
-        const status = String(slip?.status ?? '').toLowerCase();
-        return status === 'pending' || status === 'verified';
+        return normalizeSalarySlipStatus(slip?.status) === 'pending';
     }
+
+    canDownloadPdf(slip: SalarySlipListItem): boolean {
+        return salarySlipAllowsPdfDownload(slip?.status);
+    }
+
+    readonly statusLabel = salarySlipStatusLabel;
+    readonly statusChipClass = salarySlipStatusChipClass;
 
     employeeDisplayName(employeeId: string | undefined): string | null {
         if (!employeeId) return null;
@@ -375,6 +381,10 @@ export class SalarySlipsListComponent implements OnInit, OnDestroy {
     async openPdfViewer(slip: SalarySlipListItem): Promise<void> {
         if (!slip?.employeeId || !slip?.id) {
             this._toast.error('Missing employee or slip id for PDF');
+            return;
+        }
+        if (!this.canDownloadPdf(slip)) {
+            this._toast.warning('PDF is available only for approved or reimbursed salary slips');
             return;
         }
         const companyId = this._employeeById(slip.employeeId)?.companyId ?? null;
@@ -493,13 +503,17 @@ export class SalarySlipsListComponent implements OnInit, OnDestroy {
         }
         const invalidRows = selectedRows.filter((row) => !this.canTransitionStatus(row.status, this.bulkStatus!));
         if (invalidRows.length > 0) {
-            this._toast.error('Invalid status change. Verified slips can only move to paid, and paid slips cannot be changed.');
+            this._toast.error(
+                'Invalid status change. Only pending salary slips can be marked approved or reimbursed.'
+            );
             return;
         }
         this.bulkUpdating = true;
         try {
             await lastValueFrom(this._service.bulkUpdateStatus(ids, this.bulkStatus));
-            this._toast.success(`Updated ${ids.length} salary slip${ids.length === 1 ? '' : 's'} to ${this.bulkStatus}`);
+            this._toast.success(
+                `Updated ${ids.length} salary slip${ids.length === 1 ? '' : 's'} to ${salarySlipStatusLabel(this.bulkStatus)}`
+            );
             this.clearSelection();
             await this.loadList();
         } catch (e: any) {
@@ -529,10 +543,8 @@ export class SalarySlipsListComponent implements OnInit, OnDestroy {
     }
 
     private canTransitionStatus(from: SalarySlipStatus | string | null | undefined, to: SalarySlipStatus): boolean {
-        const current = String(from ?? '').toLowerCase() as SalarySlipStatus;
-        if (current === 'paid') return false;
-        if (current === 'verified') return to === 'paid';
-        if (current === 'pending') return to === 'verified' || to === 'paid';
-        return false;
+        const current = normalizeSalarySlipStatus(from);
+        if (current !== 'pending') return false;
+        return to === 'approved' || to === 'reimbursed';
     }
 }

@@ -15,6 +15,9 @@ import {
     SalarySlipLine,
     SalarySlipListItem,
     SalarySlipsService,
+    salarySlipAllowsPdfDownload,
+    salarySlipStatusChipClass,
+    salarySlipStatusLabel,
 } from './salary-slips.service';
 
 export interface SalarySlipDetailDialogData {
@@ -66,6 +69,13 @@ export class SalarySlipDetailDialogComponent implements OnInit {
     get slip(): SalarySlipListItem {
         return this.dialogData.slip;
     }
+
+    get canDownloadPdf(): boolean {
+        return salarySlipAllowsPdfDownload(this.slip?.status);
+    }
+
+    readonly statusLabel = salarySlipStatusLabel;
+    readonly statusChipClass = salarySlipStatusChipClass;
 
     get earningLines(): SalarySlipLine[] {
         return (this.slip.lines ?? []).filter(
@@ -134,6 +144,10 @@ export class SalarySlipDetailDialogComponent implements OnInit {
         const slip = this.slip;
         if (!slip?.employeeId || !slip?.id) {
             this._toast.error('Missing employee or slip id for PDF');
+            return;
+        }
+        if (!this.canDownloadPdf) {
+            this._toast.warning('PDF is available only for approved or reimbursed salary slips');
             return;
         }
         const letterheadAvailable = await lastValueFrom(

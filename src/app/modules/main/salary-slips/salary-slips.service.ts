@@ -94,7 +94,50 @@ export interface SalarySlipsListFilters {
     slipEndTo?: string | null;
 }
 
-export type SalarySlipStatus = 'pending' | 'verified' | 'paid';
+export type SalarySlipStatus = 'pending' | 'approved' | 'reimbursed';
+
+export const SALARY_SLIP_STATUSES = ['pending', 'approved', 'reimbursed'] as const;
+
+/** Maps legacy `verified` / `paid` for display and transition logic during migration. */
+export function normalizeSalarySlipStatus(status: string | null | undefined): string {
+    const s = (status ?? '').trim().toLowerCase();
+    if (s === 'verified') return 'approved';
+    if (s === 'paid') return 'reimbursed';
+    return s;
+}
+
+export function salarySlipStatusLabel(status: string | null | undefined): string {
+    switch (normalizeSalarySlipStatus(status)) {
+        case 'pending':
+            return 'Pending';
+        case 'approved':
+            return 'Approved';
+        case 'reimbursed':
+            return 'Reimbursed';
+        default:
+            return status?.trim() ? String(status) : '—';
+    }
+}
+
+export function salarySlipStatusChipClass(status: string | null | undefined): Record<string, boolean> {
+    const s = normalizeSalarySlipStatus(status);
+    return {
+        'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/40':
+            s === 'pending',
+        'bg-green-100 text-green-800 border-green-200 dark:bg-green-500/20 dark:text-green-300 dark:border-green-500/40':
+            s === 'approved',
+        'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/40':
+            s === 'reimbursed',
+        'bg-zinc-100 text-zinc-800 border-zinc-200 dark:bg-zinc-500/20 dark:text-zinc-300 dark:border-zinc-500/40':
+            !SALARY_SLIP_STATUSES.includes(s as SalarySlipStatus),
+    };
+}
+
+/** PDF download is allowed only for approved or reimbursed slips. */
+export function salarySlipAllowsPdfDownload(status: string | null | undefined): boolean {
+    const s = normalizeSalarySlipStatus(status);
+    return s === 'approved' || s === 'reimbursed';
+}
 
 export interface SalarySlipLineInput {
     payComponentId: string;

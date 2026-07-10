@@ -44,6 +44,15 @@ export function isAdminProfile(profile: any): boolean {
     return profile?.role === 'admin';
 }
 
+/** Admins always have read; managers need `access[moduleKey].read`. */
+export function hasModuleRead(profile: any, moduleKey: UserFormModuleKey): boolean {
+    if (isAdminProfile(profile)) {
+        return true;
+    }
+    const access = getModuleAccessFromProfile(profile);
+    return access?.[moduleKey]?.read === true;
+}
+
 /** Admins always have write; managers need `access[moduleKey].write`. */
 export function hasModuleWrite(profile: any, moduleKey: UserFormModuleKey): boolean {
     if (isAdminProfile(profile)) {

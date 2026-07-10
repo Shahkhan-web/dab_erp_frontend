@@ -1,24 +1,54 @@
-import { CommonModule, DatePipe } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { CommonModule, DecimalPipe } from '@angular/common';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
-import { MatInputModule } from '@angular/material/input';
-import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTableModule } from '@angular/material/table';
+import { MatTabsModule } from '@angular/material/tabs';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatNativeDateModule } from '@angular/material/core';
-import { MatDatepickerModule } from '@angular/material/datepicker';
-import { RouterModule } from '@angular/router';
-import { lastValueFrom } from 'rxjs';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { AuthService } from 'app/core/auth/auth.service';
-import { ActivityLog, LogsService } from 'app/core/services/logs.service';
+import { hasModuleRead, isAdminProfile } from 'app/core/auth/module-access.util';
 import { OverlayLoaderDirective } from 'app/core/directives/overlay-loader.directive';
-import { createDebouncedFilterApply } from 'app/core/utils/filter-debounce.util';
-import { ToastrService } from 'ngx-toastr';
+import { Company, CompaniesService } from 'app/modules/main/companies/companies.service';
+import { Subject, lastValueFrom, takeUntil } from 'rxjs';
+import {
+    ApexChartOptions,
+    buildBarChart,
+    buildDonutChart,
+    buildHorizontalBarChart,
+    buildLineChart,
+    formatChangePct,
+} from './dashboard-chart.util';
+import { DashboardChartComponent } from './dashboard-chart.component';
+import {
+    DASHBOARD_RANGES,
+    DashboardActivityResponse,
+    DashboardLoansResponse,
+    DashboardMetric,
+    DashboardOverview,
+    DashboardPayrollResponse,
+    DashboardPerformanceResponse,
+    DashboardQueryParams,
+    DashboardRange,
+    DashboardService,
+    DashboardWorkforceResponse,
+} from './dashboard.service';
+
+type DashboardTab = 'payroll' | 'workforce' | 'loans' | 'performance' | 'activity';
+
+interface KpiCard {
+    label: string;
+    section: string;
+    icon: string;
+    metric?: DashboardMetric;
+    plainValue?: number;
+    format: 'number' | 'money' | 'distance';
+}
 
 @Component({
     selector: 'app-main-dashboard',
@@ -29,119 +59,406 @@ import { ToastrService } from 'ngx-toastr';
         FormsModule,
         MatIconModule,
         MatCardModule,
-        MatTableModule,
-        MatPaginatorModule,
         MatButtonModule,
+        MatButtonToggleModule,
         MatFormFieldModule,
-        MatInputModule,
         MatSelectModule,
         MatTooltipModule,
-        MatDatepickerModule,
-        MatNativeDateModule,
-        DatePipe,
+        MatTabsModule,
+        MatTableModule,
+        DecimalPipe,
         OverlayLoaderDirective,
+        DashboardChartComponent,
     ],
     templateUrl: './main-dashboard.component.html',
     styleUrls: ['./main-dashboard.component.scss'],
 })
-export class MainDashboardComponent implements OnInit {
-    displayedColumns: string[] = ['userEmail', 'action', 'resource', 'resourceId', 'ipAddress', 'createdAt'];
-    logs: ActivityLog[] = [];
-    total = 0;
-    pageIndex = 0;
-    pageSize = 10;
-    logsLoader = false;
+export class MainDashboardComponent implements OnInit, OnDestroy {
+    readonly rangeOptions = DASHBOARD_RANGES;
+    readonly formatChangePct = formatChangePct;
 
-    filterUserId: string | null = null;
-    filterAction: string | null = null;
-    filterStartDate: Date | null = null;
-    filterEndDate: Date | null = null;
+    selectedRange: DashboardRange = 'monthly';
+    companyId: string | null = null;
+    companies: Company[] = [];
 
-    readonly actionOptions = [
-        { value: null, label: 'All' },
-        { value: 'CREATE', label: 'Create' },
-        { value: 'UPDATE', label: 'Update' },
-        { value: 'DELETE', label: 'Delete' },
-    ];
+    overview: DashboardOverview | null = null;
+    overviewLoader = false;
+    kpiCards: KpiCard[] = [];
+
+    activeTabIndex = 0;
+    readonly tabForbidden: Partial<Record<DashboardTab, boolean>> = {};
+    readonly tabLoading: Partial<Record<DashboardTab, boolean>> = {};
+
+    payrollData: DashboardPayrollResponse | null = null;
+    workforceData: DashboardWorkforceResponse | null = null;
+    loansData: DashboardLoansResponse | null = null;
+    performanceData: DashboardPerformanceResponse | null = null;
+    activityData: DashboardActivityResponse | null = null;
+
+    payrollNetChart: ApexChartOptions | null = null;
+    payrollDeductionChart: ApexChartOptions | null = null;
+    payrollStatusChart: ApexChartOptions | null = null;
+    workforceStatusChart: ApexChartOptions | null = null;
+    workforceOccupationChart: ApexChartOptions | null = null;
+    workforceJoinersChart: ApexChartOptions | null = null;
+    loansPipelineChart: ApexChartOptions | null = null;
+    loansSeriesChart: ApexChartOptions | null = null;
+    performanceDeliveriesChart: ApexChartOptions | null = null;
+    activitySeriesChart: ApexChartOptions | null = null;
+    activityActionChart: ApexChartOptions | null = null;
+    activityResourceChart: ApexChartOptions | null = null;
+
+    topPayColumns = ['name', 'amount'];
+    topPerformerColumns = ['name', 'occupation', 'deliveries'];
+    topUserColumns = ['email', 'count'];
+
+    private _destroy$ = new Subject<void>();
+    private _loadedTabs = new Set<DashboardTab>();
 
     constructor(
-        private _logsService: LogsService,
+        private _dashboard: DashboardService,
+        private _companies: CompaniesService,
         private _auth: AuthService,
-        private _toast: ToastrService
+        private _route: ActivatedRoute,
+        private _router: Router
     ) {}
 
     get isAdmin(): boolean {
-        return this._auth.profileData?.role === 'admin';
+        return isAdminProfile(this._auth.profileData);
+    }
+
+    get canReadEmployee(): boolean {
+        return hasModuleRead(this._auth.profileData, 'employee');
+    }
+
+    get canReadSalarySlip(): boolean {
+        return hasModuleRead(this._auth.profileData, 'salarySlip');
+    }
+
+    get canReadLoan(): boolean {
+        return hasModuleRead(this._auth.profileData, 'loan');
+    }
+
+    get visibleTabs(): { id: DashboardTab; label: string }[] {
+        const tabs: { id: DashboardTab; label: string }[] = [];
+        if (this.canReadSalarySlip) tabs.push({ id: 'payroll', label: 'Payroll' });
+        if (this.canReadEmployee) tabs.push({ id: 'workforce', label: 'Workforce' });
+        if (this.canReadLoan) tabs.push({ id: 'loans', label: 'Loans' });
+        if (this.canReadSalarySlip) tabs.push({ id: 'performance', label: 'Performance' });
+        tabs.push({ id: 'activity', label: 'Activity' });
+        return tabs;
+    }
+
+    get activeTab(): DashboardTab | null {
+        return this.visibleTabs[this.activeTabIndex]?.id ?? null;
     }
 
     ngOnInit(): void {
-        this.loadLogs();
-    }
-
-    /** Convert Date to ISO 8601 for API (start of day / end of day) */
-    private dateToIso8601(value: Date | null, endOfDay: boolean): string | undefined {
-        if (!value) return undefined;
-        const d = new Date(value);
-        if (endOfDay) {
-            d.setHours(23, 59, 59, 999);
-        } else {
-            d.setHours(0, 0, 0, 0);
+        if (this.isAdmin) {
+            this.loadCompanies();
         }
-        return d.toISOString();
+        this._route.queryParamMap.pipe(takeUntil(this._destroy$)).subscribe((params) => {
+            this.selectedRange = this.parseRange(params.get('range'));
+            this.companyId = params.get('companyId');
+            this.onFiltersChanged();
+        });
+        if (!this._route.snapshot.queryParamMap.get('range')) {
+            this.updateQueryParams();
+        }
     }
 
-    async loadLogs(): Promise<void> {
-        const showOverlay = this.logs.length === 0;
-        if (showOverlay) this.logsLoader = true;
+    ngOnDestroy(): void {
+        this._destroy$.next();
+        this._destroy$.complete();
+    }
+
+    onRangeChange(range: DashboardRange): void {
+        if (range === this.selectedRange) return;
+        this.selectedRange = range;
+        this.updateQueryParams();
+    }
+
+    onCompanyChange(companyId: string | null): void {
+        this.companyId = companyId;
+        this.updateQueryParams();
+    }
+
+    onTabIndexChange(index: number): void {
+        this.activeTabIndex = index;
+        const tab = this.activeTab;
+        if (tab) {
+            this.loadTabData(tab);
+        }
+    }
+
+    formatValue(card: KpiCard): string {
+        const value = card.metric?.value ?? card.plainValue ?? 0;
+        if (card.format === 'money') {
+            return `AED ${this.formatNumber(value)}`;
+        }
+        if (card.format === 'distance') {
+            return `${this.formatNumber(value)} km`;
+        }
+        return this.formatNumber(value);
+    }
+
+    formatPrevious(card: KpiCard): string {
+        if (card.metric == null) return '—';
+        const prev = card.metric.previous;
+        if (card.format === 'money') return `AED ${this.formatNumber(prev)}`;
+        if (card.format === 'distance') return `${this.formatNumber(prev)} km`;
+        return this.formatNumber(prev);
+    }
+
+    changeDirection(changePct: number | null | undefined): 'up' | 'down' | 'flat' | 'none' {
+        if (changePct == null) return 'none';
+        if (changePct > 0) return 'up';
+        if (changePct < 0) return 'down';
+        return 'flat';
+    }
+
+    private parseRange(value: string | null): DashboardRange {
+        const valid = DASHBOARD_RANGES.map((r) => r.value);
+        return valid.includes(value as DashboardRange) ? (value as DashboardRange) : 'monthly';
+    }
+
+    private queryParams(): DashboardQueryParams {
+        return {
+            range: this.selectedRange,
+            companyId: this.companyId,
+        };
+    }
+
+    private updateQueryParams(): void {
+        this._router.navigate([], {
+            relativeTo: this._route,
+            queryParams: {
+                range: this.selectedRange,
+                companyId: this.companyId || null,
+            },
+            queryParamsHandling: 'merge',
+            replaceUrl: true,
+        });
+    }
+
+    private onFiltersChanged(): void {
+        this._loadedTabs.clear();
+        this.payrollData = null;
+        this.workforceData = null;
+        this.loansData = null;
+        this.performanceData = null;
+        this.activityData = null;
+        this.clearCharts();
+        this.loadOverview();
+        const tab = this.activeTab;
+        if (tab) {
+            this.loadTabData(tab);
+        }
+    }
+
+    private clearCharts(): void {
+        this.payrollNetChart = null;
+        this.payrollDeductionChart = null;
+        this.payrollStatusChart = null;
+        this.workforceStatusChart = null;
+        this.workforceOccupationChart = null;
+        this.workforceJoinersChart = null;
+        this.loansPipelineChart = null;
+        this.loansSeriesChart = null;
+        this.performanceDeliveriesChart = null;
+        this.activitySeriesChart = null;
+        this.activityActionChart = null;
+        this.activityResourceChart = null;
+    }
+
+    private async loadCompanies(): Promise<void> {
         try {
-            const resp = await lastValueFrom(
-                this._logsService.getLogs(this.pageIndex + 1, this.pageSize, {
-                    userId: this.filterUserId || undefined,
-                    action: this.filterAction || undefined,
-                    startDate: this.dateToIso8601(this.filterStartDate, false),
-                    endDate: this.dateToIso8601(this.filterEndDate, true),
-                })
-            );
-            this.logs = resp.logs ?? [];
-            this.total = resp.count ?? this.logs.length;
-        } catch (e: unknown) {
-            const err = e as { error?: { message?: string } };
-            this._toast.error(err?.error?.message || 'Failed to load activity logs');
-            this.logs = [];
-            this.total = 0;
-        } finally {
-            if (showOverlay) this.logsLoader = false;
+            this.companies = await lastValueFrom(this._companies.getList());
+        } catch {
+            this.companies = [];
         }
     }
 
-    handlePageEvent(event: PageEvent): void {
-        this.pageIndex = event.pageIndex;
-        this.pageSize = event.pageSize;
-        this.loadLogs();
+    private async loadOverview(): Promise<void> {
+        this.overviewLoader = true;
+        try {
+            this.overview = await lastValueFrom(this._dashboard.getOverview(this.queryParams()));
+            this.kpiCards = this.buildKpiCards(this.overview);
+        } catch {
+            this.overview = null;
+            this.kpiCards = [];
+        } finally {
+            this.overviewLoader = false;
+        }
     }
 
-    private _suppressFilterApply = false;
-    private readonly _filterApply = createDebouncedFilterApply(() => {
-        if (this._suppressFilterApply) return;
-        this.pageIndex = 0;
-        this.loadLogs();
-    });
-
-    applyFilters(): void {
-        this._filterApply.now();
+    private async loadTabData(tab: DashboardTab): Promise<void> {
+        if (this._loadedTabs.has(tab) || this.tabForbidden[tab]) return;
+        this.tabLoading[tab] = true;
+        try {
+            switch (tab) {
+                case 'payroll':
+                    await this.loadPayroll();
+                    break;
+                case 'workforce':
+                    await this.loadWorkforce();
+                    break;
+                case 'loans':
+                    await this.loadLoans();
+                    break;
+                case 'performance':
+                    await this.loadPerformance();
+                    break;
+                case 'activity':
+                    await this.loadActivity();
+                    break;
+            }
+            this._loadedTabs.add(tab);
+        } catch (e: unknown) {
+            const err = e as { status?: number };
+            if (err?.status === 403) {
+                this.tabForbidden[tab] = true;
+            }
+        } finally {
+            this.tabLoading[tab] = false;
+        }
     }
 
-    scheduleApplyFilters(): void {
-        this._filterApply.schedule();
+    private async loadPayroll(): Promise<void> {
+        const data = await lastValueFrom(this._dashboard.getPayroll(this.queryParams()));
+        this.payrollData = data;
+        this.payrollNetChart = buildLineChart(
+            data.series,
+            [
+                { key: 'grossPayment', name: 'Gross' },
+                { key: 'totalDeduction', name: 'Deductions' },
+                { key: 'netPayment', name: 'Net' },
+            ],
+            data.meta,
+            { yFormatter: (v) => `AED ${this.formatNumber(v)}` }
+        );
+        this.payrollDeductionChart = buildDonutChart(data.deductionComposition, 'amount');
+        this.payrollStatusChart = buildDonutChart(data.byStatus, 'count');
     }
 
-    clearFilters(): void {
-        this._suppressFilterApply = true;
-        this.filterUserId = null;
-        this.filterAction = null;
-        this.filterStartDate = null;
-        this.filterEndDate = null;
-        this._suppressFilterApply = false;
-        this._filterApply.now();
+    private async loadWorkforce(): Promise<void> {
+        const data = await lastValueFrom(this._dashboard.getWorkforce(this.queryParams()));
+        this.workforceData = data;
+        this.workforceStatusChart = buildDonutChart(data.byWorkingStatus, 'count');
+        this.workforceOccupationChart = buildDonutChart(data.byOccupation, 'count');
+        this.workforceJoinersChart = buildBarChart(
+            data.joinersSeries.map((p) => ({
+                ...p,
+                joiners: Number(p.joiners ?? p.count ?? 0),
+            })),
+            [{ key: 'joiners', name: 'New joiners' }],
+            data.meta
+        );
+    }
+
+    private async loadLoans(): Promise<void> {
+        const data = await lastValueFrom(this._dashboard.getLoans(this.queryParams()));
+        this.loansData = data;
+        this.loansPipelineChart = buildHorizontalBarChart(data.byStatus, 'loanAmount', 'status');
+        this.loansSeriesChart = buildBarChart(
+            data.series,
+            [
+                { key: 'issuedAmount', name: 'Issued' },
+                { key: 'recoveredAmount', name: 'Recovered' },
+            ],
+            data.meta,
+            { yFormatter: (v) => `AED ${this.formatNumber(v)}` }
+        );
+    }
+
+    private async loadPerformance(): Promise<void> {
+        const data = await lastValueFrom(this._dashboard.getPerformance(this.queryParams()));
+        this.performanceData = data;
+        this.performanceDeliveriesChart = buildLineChart(
+            data.series,
+            [
+                { key: 'deliveries', name: 'Deliveries' },
+                { key: 'pickups', name: 'Pickups' },
+                { key: 'dropoffs', name: 'Dropoffs' },
+            ],
+            data.meta
+        );
+    }
+
+    private async loadActivity(): Promise<void> {
+        const data = await lastValueFrom(this._dashboard.getActivity(this.queryParams()));
+        this.activityData = data;
+        this.activitySeriesChart = buildBarChart(
+            data.series.map((p) => ({
+                ...p,
+                totalActions: Number(p.totalActions ?? p.count ?? 0),
+            })),
+            [{ key: 'totalActions', name: 'Actions' }],
+            data.meta
+        );
+        this.activityActionChart = buildDonutChart(data.byAction, 'count');
+        this.activityResourceChart = buildDonutChart(data.byResource, 'count');
+    }
+
+    private buildKpiCards(overview: DashboardOverview): KpiCard[] {
+        const cards: KpiCard[] = [];
+
+        if (overview.workforce) {
+            const w = overview.workforce;
+            cards.push(
+                { section: 'Workforce', label: 'Active employees', metric: w.activeEmployees, format: 'number', icon: 'heroicons_outline:users' },
+                { section: 'Workforce', label: 'Total employees', metric: w.totalEmployees, format: 'number', icon: 'heroicons_outline:user-group' },
+                { section: 'Workforce', label: 'New joiners', metric: w.newJoiners, format: 'number', icon: 'heroicons_outline:user-plus' }
+            );
+        }
+
+        if (overview.payroll) {
+            const p = overview.payroll;
+            cards.push(
+                { section: 'Payroll', label: 'Salary slips', metric: p.slips, format: 'number', icon: 'heroicons_outline:document-text' },
+                { section: 'Payroll', label: 'Gross payment', metric: p.grossPayment, format: 'money', icon: 'heroicons_outline:banknotes' },
+                { section: 'Payroll', label: 'Total deduction', metric: p.totalDeduction, format: 'money', icon: 'heroicons_outline:minus-circle' },
+                { section: 'Payroll', label: 'Net payment', metric: p.netPayment, format: 'money', icon: 'heroicons_outline:currency-dollar' },
+                { section: 'Payroll', label: 'Pending net payment', plainValue: p.pendingNetPayment, format: 'money', icon: 'heroicons_outline:clock' }
+            );
+        }
+
+        if (overview.loans) {
+            const l = overview.loans;
+            cards.push(
+                { section: 'Loans', label: 'Issued amount', metric: l.issuedAmount, format: 'money', icon: 'heroicons_outline:arrow-trending-up' },
+                { section: 'Loans', label: 'Loans issued', metric: l.issuedCount, format: 'number', icon: 'heroicons_outline:document-plus' },
+                { section: 'Loans', label: 'Outstanding amount', plainValue: l.outstandingAmount, format: 'money', icon: 'heroicons_outline:scale' },
+                { section: 'Loans', label: 'Recovered in range', plainValue: l.recoveredInRange, format: 'money', icon: 'heroicons_outline:arrow-path' }
+            );
+        }
+
+        if (overview.salaryDebt) {
+            const d = overview.salaryDebt;
+            cards.push(
+                { section: 'Salary debt', label: 'Outstanding debt', plainValue: d.outstandingAmount, format: 'money', icon: 'heroicons_outline:exclamation-triangle' },
+                { section: 'Salary debt', label: 'Employees with debt', plainValue: d.employeesWithDebt, format: 'number', icon: 'heroicons_outline:users' },
+                { section: 'Salary debt', label: 'New debt', metric: d.newDebt, format: 'money', icon: 'heroicons_outline:plus-circle' }
+            );
+        }
+
+        if (overview.performance) {
+            const perf = overview.performance;
+            cards.push(
+                { section: 'Performance', label: 'Deliveries', metric: perf.deliveries, format: 'number', icon: 'heroicons_outline:truck' },
+                { section: 'Performance', label: 'Distance', metric: perf.distanceKm, format: 'distance', icon: 'heroicons_outline:map' },
+                { section: 'Performance', label: 'Pickups', metric: perf.pickups, format: 'number', icon: 'heroicons_outline:arrow-up-tray' },
+                { section: 'Performance', label: 'Dropoffs', metric: perf.dropoffs, format: 'number', icon: 'heroicons_outline:arrow-down-tray' }
+            );
+        }
+
+        return cards;
+    }
+
+    private formatNumber(value: number): string {
+        return new Intl.NumberFormat('en-US', {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 2,
+        }).format(value ?? 0);
     }
 }
