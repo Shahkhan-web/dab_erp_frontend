@@ -1,0 +1,41 @@
+<div class="bg-white dark:bg-neutral-900 rounded-2xl overflow-hidden">
+  <div class="bg-gradient-to-r from-primary-600 to-primary-700 px-6 py-5 text-white">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-white/20">
+          <mat-icon class="icon-size-8 text-white" [svgIcon]="'heroicons_outline:arrow-path'"></mat-icon>
+        </div>
+        <div>
+          <h2 class="text-xl font-bold tracking-tight">Return Asset</h2>
+          <p class="text-sm text-white/90">Return this asset back to the inventory</p>
+        </div>
+      </div>
+      <button mat-icon-button type="button" (click)="cancel()" class="text-white/90 hover:bg-white/20">
+        <mat-icon class="text-white">close</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  <form [formGroup]="form" class="p-6 sm:p-8 flex flex-col gap-4 min-w-[320px]">
+    
+    <!-- Returned At Date -->
+    <mat-form-field class="fuse-mat-dense w-full">
+      <mat-label>Return Date (Optional, defaults to today)</mat-label>
+      <input matInput type="date" formControlName="returnedAt" />
+    </mat-form-field>
+
+    <!-- Return Notes -->
+    <mat-form-field class="fuse-mat-dense w-full">
+      <mat-label>Return Notes</mat-label>
+      <textarea matInput formControlName="returnNotes" placeholder="e.g. Returned in perfect condition, keys received" rows="3"></textarea>
+    </mat-form-field>
+
+  </form>
+
+  <div class="px-6 pb-6 pt-4 flex flex-wrap gap-3 justify-end border-t border-slate-100 dark:border-zinc-800">
+    <button mat-stroked-button type="button" (click)="cancel()" [disabled]="saving">Cancel</button>
+    <button mat-flat-button color="primary" type="button" (click)="save()" [disabled]="saving">
+      {{ saving ? 'Returning…' : 'Return Asset' }}
+    </button>
+  </div>
+</div>

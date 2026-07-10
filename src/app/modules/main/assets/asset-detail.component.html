@@ -1,0 +1,546 @@
+<div class="flex min-w-0 flex-auto flex-col" [overlayLoader]="pageLoader">
+  
+  <!-- Header -->
+  <div class="border-b bg-card px-4 py-4 sm:px-6 md:px-5 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+    <div class="flex items-start gap-3 min-w-0">
+      <div class="flex-shrink-0 w-11 h-11 rounded-xl bg-neutral-100 dark:bg-primary/20 flex items-center justify-center">
+        <mat-icon class="icon-size-6 text-neutral-900 dark:text-white" [svgIcon]="'heroicons_outline:truck'"></mat-icon>
+      </div>
+      <div class="min-w-0">
+        <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-neutral-900 dark:text-white">{{ asset?.name ?? 'Asset Details' }}</h1>
+        <p class="text-sm text-secondary mt-0.5">Manage and view asset profile, assignments, and documents.</p>
+      </div>
+    </div>
+    <div class="flex gap-2">
+      <app-back-button></app-back-button>
+    </div>
+  </div>
+
+  @if (asset) {
+    <div class="flex-auto p-4 sm:p-6 md:p-5 flex flex-col gap-6">
+      
+      <!-- Asset Overview Card -->
+      <div class="bg-card rounded-2xl border border-slate-200/60 dark:border-zinc-700/60 p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-4 flex-auto">
+          
+          <div class="flex flex-col">
+            <span class="text-xs font-semibold text-secondary uppercase tracking-wider">Asset Name</span>
+            <span class="text-base font-bold text-neutral-900 dark:text-neutral-100 mt-1">{{ asset.name }}</span>
+          </div>
+
+          <div class="flex flex-col">
+            <span class="text-xs font-semibold text-secondary uppercase tracking-wider">Serial / Plate Number</span>
+            <span class="text-base font-mono font-semibold text-neutral-900 dark:text-neutral-100 mt-1">{{ asset.serialNumber }}</span>
+          </div>
+
+          <div class="flex flex-col">
+            <span class="text-xs font-semibold text-secondary uppercase tracking-wider">Asset Type</span>
+            <span class="text-base font-semibold text-neutral-900 dark:text-neutral-100 mt-1">{{ getAssetTypeLabel(asset.type) }}</span>
+          </div>
+
+          <div class="flex flex-col">
+            <span class="text-xs font-semibold text-secondary uppercase tracking-wider">Status</span>
+            <div class="mt-1">
+              <span class="px-2.5 py-1 text-xs font-semibold rounded-full" [ngClass]="getAssetStatusClass(asset.status)">
+                {{ getAssetStatusLabel(asset.status) }}
+              </span>
+            </div>
+          </div>
+
+          <div class="flex flex-col">
+            <span class="text-xs font-semibold text-secondary uppercase tracking-wider">Company Owner</span>
+            <span class="text-base font-semibold text-neutral-900 dark:text-neutral-100 mt-1">{{ asset.companyName ?? asset.company?.name ?? '—' }}</span>
+          </div>
+
+          <div class="flex flex-col">
+            <span class="text-xs font-semibold text-secondary uppercase tracking-wider">Acquisition</span>
+            <span class="text-base font-semibold text-neutral-900 dark:text-neutral-100 mt-1">
+              {{ getAcquisitionTypeLabel(asset.acquisitionType) }} ({{ asset.acquisitionDate | date: 'mediumDate' }})
+            </span>
+          </div>
+
+          <div class="flex flex-col">
+            <span class="text-xs font-semibold text-secondary uppercase tracking-wider">Purchase Price</span>
+            <span class="text-base font-semibold text-neutral-900 dark:text-neutral-100 mt-1">
+              {{ asset.purchasePrice ? (asset.purchasePrice | currency: 'AED ') : '—' }}
+            </span>
+          </div>
+
+          <div class="flex flex-col">
+            <span class="text-xs font-semibold text-secondary uppercase tracking-wider">Monthly Cost</span>
+            <span class="text-base font-bold text-neutral-900 dark:text-neutral-100 mt-1">{{ asset.monthlyCost | currency: 'AED ' }}</span>
+          </div>
+
+        </div>
+
+        <!-- Quick Actions -->
+        @if (canWriteAsset) {
+          <div class="flex flex-col gap-2 min-w-[160px]">
+            @if (asset.status === 'available') {
+              <button mat-flat-button color="primary" class="w-full" (click)="openAssignDialog()">
+                <mat-icon class="icon-size-4 mr-2" [svgIcon]="'heroicons_outline:user-plus'"></mat-icon>
+                Assign Asset
+              </button>
+            } @else if (asset.status === 'assigned') {
+              <button mat-flat-button color="warn" class="w-full" (click)="openReturnDialog()">
+                <mat-icon class="icon-size-4 mr-2" [svgIcon]="'heroicons_outline:arrow-path'"></mat-icon>
+                Return Asset
+              </button>
+            } @else {
+              <div class="text-center text-xs text-secondary italic py-2">
+                Status: {{ getAssetStatusLabel(asset.status) }}
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+      <!-- Tabbed Details Section -->
+      <mat-card appearance="outlined" class="overflow-hidden bg-card rounded-2xl border border-slate-200/60 dark:border-zinc-700/60 shadow-sm">
+        <mat-tab-group animationDuration="200ms" mat-stretch-tabs="false" mat-align-tabs="start">
+          
+          <!-- Assignments History Tab -->
+          <mat-tab label="Assignments History">
+            <div class="p-6 flex flex-col gap-4">
+              <div class="flex items-center justify-between">
+                <h3 class="text-lg font-bold tracking-tight text-neutral-900 dark:text-white">Allocation Timeline</h3>
+              </div>
+
+              <div class="overflow-x-auto border border-slate-200/60 dark:border-zinc-700/60 rounded-xl">
+                <table mat-table [dataSource]="asset.assignments ?? []" class="w-full min-w-[640px]">
+                  
+                  <ng-container matColumnDef="employee">
+                    <th mat-header-cell *matHeaderCellDef>Employee</th>
+                    <td mat-cell *matCellDef="let row">
+                      <div class="flex flex-col">
+                        <span class="font-semibold text-neutral-900 dark:text-neutral-100">{{ row.employeeName || '—' }}</span>
+                        @if (row.employeeCode) {
+                          <span class="text-xs text-secondary font-mono">{{ row.employeeCode }}</span>
+                        }
+                      </div>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="assignedAt">
+                    <th mat-header-cell *matHeaderCellDef>Assigned At</th>
+                    <td mat-cell *matCellDef="let row">
+                      {{ row.assignedAt | date: 'mediumDate' }}
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="returnedAt">
+                    <th mat-header-cell *matHeaderCellDef>Returned At</th>
+                    <td mat-cell *matCellDef="let row">
+                      @if (row.returnedAt) {
+                        {{ row.returnedAt | date: 'mediumDate' }}
+                      } @else {
+                        <span class="px-2 py-0.5 text-xs font-semibold rounded bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300">Active</span>
+                      }
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="deductFromSalary">
+                    <th mat-header-cell *matHeaderCellDef>Salary Deduction</th>
+                    <td mat-cell *matCellDef="let row">
+                      @if (row.deductFromSalary) {
+                        <span class="text-emerald-600 font-semibold flex items-center gap-1">
+                          <mat-icon class="icon-size-4" [svgIcon]="'heroicons_solid:check-circle'"></mat-icon> Yes
+                        </span>
+                      } @else {
+                        <span class="text-secondary flex items-center gap-1">
+                          <mat-icon class="icon-size-4" [svgIcon]="'heroicons_solid:minus-circle'"></mat-icon> No
+                        </span>
+                      }
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="notes">
+                    <th mat-header-cell *matHeaderCellDef>Notes</th>
+                    <td mat-cell *matCellDef="let row">
+                      <div class="flex flex-col gap-1 py-1 max-w-[240px]">
+                        @if (row.assignmentNotes) {
+                          <span class="text-xs"><strong class="text-secondary">Assign:</strong> {{ row.assignmentNotes }}</span>
+                        }
+                        @if (row.returnNotes) {
+                          <span class="text-xs"><strong class="text-secondary">Return:</strong> {{ row.returnNotes }}</span>
+                        }
+                        @if (!row.assignmentNotes && !row.returnNotes) {
+                          <span class="text-secondary text-xs">—</span>
+                        }
+                      </div>
+                    </td>
+                  </ng-container>
+
+                  <tr mat-header-row *matHeaderRowDef="assignmentColumns" class="bg-zinc-100 dark:bg-zinc-800/50 font-semibold leading-8 text-neutral-900 tracking-tight"></tr>
+                  <tr mat-row *matRowDef="let row; columns: assignmentColumns"></tr>
+                  
+                  <tr *matNoDataRow>
+                    <td class="py-8 text-center text-secondary" [attr.colspan]="assignmentColumns.length">
+                      No assignment history found for this asset.
+                    </td>
+                  </tr>
+                </table>
+              </div>
+            </div>
+          </mat-tab>
+
+          <!-- Mulkiya Registration Tab -->
+          <mat-tab label="Mulkiya Registration">
+            <div class="p-6 flex flex-col gap-6">
+              <div class="flex items-center justify-between">
+                <h3 class="text-lg font-bold tracking-tight text-neutral-900 dark:text-white">Registration (Mulkiya)</h3>
+                @if (canWriteAsset) {
+                  <button mat-stroked-button color="primary" (click)="openRegistrationDialog()">
+                    <mat-icon class="icon-size-4 mr-2" [svgIcon]="'heroicons_outline:cloud-arrow-up'"></mat-icon>
+                    Upload New Mulkiya
+                  </button>
+                }
+              </div>
+
+              <!-- Active Registration Details -->
+              @if (asset.registrations && asset.registrations.length > 0) {
+                @let activeReg = asset.registrations[0];
+                <div class="bg-slate-50 dark:bg-zinc-800/20 border border-slate-200/60 dark:border-zinc-700/60 rounded-2xl p-6 grid grid-cols-1 sm:grid-cols-3 gap-6">
+                  <div class="flex flex-col">
+                    <span class="text-xs font-semibold text-secondary uppercase tracking-wider">Plate Number</span>
+                    <span class="text-lg font-bold text-neutral-900 dark:text-neutral-100 mt-1">
+                      {{ activeReg.plateCode ? activeReg.plateCode + ' ' : '' }}{{ activeReg.plateNumber }}
+                    </span>
+                  </div>
+                  <div class="flex flex-col">
+                    <span class="text-xs font-semibold text-secondary uppercase tracking-wider">Registration Number</span>
+                    <span class="text-lg font-bold text-neutral-900 dark:text-neutral-100 mt-1">{{ activeReg.registrationNumber }}</span>
+                  </div>
+                  <div class="flex flex-col">
+                    <span class="text-xs font-semibold text-secondary uppercase tracking-wider">Validity Period</span>
+                    <span class="text-base font-semibold text-neutral-900 dark:text-neutral-100 mt-1">
+                      {{ activeReg.issueDate | date: 'mediumDate' }} — {{ activeReg.expiryDate | date: 'mediumDate' }}
+                    </span>
+                  </div>
+                  <div class="flex flex-col">
+                    <span class="text-xs font-semibold text-secondary uppercase tracking-wider">Registration Fee</span>
+                    <span class="text-base font-semibold text-neutral-900 dark:text-neutral-100 mt-1">{{ activeReg.registrationFee | currency: 'AED ' }}</span>
+                  </div>
+                  @if (activeReg.cardScanUrl) {
+                    <div class="flex flex-col sm:col-span-2 justify-end">
+                      <div>
+                        <button mat-flat-button color="primary" (click)="openDocumentUrl(activeReg.cardScanUrl)">
+                          <mat-icon class="icon-size-4 mr-2" [svgIcon]="'heroicons_outline:eye'"></mat-icon>
+                          View Card Scan
+                        </button>
+                      </div>
+                    </div>
+                  }
+                </div>
+              } @else {
+                <div class="text-center py-8 border border-dashed rounded-2xl text-secondary">
+                  No active registration found. Upload a Mulkiya card to get started.
+                </div>
+              }
+
+              <!-- Registration History Table -->
+              <div class="flex flex-col gap-2 mt-4">
+                <h4 class="text-sm font-bold text-neutral-900 dark:text-white">Registration History</h4>
+                <div class="overflow-x-auto border border-slate-200/60 dark:border-zinc-700/60 rounded-xl">
+                  <table mat-table [dataSource]="asset.registrations ?? []" class="w-full min-w-[640px]">
+                    
+                    <ng-container matColumnDef="plate">
+                      <th mat-header-cell *matHeaderCellDef>Plate</th>
+                      <td mat-cell *matCellDef="let row">
+                        {{ row.plateCode ? row.plateCode + ' ' : '' }}{{ row.plateNumber }}
+                      </td>
+                    </ng-container>
+
+                    <ng-container matColumnDef="regNumber">
+                      <th mat-header-cell *matHeaderCellDef>Registration Number</th>
+                      <td mat-cell *matCellDef="let row">{{ row.registrationNumber }}</td>
+                    </ng-container>
+
+                    <ng-container matColumnDef="dates">
+                      <th mat-header-cell *matHeaderCellDef>Validity Dates</th>
+                      <td mat-cell *matCellDef="let row">
+                        {{ row.issueDate | date: 'mediumDate' }} — {{ row.expiryDate | date: 'mediumDate' }}
+                      </td>
+                    </ng-container>
+
+                    <ng-container matColumnDef="fee">
+                      <th mat-header-cell *matHeaderCellDef>Fee</th>
+                      <td mat-cell *matCellDef="let row">{{ row.registrationFee | currency: 'AED ' }}</td>
+                    </ng-container>
+
+                    <ng-container matColumnDef="document">
+                      <th mat-header-cell *matHeaderCellDef class="w-24 text-right">Document</th>
+                      <td mat-cell *matCellDef="let row" class="text-right">
+                        @if (row.cardScanUrl) {
+                          <button mat-icon-button color="primary" (click)="openDocumentUrl(row.cardScanUrl)" matTooltip="View Scan">
+                            <mat-icon class="icon-size-4" [svgIcon]="'heroicons_outline:paper-clip'"></mat-icon>
+                          </button>
+                        } @else {
+                          <span class="text-secondary text-xs">—</span>
+                        }
+                      </td>
+                    </ng-container>
+
+                    <tr mat-header-row *matHeaderRowDef="registrationColumns" class="bg-zinc-100 dark:bg-zinc-800/50 font-semibold leading-8 text-neutral-900 tracking-tight"></tr>
+                    <tr mat-row *matRowDef="let row; columns: registrationColumns"></tr>
+                    
+                    <tr *matNoDataRow>
+                      <td class="py-4 text-center text-secondary" [attr.colspan]="registrationColumns.length">
+                        No registration history found.
+                      </td>
+                    </tr>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </mat-tab>
+
+          <!-- Insurance Tab -->
+          <mat-tab label="Insurance">
+            <div class="p-6 flex flex-col gap-6">
+              <div class="flex items-center justify-between">
+                <h3 class="text-lg font-bold tracking-tight text-neutral-900 dark:text-white">Insurance Policy</h3>
+                @if (canWriteAsset) {
+                  <button mat-stroked-button color="primary" (click)="openInsuranceDialog()">
+                    <mat-icon class="icon-size-4 mr-2" [svgIcon]="'heroicons_outline:cloud-arrow-up'"></mat-icon>
+                    Record New Policy
+                  </button>
+                }
+              </div>
+
+              <!-- Active Insurance Details -->
+              @if (asset.insurances && asset.insurances.length > 0) {
+                @let activeIns = asset.insurances[0];
+                <div class="bg-slate-50 dark:bg-zinc-800/20 border border-slate-200/60 dark:border-zinc-700/60 rounded-2xl p-6 grid grid-cols-1 sm:grid-cols-3 gap-6">
+                  <div class="flex flex-col">
+                    <span class="text-xs font-semibold text-secondary uppercase tracking-wider">Provider</span>
+                    <span class="text-lg font-bold text-neutral-900 dark:text-neutral-100 mt-1">{{ activeIns.providerName }}</span>
+                  </div>
+                  <div class="flex flex-col">
+                    <span class="text-xs font-semibold text-secondary uppercase tracking-wider">Policy Number</span>
+                    <span class="text-lg font-bold text-neutral-900 dark:text-neutral-100 mt-1">{{ activeIns.policyNumber }}</span>
+                  </div>
+                  <div class="flex flex-col">
+                    <span class="text-xs font-semibold text-secondary uppercase tracking-wider">Coverage Type</span>
+                    <span class="text-base font-semibold text-neutral-900 dark:text-neutral-100 mt-1">{{ getCoverageTypeLabel(activeIns.coverageType) }}</span>
+                  </div>
+                  <div class="flex flex-col">
+                    <span class="text-xs font-semibold text-secondary uppercase tracking-wider">Validity Period</span>
+                    <span class="text-base font-semibold text-neutral-900 dark:text-neutral-100 mt-1">
+                      {{ activeIns.startDate | date: 'mediumDate' }} — {{ activeIns.expiryDate | date: 'mediumDate' }}
+                    </span>
+                  </div>
+                  <div class="flex flex-col">
+                    <span class="text-xs font-semibold text-secondary uppercase tracking-wider">Premium Cost</span>
+                    <span class="text-base font-semibold text-neutral-900 dark:text-neutral-100 mt-1">{{ activeIns.premiumCost | currency: 'AED ' }}</span>
+                  </div>
+                  @if (activeIns.policyPdfUrl) {
+                    <div class="flex flex-col justify-end">
+                      <div>
+                        <button mat-flat-button color="primary" (click)="openDocumentUrl(activeIns.policyPdfUrl)">
+                          <mat-icon class="icon-size-4 mr-2" [svgIcon]="'heroicons_outline:eye'"></mat-icon>
+                          View Policy PDF
+                        </button>
+                      </div>
+                    </div>
+                  }
+                </div>
+              } @else {
+                <div class="text-center py-8 border border-dashed rounded-2xl text-secondary">
+                  No active insurance policy found. Record a policy to get started.
+                </div>
+              }
+
+              <!-- Insurance History Table -->
+              <div class="flex flex-col gap-2 mt-4">
+                <h4 class="text-sm font-bold text-neutral-900 dark:text-white">Insurance History</h4>
+                <div class="overflow-x-auto border border-slate-200/60 dark:border-zinc-700/60 rounded-xl">
+                  <table mat-table [dataSource]="asset.insurances ?? []" class="w-full min-w-[640px]">
+                    
+                    <ng-container matColumnDef="provider">
+                      <th mat-header-cell *matHeaderCellDef>Provider</th>
+                      <td mat-cell *matCellDef="let row">{{ row.providerName }}</td>
+                    </ng-container>
+
+                    <ng-container matColumnDef="policyNumber">
+                      <th mat-header-cell *matHeaderCellDef>Policy Number</th>
+                      <td mat-cell *matCellDef="let row">{{ row.policyNumber }}</td>
+                    </ng-container>
+
+                    <ng-container matColumnDef="coverage">
+                      <th mat-header-cell *matHeaderCellDef>Coverage</th>
+                      <td mat-cell *matCellDef="let row">{{ getCoverageTypeLabel(row.coverageType) }}</td>
+                    </ng-container>
+
+                    <ng-container matColumnDef="dates">
+                      <th mat-header-cell *matHeaderCellDef>Validity Dates</th>
+                      <td mat-cell *matCellDef="let row">
+                        {{ row.startDate | date: 'mediumDate' }} — {{ row.expiryDate | date: 'mediumDate' }}
+                      </td>
+                    </ng-container>
+
+                    <ng-container matColumnDef="cost">
+                      <th mat-header-cell *matHeaderCellDef>Premium</th>
+                      <td mat-cell *matCellDef="let row">{{ row.premiumCost | currency: 'AED ' }}</td>
+                    </ng-container>
+
+                    <ng-container matColumnDef="document">
+                      <th mat-header-cell *matHeaderCellDef class="w-24 text-right">Document</th>
+                      <td mat-cell *matCellDef="let row" class="text-right">
+                        @if (row.policyPdfUrl) {
+                          <button mat-icon-button color="primary" (click)="openDocumentUrl(row.policyPdfUrl)" matTooltip="View PDF">
+                            <mat-icon class="icon-size-4" [svgIcon]="'heroicons_outline:paper-clip'"></mat-icon>
+                          </button>
+                        } @else {
+                          <span class="text-secondary text-xs">—</span>
+                        }
+                      </td>
+                    </ng-container>
+
+                    <tr mat-header-row *matHeaderRowDef="insuranceColumns" class="bg-zinc-100 dark:bg-zinc-800/50 font-semibold leading-8 text-neutral-900 tracking-tight"></tr>
+                    <tr mat-row *matRowDef="let row; columns: insuranceColumns"></tr>
+                    
+                    <tr *matNoDataRow>
+                      <td class="py-4 text-center text-secondary" [attr.colspan]="insuranceColumns.length">
+                        No insurance history found.
+                      </td>
+                    </tr>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </mat-tab>
+
+          <!-- Maintenance Log Tab -->
+          <mat-tab label="Maintenance Log">
+            <div class="p-6 flex flex-col gap-4">
+              <div class="flex items-center justify-between">
+                <h3 class="text-lg font-bold tracking-tight text-neutral-900 dark:text-white">Maintenance & Service Log</h3>
+                @if (canWriteAsset) {
+                  <button mat-stroked-button color="primary" (click)="openMaintenanceDialog()">
+                    <mat-icon class="icon-size-4 mr-2" [svgIcon]="'heroicons_outline:plus'"></mat-icon>
+                    Log Maintenance Event
+                  </button>
+                }
+              </div>
+
+              <div class="overflow-x-auto border border-slate-200/60 dark:border-zinc-700/60 rounded-xl">
+                <table mat-table [dataSource]="asset.maintenances ?? []" class="w-full min-w-[768px]">
+                  
+                  <ng-container matColumnDef="type">
+                    <th mat-header-cell *matHeaderCellDef>Type</th>
+                    <td mat-cell *matCellDef="let row">
+                      <span class="font-semibold text-neutral-900 dark:text-neutral-100">{{ getMaintenanceTypeLabel(row.type) }}</span>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="date">
+                    <th mat-header-cell *matHeaderCellDef>Date</th>
+                    <td mat-cell *matCellDef="let row">
+                      {{ row.maintenanceDate | date: 'mediumDate' }}
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="cost">
+                    <th mat-header-cell *matHeaderCellDef>Cost</th>
+                    <td mat-cell *matCellDef="let row">
+                      <span class="font-semibold">{{ row.cost | currency: 'AED ' }}</span>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="odometer">
+                    <th mat-header-cell *matHeaderCellDef>Odometer</th>
+                    <td mat-cell *matCellDef="let row">
+                      {{ row.odometerReading ? (row.odometerReading | number) + ' km' : '—' }}
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="workshop">
+                    <th mat-header-cell *matHeaderCellDef>Workshop</th>
+                    <td mat-cell *matCellDef="let row">
+                      {{ row.workshopName ?? '—' }}
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="description">
+                    <th mat-header-cell *matHeaderCellDef>Description</th>
+                    <td mat-cell *matCellDef="let row">
+                      <span class="text-xs text-secondary truncate max-w-[200px] block" [matTooltip]="row.description">
+                        {{ row.description ?? '—' }}
+                      </span>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="document">
+                    <th mat-header-cell *matHeaderCellDef class="w-24 text-right">Invoice</th>
+                    <td mat-cell *matCellDef="let row" class="text-right">
+                      @if (row.invoiceScanUrl) {
+                        <button mat-icon-button color="primary" (click)="openDocumentUrl(row.invoiceScanUrl)" matTooltip="View Invoice">
+                          <mat-icon class="icon-size-4" [svgIcon]="'heroicons_outline:paper-clip'"></mat-icon>
+                        </button>
+                      } @else {
+                        <span class="text-secondary text-xs">—</span>
+                      }
+                    </td>
+                  </ng-container>
+
+                  <tr mat-header-row *matHeaderRowDef="maintenanceColumns" class="bg-zinc-100 dark:bg-zinc-800/50 font-semibold leading-8 text-neutral-900 tracking-tight"></tr>
+                  <tr mat-row *matRowDef="let row; columns: maintenanceColumns"></tr>
+                  
+                  <tr *matNoDataRow>
+                    <td class="py-8 text-center text-secondary" [attr.colspan]="maintenanceColumns.length">
+                      No maintenance events logged for this asset.
+                    </td>
+                  </tr>
+                </table>
+              </div>
+            </div>
+          </mat-tab>
+
+          <!-- Inventory Photos Tab -->
+          <mat-tab label="Inventory Photos">
+            <div class="p-6 flex flex-col gap-6">
+              <div class="flex items-center justify-between">
+                <h3 class="text-lg font-bold tracking-tight text-neutral-900 dark:text-white">Photo Gallery</h3>
+                @if (canWriteAsset) {
+                  <button mat-stroked-button color="primary" (click)="openPhotoDialog()">
+                    <mat-icon class="icon-size-4 mr-2" [svgIcon]="'heroicons_outline:photo'"></mat-icon>
+                    Upload Photo
+                  </button>
+                }
+              </div>
+
+              @if (asset.images && asset.images.length > 0) {
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+                  @for (img of asset.images; track img.id) {
+                    <div class="group relative rounded-2xl overflow-hidden border border-slate-200/60 dark:border-zinc-700/60 bg-slate-50 dark:bg-zinc-800/10 flex flex-col shadow-sm">
+                      <div class="aspect-video w-full overflow-hidden bg-black flex items-center justify-center">
+                        <img [src]="img.imageUrl" [alt]="img.displayName" class="object-contain w-full h-full max-h-48" />
+                      </div>
+                      <div class="p-3 flex items-center justify-between gap-2 border-t border-slate-100 dark:border-zinc-800">
+                        <span class="text-sm font-semibold truncate text-neutral-900 dark:text-neutral-100" [matTooltip]="img.displayName">
+                          {{ img.displayName }}
+                        </span>
+                        @if (canWriteAsset) {
+                          <button mat-icon-button color="warn" (click)="deletePhoto(img)" class="opacity-0 group-hover:opacity-100 transition-opacity" matTooltip="Delete Photo">
+                            <mat-icon class="icon-size-4">delete</mat-icon>
+                          </button>
+                        }
+                      </div>
+                    </div>
+                  }
+                </div>
+              } @else {
+                <div class="text-center py-12 border border-dashed rounded-2xl text-secondary">
+                  No inventory photos uploaded. Add a photo to keep visual records of the asset.
+                </div>
+              }
+            </div>
+          </mat-tab>
+
+        </mat-tab-group>
+      </mat-card>
+
+    </div>
+  }
+</div>

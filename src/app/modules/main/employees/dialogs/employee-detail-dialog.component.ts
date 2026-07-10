@@ -8,6 +8,9 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { ToastrService } from 'ngx-toastr';
 import { lastValueFrom } from 'rxjs';
 import { EmployeesService } from '../employees.service';
+import { AssetsService, Asset } from 'app/modules/main/assets/assets.service';
+import { AuthService } from 'app/core/auth/auth.service';
+import { hasModuleRead } from 'app/core/auth/module-access.util';
 
 export interface EmployeeDetailDialogData {
     id: string;
@@ -31,6 +34,7 @@ export class EmployeeDetailDialogComponent implements OnInit {
     data: any | null = null;
     loading = true;
     error: string | null = null;
+    assets: Asset[] = [];
 
     constructor(
         private dialogRef: MatDialogRef<EmployeeDetailDialogComponent>,
@@ -38,8 +42,14 @@ export class EmployeeDetailDialogComponent implements OnInit {
         private datePipe: DatePipe,
         private decimalPipe: DecimalPipe,
         private employeesService: EmployeesService,
+        private assetsService: AssetsService,
+        private authService: AuthService,
         private toast: ToastrService
     ) {}
+
+    get canReadAssets(): boolean {
+        return hasModuleRead(this.authService.profileData, 'asset');
+    }
 
     ngOnInit(): void {
         this.loadDetail();
@@ -55,14 +65,25 @@ export class EmployeeDetailDialogComponent implements OnInit {
         this.loading = true;
         this.error = null;
         lastValueFrom(this.employeesService.getEmployee(id))
-            .then((res: any) => {
-                this.loading = false;
+            .then(async (res: any) => {
                 const raw = res?.data ?? res;
                 if (!raw) {
                     this.error = 'No data received.';
+                    this.loading = false;
                     return;
                 }
                 this.data = raw;
+                if (this.canReadAssets) {
+                    try {
+                        const assetsResp = await lastValueFrom(this.assetsService.getAssets(1, 100, { employeeId: id }));
+                        this.assets = assetsResp?.data ?? [];
+                    } catch {
+                        this.assets = [];
+                    }
+                } else {
+                    this.assets = [];
+                }
+                this.loading = false;
             })
             .catch((err: HttpErrorResponse) => {
                 this.loading = false;
@@ -105,6 +126,16 @@ export class EmployeeDetailDialogComponent implements OnInit {
     get profileCompletionFormatted(): string {
         const p = this.data?.profileCompletion;
         return p != null ? (this.decimalPipe.transform(p, '1.1-1') ?? '0') + '%' : '—';
+    }
+
+    getAssetTypeLabel(type: string | undefined): string {
+        if (!type) return '';
+        switch (type) {
+            case 'cycle': return 'Cycle';
+            case 'bike': return 'Bike';
+            case 'sim_card': return 'SIM Card';
+            default: return 'Other';
+        }
     }
 
     /** Same URL resolution as employee form / list. */

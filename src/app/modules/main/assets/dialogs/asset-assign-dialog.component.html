@@ -1,0 +1,87 @@
+<div class="bg-white dark:bg-neutral-900 rounded-2xl overflow-hidden">
+  <div class="bg-gradient-to-r from-primary-600 to-primary-700 px-6 py-5 text-white">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-white/20">
+          <mat-icon class="icon-size-8 text-white" [svgIcon]="'heroicons_outline:user-plus'"></mat-icon>
+        </div>
+        <div>
+          <h2 class="text-xl font-bold tracking-tight">Assign Asset</h2>
+          <p class="text-sm text-white/90">
+            Allocate this asset to an employee
+            @if (data.companyName) {
+              at {{ data.companyName }}
+            }
+            and configure salary deduction
+          </p>
+        </div>
+      </div>
+      <button mat-icon-button type="button" (click)="cancel()" class="text-white/90 hover:bg-white/20">
+        <mat-icon class="text-white">close</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  <form [formGroup]="form" class="p-6 sm:p-8 flex flex-col gap-4 min-w-[320px]">
+    
+    <!-- Employee Autocomplete -->
+    <mat-form-field class="fuse-mat-dense w-full">
+      <mat-label>Select Employee</mat-label>
+      <input matInput formControlName="employee" placeholder="Search employees in this company..."
+        [matAutocomplete]="empAuto" #empTrigger="matAutocompleteTrigger"
+        (focus)="openEmployeePanel(empTrigger)" (click)="openEmployeePanel(empTrigger)"
+        (ngModelChange)="onEmployeeChange($event)" />
+      <mat-autocomplete #empAuto="matAutocomplete" [displayWith]="displayEmployee"
+        (opened)="onEmployeeAutocompleteOpened(empAuto)" (closed)="onEmployeeAutocompleteClosed()"
+        (optionSelected)="onEmployeeOptionSelected()">
+        @if (employeeSearch.loading) {
+          <mat-option disabled>Searching…</mat-option>
+        }
+        @for (e of employeeSearch.items; track e.id) {
+          <mat-option [value]="e">{{ employeeLabel(e) }}</mat-option>
+        }
+        @if (employeeSearch.loadingMore) {
+          <mat-option disabled>Loading more…</mat-option>
+        }
+        @if (employeeSearch.isEmpty && !employeeSearch.loading) {
+          <mat-option disabled>No employees found for this company</mat-option>
+        }
+      </mat-autocomplete>
+      @if (data.companyName) {
+        <mat-hint>Showing employees from {{ data.companyName }}</mat-hint>
+      }
+      @if (form.get('employee')?.invalid && form.get('employee')?.touched) {
+        <mat-error>Please select an employee</mat-error>
+      }
+    </mat-form-field>
+
+    <!-- Assigned At Date -->
+    <mat-form-field class="fuse-mat-dense w-full">
+      <mat-label>Assignment Date (Optional, defaults to today)</mat-label>
+      <input matInput type="date" formControlName="assignedAt" />
+    </mat-form-field>
+
+    <!-- Deduct From Salary -->
+    <div class="flex items-center justify-between gap-3 py-2 px-1 border rounded-xl border-slate-200/60 dark:border-zinc-700/60 bg-slate-50/50 dark:bg-zinc-800/10">
+      <div class="flex flex-col">
+        <span class="text-sm font-semibold text-neutral-900 dark:text-neutral-100">Deduct From Salary</span>
+        <span class="text-xs text-secondary">Automatically calculate and deduct asset cost from employee's monthly salary slip</span>
+      </div>
+      <mat-slide-toggle formControlName="deductFromSalary" color="primary"></mat-slide-toggle>
+    </div>
+
+    <!-- Assignment Notes -->
+    <mat-form-field class="fuse-mat-dense w-full">
+      <mat-label>Assignment Notes</mat-label>
+      <textarea matInput formControlName="assignmentNotes" placeholder="e.g. Left mirror slightly scratched, helmet provided" rows="3"></textarea>
+    </mat-form-field>
+
+  </form>
+
+  <div class="px-6 pb-6 pt-4 flex flex-wrap gap-3 justify-end border-t border-slate-100 dark:border-zinc-800">
+    <button mat-stroked-button type="button" (click)="cancel()" [disabled]="saving">Cancel</button>
+    <button mat-flat-button color="primary" type="button" (click)="save()" [disabled]="saving">
+      {{ saving ? 'Assigning…' : 'Assign Asset' }}
+    </button>
+  </div>
+</div>

@@ -1,7 +1,7 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { environment } from 'environments/environment';
-import { Observable } from 'rxjs';
+import { map, Observable } from 'rxjs';
 
 export interface EmployeeListItem {
     id: string;
@@ -38,6 +38,26 @@ export interface EmployeeExtraDocument {
     [key: string]: unknown;
 }
 
+export interface EmployeeAssignedAsset {
+    assignmentId: string;
+    assetId: string;
+    type: string;
+    name: string;
+    serialNumber: string;
+    status: string;
+    acquisitionType?: string;
+    monthlyCost: number;
+    purchasePrice?: number | null;
+    acquisitionDate?: string;
+    companyId?: string;
+    companyName?: string;
+    assignedAt?: string;
+    returnedAt?: string | null;
+    deductFromSalary: boolean;
+    assignmentNotes?: string | null;
+    returnNotes?: string | null;
+}
+
 @Injectable({ providedIn: 'root' })
 export class EmployeesService {
     private _http = inject(HttpClient);
@@ -69,6 +89,19 @@ export class EmployeesService {
 
     getEmployee(id: string): Observable<EmployeeListItem & Record<string, unknown>> {
         return this._http.get<EmployeeListItem & Record<string, unknown>>(`${this._base}/${id}`);
+    }
+
+    getEmployeeAssets(employeeId: string, includeHistory = false): Observable<EmployeeAssignedAsset[]> {
+        let params = new HttpParams();
+        if (includeHistory) {
+            params = params.set('includeHistory', 'true');
+        }
+        return this._http.get<unknown>(`${this._base}/${employeeId}/assets`, { params }).pipe(
+            map((body) => {
+                const raw = (body as { data?: unknown })?.data ?? body;
+                return Array.isArray(raw) ? (raw as EmployeeAssignedAsset[]) : [];
+            })
+        );
     }
 
     deleteEmployee(id: string): Observable<unknown> {

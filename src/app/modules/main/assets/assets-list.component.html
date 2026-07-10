@@ -1,0 +1,268 @@
+<div class="flex min-w-0 flex-auto flex-col" [overlayLoader]="pageLoader">
+  
+  <!-- Header -->
+  <div class="border-b bg-card px-4 py-4 sm:px-6 md:px-5 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+    <div class="flex items-start gap-3 min-w-0">
+      <div class="flex-shrink-0 w-11 h-11 rounded-xl bg-neutral-100 dark:bg-primary/20 flex items-center justify-center">
+        <mat-icon class="icon-size-6 text-neutral-900 dark:text-white" [svgIcon]="'heroicons_outline:truck'"></mat-icon>
+      </div>
+      <div class="min-w-0">
+        <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-neutral-900 dark:text-white">Fleet & Assets</h1>
+        <p class="text-sm text-secondary mt-0.5">Track cycles, bikes, and SIM cards, manage assignments, registrations, insurance, and maintenance.</p>
+      </div>
+    </div>
+    <div class="flex gap-2">
+      @if (canWriteAsset) {
+        <button mat-flat-button color="primary" (click)="openCreateDialog()">
+          <mat-icon class="icon-size-5" [svgIcon]="'heroicons_solid:plus'"></mat-icon>
+          <span class="ms-2">Register Asset</span>
+        </button>
+      }
+      <app-back-button></app-back-button>
+    </div>
+  </div>
+
+  <!-- Dashboard Summary Cards -->
+  <div class="px-4 pt-4 sm:px-6 md:px-5 grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <mat-card class="flex flex-col p-4 shadow-sm border border-slate-200/60 dark:border-zinc-700/60 bg-card rounded-2xl">
+      <div class="flex items-center justify-between">
+        <span class="text-sm font-medium text-secondary">Total Assets Registered</span>
+        <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
+          <mat-icon class="icon-size-5" [svgIcon]="'heroicons_outline:rectangle-group'"></mat-icon>
+        </div>
+      </div>
+      <div class="mt-2 flex items-baseline gap-2">
+        <span class="text-2xl font-bold tracking-tight">{{ totalAssetsRegistered }}</span>
+      </div>
+    </mat-card>
+
+    <mat-card class="flex flex-col p-4 shadow-sm border border-slate-200/60 dark:border-zinc-700/60 bg-card rounded-2xl">
+      <div class="flex items-center justify-between">
+        <span class="text-sm font-medium text-secondary">Current Total Liabilities (Monthly Cost)</span>
+        <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400">
+          <mat-icon class="icon-size-5" [svgIcon]="'heroicons_outline:currency-dollar'"></mat-icon>
+        </div>
+      </div>
+      <div class="mt-2 flex items-baseline gap-2">
+        <span class="text-2xl font-bold tracking-tight">{{ currentTotalLiabilities | currency: 'AED ' }}</span>
+      </div>
+    </mat-card>
+
+    <mat-card class="flex flex-col p-4 shadow-sm border border-slate-200/60 dark:border-zinc-700/60 bg-card rounded-2xl">
+      <div class="flex items-center justify-between">
+        <span class="text-sm font-medium text-secondary">Active Monthly Recoveries</span>
+        <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+          <mat-icon class="icon-size-5" [svgIcon]="'heroicons_outline:arrow-down-circle'"></mat-icon>
+        </div>
+      </div>
+      <div class="mt-2 flex items-baseline gap-2">
+        <span class="text-2xl font-bold tracking-tight">{{ activeMonthlyRecoveries | currency: 'AED ' }}</span>
+      </div>
+    </mat-card>
+  </div>
+
+  <!-- Filters & Table -->
+  <div class="flex-auto p-4 sm:p-6 md:p-5 flex flex-col gap-4">
+    
+    <!-- Filter Card -->
+    <div class="bg-card rounded-2xl border border-slate-200/60 dark:border-zinc-700/60 p-4 shadow-sm flex flex-col gap-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
+        
+        <!-- Search -->
+        <mat-form-field class="fuse-mat-dense w-full">
+          <mat-label>Search Asset</mat-label>
+          <mat-icon matPrefix class="icon-size-5 text-secondary" [svgIcon]="'heroicons_outline:magnifying-glass'"></mat-icon>
+          <input matInput [(ngModel)]="filterSearch" (input)="onSearchInput()" placeholder="Name, plate, serial..." autocomplete="off" />
+        </mat-form-field>
+
+        <!-- Type -->
+        <mat-form-field class="fuse-mat-dense w-full">
+          <mat-label>Asset Type</mat-label>
+          <mat-select [(ngModel)]="filterType" (selectionChange)="onSelectFilterChange()">
+            <mat-option [value]="null">All Types</mat-option>
+            @for (opt of typeOptions; track opt.value) {
+              <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <!-- Status -->
+        <mat-form-field class="fuse-mat-dense w-full">
+          <mat-label>Asset Status</mat-label>
+          <mat-select [(ngModel)]="filterStatus" (selectionChange)="onSelectFilterChange()">
+            <mat-option [value]="null">All Statuses</mat-option>
+            @for (opt of statusOptions; track opt.value) {
+              <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <!-- Company Owner -->
+        <mat-form-field class="fuse-mat-dense w-full">
+          <mat-label>Company Owner</mat-label>
+          <mat-select [(ngModel)]="filterCompanyId" (selectionChange)="onSelectFilterChange()">
+            <mat-option [value]="null">All Companies</mat-option>
+            @for (c of companies; track c.id) {
+              <mat-option [value]="c.id">{{ c.name }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <!-- Employee Assignment -->
+        <mat-form-field class="fuse-mat-dense w-full">
+          <mat-label>Assigned Employee</mat-label>
+          <input matInput [(ngModel)]="employeeFilter" (ngModelChange)="onEmployeeFilterChange($event)"
+            placeholder="Search employee..." [matAutocomplete]="empAuto" #empTrigger="matAutocompleteTrigger"
+            (focus)="openEmployeePanel(empTrigger)" (click)="openEmployeePanel(empTrigger)" />
+          <mat-autocomplete #empAuto="matAutocomplete" [displayWith]="displayEmployee"
+            (opened)="onEmployeeAutocompleteOpened(empAuto)" (closed)="onEmployeeAutocompleteClosed()"
+            (optionSelected)="onEmployeeOptionSelected()">
+            @if (employeeSearch.loading) {
+              <mat-option disabled>Searching…</mat-option>
+            }
+            @for (e of employeeSearch.items; track e.id) {
+              <mat-option [value]="e">{{ employeeLabel(e) }}</mat-option>
+            }
+            @if (employeeSearch.loadingMore) {
+              <mat-option disabled>Loading more…</mat-option>
+            }
+            @if (employeeSearch.isEmpty && !employeeSearch.loading) {
+              <mat-option disabled>No employees found</mat-option>
+            }
+          </mat-autocomplete>
+        </mat-form-field>
+
+      </div>
+    </div>
+
+    <!-- Table Card -->
+    <div class="bg-card rounded-2xl shadow-sm overflow-hidden border border-slate-200/60 dark:border-zinc-700/60">
+      <div class="overflow-x-auto">
+        <table mat-table [dataSource]="assets" class="w-full min-w-[960px]">
+          
+          <!-- Type Column -->
+          <ng-container matColumnDef="type">
+            <th mat-header-cell *matHeaderCellDef class="w-28">Type</th>
+            <td mat-cell *matCellDef="let item">
+              <div class="flex items-center gap-2">
+                <mat-icon class="icon-size-4 text-secondary" [svgIcon]="getAssetTypeIcon(item.type)"></mat-icon>
+                <span class="text-sm font-medium">{{ getAssetTypeLabel(item.type) }}</span>
+              </div>
+            </td>
+          </ng-container>
+
+          <!-- Name Column -->
+          <ng-container matColumnDef="name">
+            <th mat-header-cell *matHeaderCellDef>Asset Name</th>
+            <td mat-cell *matCellDef="let item">
+              <a [routerLink]="['/main/assets', item.id]" class="font-semibold text-primary hover:underline">
+                {{ item.name }}
+              </a>
+            </td>
+          </ng-container>
+
+          <!-- Serial Number Column -->
+          <ng-container matColumnDef="serialNumber">
+            <th mat-header-cell *matHeaderCellDef>Serial / Plate Number</th>
+            <td mat-cell *matCellDef="let item">
+              <span class="font-mono text-sm">{{ item.serialNumber }}</span>
+            </td>
+          </ng-container>
+
+          <!-- Company Owner Column -->
+          <ng-container matColumnDef="companyName">
+            <th mat-header-cell *matHeaderCellDef>Company Owner</th>
+            <td mat-cell *matCellDef="let item">
+              {{ item.companyName ?? item.company?.name ?? '—' }}
+            </td>
+          </ng-container>
+
+          <!-- Status Column -->
+          <ng-container matColumnDef="status">
+            <th mat-header-cell *matHeaderCellDef class="w-32">Status</th>
+            <td mat-cell *matCellDef="let item">
+              <span class="px-2.5 py-1 text-xs font-semibold rounded-full" [ngClass]="getAssetStatusClass(item.status)">
+                {{ getAssetStatusLabel(item.status) }}
+              </span>
+            </td>
+          </ng-container>
+
+          <!-- Assignment Column -->
+          <ng-container matColumnDef="currentAssignment">
+            <th mat-header-cell *matHeaderCellDef>Current Assignment</th>
+            <td mat-cell *matCellDef="let item">
+              @if (item.currentAssignment) {
+                <div class="flex flex-col">
+                  <span class="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                    {{ item.currentAssignment.employeeName || '—' }}
+                  </span>
+                  @if (item.currentAssignment.employeeCode) {
+                    <span class="text-xs text-secondary font-mono">{{ item.currentAssignment.employeeCode }}</span>
+                  }
+                  @if (item.currentAssignment.assignedAt) {
+                    <span class="text-xs text-secondary">
+                      Since {{ item.currentAssignment.assignedAt | date: 'mediumDate' }}
+                    </span>
+                  }
+                </div>
+              } @else {
+                <span class="text-secondary text-sm">—</span>
+              }
+            </td>
+          </ng-container>
+
+          <!-- Monthly Cost Column -->
+          <ng-container matColumnDef="monthlyCost">
+            <th mat-header-cell *matHeaderCellDef class="w-32">Monthly Cost</th>
+            <td mat-cell *matCellDef="let item">
+              <span class="font-semibold">{{ item.monthlyCost | currency: 'AED ' }}</span>
+            </td>
+          </ng-container>
+
+          <!-- Actions Column -->
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef class="text-right w-20">Actions</th>
+            <td mat-cell *matCellDef="let item" class="text-right">
+              <button mat-icon-button [matMenuTriggerFor]="actionsMenu" aria-label="Actions">
+                <mat-icon class="icon-size-4 text-neutral-500 dark:text-neutral-100">more_vert</mat-icon>
+              </button>
+              <mat-menu #actionsMenu="matMenu">
+                <button mat-menu-item [routerLink]="['/main/assets', item.id]">
+                  <mat-icon class="text-secondary icon-size-4" [svgIcon]="'heroicons_outline:eye'"></mat-icon>
+                  <span>View Details</span>
+                </button>
+                @if (canWriteAsset) {
+                  <button mat-menu-item (click)="openEditDialog(item)">
+                    <mat-icon class="text-secondary icon-size-4" [svgIcon]="'heroicons_outline:pencil-square'"></mat-icon>
+                    <span>Edit Asset</span>
+                  </button>
+                  @if (isAdmin && item.status !== 'assigned') {
+                    <button mat-menu-item (click)="deleteAsset(item)" class="text-rose-600">
+                      <mat-icon class="text-rose-600 icon-size-4" [svgIcon]="'heroicons_outline:trash'"></mat-icon>
+                      <span>Delete Asset</span>
+                    </button>
+                  }
+                }
+              </mat-menu>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns" class="bg-zinc-100 dark:bg-zinc-800/50 font-semibold leading-8 text-neutral-900 tracking-tight"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns" class="hover:bg-zinc-50 dark:hover:bg-zinc-800/20"></tr>
+          
+          <tr *matNoDataRow>
+            <td class="py-16 text-center" [attr.colspan]="displayedColumns.length">
+              <div class="flex flex-col items-center justify-center gap-3 text-slate-500">
+                <mat-icon class="text-5xl text-slate-300" [svgIcon]="'heroicons_outline:circle-stack'"></mat-icon>
+                <div class="text-base font-semibold">No assets found</div>
+                <div class="text-sm text-secondary">Try adjusting your filters or register a new asset.</div>
+              </div>
+            </td>
+          </tr>
+        </table>
+      </div>
+      <mat-paginator [length]="total" [pageIndex]="pageIndex" [pageSize]="pageSize" [pageSizeOptions]="[5, 10, 25, 50]" (page)="handlePageEvent($event)" class="border-t"></mat-paginator>
+    </div>
+
+  </div>
+</div>

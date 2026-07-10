@@ -180,7 +180,51 @@
         </div>
       </div>
 
-      <!-- Meta -->
+      <!-- Assets -->
+      @if (canReadAssets) {
+      <div class="detail-section mb-6">
+        <div class="section-title">
+          <mat-icon class="icon-size-5" [svgIcon]="'heroicons_outline:truck'"></mat-icon>
+          Assets currently held
+        </div>
+        @if (assets && assets.length > 0) {
+          <div class="flex flex-col gap-3">
+            @for (asset of assets; track asset.id) {
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl border border-slate-200 dark:border-zinc-700 bg-slate-50/50 dark:bg-zinc-800/10 gap-3">
+                <div class="flex flex-col">
+                  <span class="text-sm font-semibold text-neutral-900 dark:text-neutral-100">{{ asset.name }}</span>
+                  <span class="text-xs text-secondary font-mono">{{ asset.serialNumber }} ({{ getAssetTypeLabel(asset.type) }})</span>
+                </div>
+                <div class="flex flex-wrap gap-x-6 gap-y-1 text-sm">
+                  <div class="flex flex-col">
+                    <span class="text-xs text-secondary">Assigned Since</span>
+                    <span class="font-medium">
+                      @if (asset.currentAssignment?.assignedAt) {
+                        {{ asset.currentAssignment.assignedAt | date: 'mediumDate' }}
+                      } @else {
+                        —
+                      }
+                    </span>
+                  </div>
+                  <div class="flex flex-col">
+                    <span class="text-xs text-secondary">Monthly Cost</span>
+                    <span class="font-semibold">{{ asset.monthlyCost | currency: 'AED ' }}</span>
+                  </div>
+                  <div class="flex flex-col">
+                    <span class="text-xs text-secondary">Salary Deduction</span>
+                    <span class="font-semibold" [ngClass]="asset.currentAssignment?.deductFromSalary ? 'text-emerald-600 dark:text-emerald-400' : 'text-secondary'">
+                      {{ asset.currentAssignment?.deductFromSalary ? 'Yes' : 'No' }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="text-sm text-secondary italic py-2">No assets currently held by this employee.</div>
+        }
+      </div>
+      }
       <div class="detail-section">
         <div class="section-title">
           <mat-icon class="icon-size-5" [svgIcon]="'heroicons_outline:clock'"></mat-icon>

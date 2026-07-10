@@ -17,6 +17,10 @@ export const mainRoutes: Route[] = [
     { path: 'employees', loadChildren: () => import('./employees/employees.routes').then(m => m.employeesRoutes) },
     { path: 'loans', loadChildren: () => import('./loans/loans.routes').then(m => m.loansRoutes) },
     {
+        path: 'assets',
+        loadChildren: () => import('./assets/assets.routes').then(m => m.assetsRoutes),
+    },
+    {
         path: 'pay-components',
         loadChildren: () => import('./pay-components/pay-components.routes').then(m => m.payComponentsRoutes),
     },

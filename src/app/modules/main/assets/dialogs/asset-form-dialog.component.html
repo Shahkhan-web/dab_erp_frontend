@@ -1,0 +1,145 @@
+<div class="bg-white dark:bg-neutral-900 rounded-2xl overflow-hidden">
+  <div class="bg-gradient-to-r from-primary-600 to-primary-700 px-6 py-5 text-white">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-white/20">
+          <mat-icon class="icon-size-8 text-white" [svgIcon]="'heroicons_outline:truck'"></mat-icon>
+        </div>
+        <div>
+          <h2 class="text-xl font-bold tracking-tight">{{ isEdit ? 'Edit Asset' : 'Register Asset' }}</h2>
+          <p class="text-sm text-white/90">{{ isEdit ? 'Update asset parameters' : 'Register a new bike, cycle, SIM card, or other asset' }}</p>
+        </div>
+      </div>
+      <button mat-icon-button type="button" (click)="cancel()" class="text-white/90 hover:bg-white/20">
+        <mat-icon class="text-white">close</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  @if (loading) {
+  <div class="flex justify-center py-8 px-6 sm:px-8">
+    <mat-spinner diameter="36"></mat-spinner>
+  </div>
+  } @else {
+  <form [formGroup]="form" class="p-6 sm:p-8 flex flex-col gap-4 min-w-[320px] max-h-[70vh] overflow-y-auto">
+    
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      
+      @if (isEdit) {
+        <mat-form-field class="fuse-mat-dense w-full">
+          <mat-label>Company Owner</mat-label>
+          <input matInput [value]="companyName" readonly />
+          <mat-hint>Cannot be changed after registration</mat-hint>
+        </mat-form-field>
+      } @else {
+        <mat-form-field class="fuse-mat-dense w-full">
+          <mat-label>Company Owner</mat-label>
+          <mat-select formControlName="companyId">
+            @for (c of companies; track c.id) {
+              <mat-option [value]="c.id">{{ c.name }}</mat-option>
+            }
+          </mat-select>
+          @if (form.get('companyId')?.invalid && form.get('companyId')?.touched) {
+            <mat-error>Required</mat-error>
+          }
+        </mat-form-field>
+      }
+
+      <mat-form-field class="fuse-mat-dense w-full">
+        <mat-label>Asset Type</mat-label>
+        <mat-select formControlName="type">
+          @for (opt of typeOptions; track opt.value) {
+            <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+          }
+        </mat-select>
+        @if (isEdit && hasActiveAssignment) {
+          <mat-hint>Cannot change type while asset is assigned</mat-hint>
+        }
+        @if (form.get('type')?.invalid && form.get('type')?.touched) {
+          <mat-error>Required</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field class="fuse-mat-dense w-full sm:col-span-2">
+        <mat-label>Asset Name</mat-label>
+        <input
+          matInput
+          formControlName="name"
+          [matAutocomplete]="nameAuto"
+          [disabled]="assetNamesLoading"
+          placeholder="e.g. Yamaha YBR 125, Etisalat SIM"
+          autocomplete="off"
+        />
+        <mat-autocomplete #nameAuto="matAutocomplete" autoActiveFirstOption>
+          @for (name of filteredAssetNames; track name) {
+            <mat-option [value]="name">{{ name }}</mat-option>
+          }
+        </mat-autocomplete>
+        @if (assetNamesLoading) {
+          <mat-hint>Loading suggestions…</mat-hint>
+        } @else {
+          <mat-hint>Choose a suggestion or enter a new asset name</mat-hint>
+        }
+        @if (form.get('name')?.invalid && form.get('name')?.touched) {
+          <mat-error>Required</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field class="fuse-mat-dense w-full sm:col-span-2">
+        <mat-label>{{ serialNumberLabel }}</mat-label>
+        <input matInput formControlName="serialNumber" [placeholder]="serialNumberPlaceholder" autocomplete="off" />
+        @if (form.get('serialNumber')?.invalid && form.get('serialNumber')?.touched) {
+          <mat-error>Required</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field class="fuse-mat-dense w-full">
+        <mat-label>Acquisition Type</mat-label>
+        <mat-select formControlName="acquisitionType">
+          @for (opt of acquisitionTypeOptions; track opt.value) {
+            <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+          }
+        </mat-select>
+        @if (isEdit && hasActiveAssignment) {
+          <mat-hint>Cannot change acquisition type while asset is assigned</mat-hint>
+        }
+        @if (form.get('acquisitionType')?.invalid && form.get('acquisitionType')?.touched) {
+          <mat-error>Required</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field class="fuse-mat-dense w-full">
+        <mat-label>Acquisition Date</mat-label>
+        <input matInput type="date" formControlName="acquisitionDate" />
+        @if (form.get('acquisitionDate')?.invalid && form.get('acquisitionDate')?.touched) {
+          <mat-error>Required</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field class="fuse-mat-dense w-full">
+        <mat-label>{{ purchasePriceLabel }}</mat-label>
+        <input matInput type="number" formControlName="purchasePrice" min="0" placeholder="0.00" />
+        @if (form.get('purchasePrice')?.invalid && form.get('purchasePrice')?.touched) {
+          <mat-error>Required and must be greater than 0 for bought assets</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field class="fuse-mat-dense w-full">
+        <mat-label>{{ monthlyCostLabel }}</mat-label>
+        <input matInput type="number" formControlName="monthlyCost" min="0" placeholder="0.00" />
+        @if (form.get('monthlyCost')?.invalid && form.get('monthlyCost')?.touched) {
+          <mat-error>Required and must be greater than 0 for rented assets</mat-error>
+        }
+      </mat-form-field>
+
+    </div>
+  </form>
+  }
+
+  <div class="px-6 pb-6 pt-4 flex flex-wrap gap-3 justify-end border-t border-slate-100 dark:border-zinc-800">
+    <button mat-stroked-button type="button" (click)="cancel()" [disabled]="saving">Cancel</button>
+    <button mat-flat-button color="primary" type="button" (click)="save()" [disabled]="saving || loading">
+      {{ saving ? 'Saving…' : (isEdit ? 'Update' : 'Register') }}
+    </button>
+  </div>
+</div>

@@ -14,6 +14,7 @@ export class EmployeeAutocompleteSearch {
     private _page = 1;
     private _total = 0;
     private _nameQuery = '';
+    private _companyId: string | null = null;
     private _loadToken = 0;
     private _panelEl: HTMLElement | null = null;
     private _scrollHandler: (() => void) | null = null;
@@ -30,6 +31,11 @@ export class EmployeeAutocompleteSearch {
         this.hasMore = true;
         this.items = [];
         await this._fetchPage(true);
+    }
+
+    /** Restrict autocomplete results to a single company (e.g. asset assignment). */
+    setCompanyId(companyId: string | null | undefined): void {
+        this._companyId = companyId?.trim() || null;
     }
 
     async loadMore(): Promise<void> {
@@ -78,7 +84,14 @@ export class EmployeeAutocompleteSearch {
         }
         try {
             const q = this._nameQuery;
-            const filters: { name?: string | null; employeeId?: string | null } = {};
+            const filters: {
+                name?: string | null;
+                employeeId?: string | null;
+                companyId?: string | null;
+            } = {};
+            if (this._companyId) {
+                filters.companyId = this._companyId;
+            }
             if (q) {
                 if (/[A-Za-z0-9]-/.test(q)) {
                     filters.employeeId = q;

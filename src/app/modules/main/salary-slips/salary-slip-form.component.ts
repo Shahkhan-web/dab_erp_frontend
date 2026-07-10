@@ -29,11 +29,13 @@ import { MatStepperModule } from '@angular/material/stepper';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
 import { lastValueFrom, merge } from 'rxjs';
+import { AuthService } from 'app/core/auth/auth.service';
+import { hasModuleRead } from 'app/core/auth/module-access.util';
 import { BackButtonComponent } from 'app/core/components/back-button/back-button.component';
 import { OverlayLoaderDirective } from 'app/core/directives/overlay-loader.directive';
 import { createDebouncedFilterApply } from 'app/core/utils/filter-debounce.util';
 import { EmployeeAutocompleteSearch } from '../employees/employee-autocomplete-search';
-import { EmployeesService, EmployeeListItem } from '../employees/employees.service';
+import { EmployeesService, EmployeeListItem, EmployeeAssignedAsset } from '../employees/employees.service';
 import { LoanListItem, LoansService } from '../loans/loans.service';
 import { PayComponent, PayComponentsService } from '../pay-components/pay-components.service';
 import {
@@ -104,6 +106,8 @@ export class SalarySlipFormComponent implements OnInit, OnDestroy {
     earningComponents: PayComponent[] = [];
     deductionComponents: PayComponent[] = [];
     employeeLoans: LoanListItem[] = [];
+    employeeAssets: EmployeeAssignedAsset[] = [];
+    employeeAssetsLoading = false;
     /** Outstanding salary debt from previous negative net slips (create mode warning). */
     outstandingSalaryDebt = 0;
     /** Loaded from `GET talabat-occupation-rates` for rider earning calculation. */
@@ -139,6 +143,7 @@ export class SalarySlipFormComponent implements OnInit, OnDestroy {
         private _payComponentsService: PayComponentsService,
         private _loansService: LoansService,
         private _talabatOccupationRatesService: TalabatOccupationRatesService,
+        private _auth: AuthService,
         private _toast: ToastrService
     ) {
         this.employeeSearch = new EmployeeAutocompleteSearch(this._employeesService);
@@ -222,11 +227,14 @@ export class SalarySlipFormComponent implements OnInit, OnDestroy {
                     const emp = v as EmployeeListItem;
                     this._loadLoansForEmployee(emp.id);
                     void this._loadSalaryDebtForEmployee(emp.id);
+                    void this._loadEmployeeAssets(emp.id);
                     void this._syncEmployeeProfileFromServer(emp);
                     return;
                 }
                 if (v && typeof v === 'object') return;
                 this.employeeLoans = [];
+                this.employeeAssets = [];
+                this.employeeAssetsLoading = false;
                 this.outstandingSalaryDebt = 0;
                 this.detailsForm.patchValue({ deductOutstandingDebt: true }, { emitEvent: false });
                 this._employeeOccupationForRates = null;
@@ -240,6 +248,39 @@ export class SalarySlipFormComponent implements OnInit, OnDestroy {
         const occ = this._employeeOccupationForRates;
         if (!occ) return true;
         return this._normalizeOccupationKey(occ) !== 'staff';
+    }
+
+    get canReadAssets(): boolean {
+        return hasModuleRead(this._auth.profileData, 'asset');
+    }
+
+    /** Sum of monthly costs for held assets flagged for salary deduction. */
+    get suggestedInventoryDeduction(): number {
+        return this.employeeAssets
+            .filter((asset) => asset.deductFromSalary && !asset.returnedAt)
+            .reduce((sum, asset) => sum + (Number(asset.monthlyCost) || 0), 0);
+    }
+
+    get hasEmployeeAssetsForDeduction(): boolean {
+        return this.canReadAssets && this.employeeAssets.some((asset) => asset.deductFromSalary && !asset.returnedAt);
+    }
+
+    applySuggestedInventoryDeduction(): void {
+        this.riderForm.patchValue({ inventoryDeduction: this.suggestedInventoryDeduction });
+    }
+
+    getAssetTypeLabel(type: string | undefined): string {
+        if (!type) return '';
+        switch (type) {
+            case 'cycle':
+                return 'Cycle';
+            case 'bike':
+                return 'Bike';
+            case 'sim_card':
+                return 'SIM Card';
+            default:
+                return 'Other';
+        }
     }
 
     /** Talabat rate row matching the selected employee occupation (normalized). */
@@ -420,6 +461,22 @@ export class SalarySlipFormComponent implements OnInit, OnDestroy {
         const name = [e.firstName, e.lastName].filter(Boolean).join(' ');
         const arabic = String(e.employeeNameArabic ?? '').trim();
         return [empId, name, arabic].filter(Boolean).join(' ');
+    }
+
+    private async _loadEmployeeAssets(employeeId: string): Promise<void> {
+        if (!this.canReadAssets) {
+            this.employeeAssets = [];
+            this.employeeAssetsLoading = false;
+            return;
+        }
+        this.employeeAssetsLoading = true;
+        try {
+            this.employeeAssets = await lastValueFrom(this._employeesService.getEmployeeAssets(employeeId));
+        } catch {
+            this.employeeAssets = [];
+        } finally {
+            this.employeeAssetsLoading = false;
+        }
     }
 
     private async _loadLoansForEmployee(employeeId: string): Promise<void> {
@@ -646,6 +703,9 @@ export class SalarySlipFormComponent implements OnInit, OnDestroy {
             });
             this.loanDeductions.push(g);
         });
+        if (employeeId) {
+            await this._loadEmployeeAssets(employeeId);
+        }
     }
 
     private async _save(): Promise<void> {

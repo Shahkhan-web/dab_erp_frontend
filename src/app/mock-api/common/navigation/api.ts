@@ -62,6 +62,13 @@ export class NavigationMockApi {
             icon: 'heroicons_outline:currency-dollar',
             link: '/main/talabat-occupation-rates',
         },
+        {
+            id: 'assets',
+            title: 'Fleet & Assets',
+            type: 'basic',
+            icon: 'heroicons_outline:truck',
+            link: '/main/assets',
+        },
     ];
     private readonly _compactNavigation: FuseNavigationItem[] = this._mainNavigation;
     private readonly _defaultNavigation: FuseNavigationItem[] = this._mainNavigation;

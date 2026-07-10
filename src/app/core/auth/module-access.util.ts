@@ -6,6 +6,7 @@ export const USER_FORM_MODULE_KEYS = [
     'payComponent',
     'talabatOccupationRate',
     'invoice',
+    'asset',
 ] as const;
 
 export type UserFormModuleKey = (typeof USER_FORM_MODULE_KEYS)[number];
@@ -21,6 +22,7 @@ export const USER_FORM_MODULE_LABELS: Record<UserFormModuleKey, string> = {
     payComponent: 'Pay component',
     talabatOccupationRate: 'Talabat occupation rate',
     invoice: 'Invoice',
+    asset: 'Asset & Fleet',
 };
 
 /** Fuse nav `id` → moduleAccess key (for hiding items from managers). */
@@ -31,6 +33,7 @@ export const NAV_ID_TO_MODULE_KEY: Record<string, UserFormModuleKey> = {
     'salary-slips': 'salarySlip',
     'talabat-occupation-rates': 'talabatOccupationRate',
     invoice: 'invoice',
+    assets: 'asset',
 };
 
 /** auth/me returns `access`; user records may still use `moduleAccess`. */
