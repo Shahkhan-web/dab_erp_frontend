@@ -1,0 +1,30 @@
+<div class="flex min-w-0 flex-auto flex-col">
+  <div class="border-b bg-card px-4 py-3 sm:px-6">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div class="flex items-center gap-3 min-w-0">
+        <div class="flex-shrink-0 w-11 h-11 rounded-xl bg-neutral-100 dark:bg-primary/20 flex items-center justify-center">
+          <mat-icon class="icon-size-6 text-neutral-900 dark:text-white"
+            [svgIcon]="'heroicons_outline:document-currency-dollar'"></mat-icon>
+        </div>
+        <div class="min-w-0">
+          <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-neutral-900 dark:text-white">Invoicing</h1>
+          <p class="text-sm text-secondary mt-0.5">Invoices, bills, parties & ledger</p>
+        </div>
+      </div>
+      <app-back-button></app-back-button>
+    </div>
+    <nav class="mt-4 flex flex-wrap gap-1 border-t border-neutral-200/80 dark:border-neutral-700/80 pt-3">
+      @for (tab of tabs; track tab.path) {
+        <a
+          mat-stroked-button
+          class="fuse-mat-dense"
+          [routerLink]="tab.path"
+          routerLinkActive="!bg-primary !text-on-primary"
+          [routerLinkActiveOptions]="{ exact: tab.exact }">
+          {{ tab.label }}
+        </a>
+      }
+    </nav>
+  </div>
+  <router-outlet></router-outlet>
+</div>

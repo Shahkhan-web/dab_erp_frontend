@@ -254,15 +254,32 @@ export class SalarySlipFormComponent implements OnInit, OnDestroy {
         return hasModuleRead(this._auth.profileData, 'asset');
     }
 
-    /** Sum of monthly costs for held assets flagged for salary deduction. */
+    /** Rough monthly total from assignment snapshots (server prorates by slip dates when field is blank). */
     get suggestedInventoryDeduction(): number {
         return this.employeeAssets
-            .filter((asset) => asset.deductFromSalary && !asset.returnedAt)
-            .reduce((sum, asset) => sum + (Number(asset.monthlyCost) || 0), 0);
+            .filter(
+                (asset) =>
+                    asset.acquisitionType === 'rented' &&
+                    asset.deductFromSalary &&
+                    !asset.returnedAt
+            )
+            .reduce((sum, asset) => sum + (Number(asset.monthlyCostSnapshot ?? asset.monthlyCost) || 0), 0);
     }
 
     get hasEmployeeAssetsForDeduction(): boolean {
-        return this.canReadAssets && this.employeeAssets.some((asset) => asset.deductFromSalary && !asset.returnedAt);
+        return (
+            this.canReadAssets &&
+            this.employeeAssets.some(
+                (asset) =>
+                    asset.acquisitionType === 'rented' &&
+                    asset.deductFromSalary &&
+                    !asset.returnedAt
+            )
+        );
+    }
+
+    getAssetDeductionMonthlyCost(asset: EmployeeAssignedAsset): number {
+        return Number(asset.monthlyCostSnapshot ?? asset.monthlyCost) || 0;
     }
 
     applySuggestedInventoryDeduction(): void {
@@ -837,8 +854,15 @@ export class SalarySlipFormComponent implements OnInit, OnDestroy {
         if (cod !== undefined) payload.codDeduction = cod;
         const di = this._numOrUndef(rider.deliveryIncentive);
         if (di !== undefined) payload.deliveryIncentive = di;
-        const inv = this._numOrUndef(rider.inventoryDeduction);
-        if (inv !== undefined) payload.inventoryDeduction = inv;
+        const invRaw = rider.inventoryDeduction;
+        if (invRaw === null || invRaw === '' || invRaw === undefined) {
+            if (this.isEditMode) {
+                payload.inventoryDeduction = null;
+            }
+        } else {
+            const inv = Number(invRaw);
+            if (!isNaN(inv)) payload.inventoryDeduction = inv;
+        }
         const fi = this._numOrUndef(rider.fuelIncentive);
         if (fi !== undefined) payload.fuelIncentive = fi;
         const cb = this._numOrUndef(rider.clawbackDeduction);

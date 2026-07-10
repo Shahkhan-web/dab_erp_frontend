@@ -1,0 +1,141 @@
+<div class="flex-auto p-4 sm:p-6 md:p-5 flex flex-col gap-3">
+  <div class="flex justify-end">
+    @if (canWrite) {
+      <button mat-flat-button color="primary" (click)="openCreate()">
+        <mat-icon class="icon-size-5" [svgIcon]="'heroicons_solid:plus'"></mat-icon>
+        <span class="ms-2">New {{ entityLabel | lowercase }}</span>
+      </button>
+    }
+  </div>
+
+  <div class="flex justify-center">
+    <mat-card appearance="filled" class="bg-zinc-100 dark:bg-zinc-800/50 w-full max-w-5xl">
+      <mat-card-header class="flex flex-row items-center justify-between w-full">
+        <mat-card-title class="text-lg font-medium">Filters</mat-card-title>
+        <button mat-icon-button (click)="clearFilters()" matTooltip="Clear filters">
+          <mat-icon class="icon-size-5" [svgIcon]="'heroicons_outline:x-mark'"></mat-icon>
+        </button>
+      </mat-card-header>
+      <mat-card-content class="border border-neutral-200 dark:border-neutral-700">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+          <mat-form-field class="fuse-mat-dense w-full">
+            <mat-label>Search</mat-label>
+            <input matInput [(ngModel)]="filterSearch" (ngModelChange)="scheduleApplyFilters()" placeholder="Number, party…" />
+          </mat-form-field>
+          <mat-form-field class="fuse-mat-dense w-full">
+            <mat-label>Status</mat-label>
+            <mat-select [(ngModel)]="filterStatus" (ngModelChange)="applyFilters()">
+              <mat-option [value]="null">All</mat-option>
+              @for (s of invoiceStatuses; track s) {
+                <mat-option [value]="s">{{ invoiceStatusLabel(s) }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+          @if (isAdmin) {
+            <mat-form-field class="fuse-mat-dense w-full">
+              <mat-label>Company</mat-label>
+              <mat-select [(ngModel)]="filterCompanyId" (ngModelChange)="applyFilters()">
+                <mat-option [value]="null">All</mat-option>
+                @for (c of companies; track c.id) {
+                  <mat-option [value]="c.id">{{ c.name }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+          }
+          <mat-form-field class="fuse-mat-dense w-full">
+            <mat-label>Party</mat-label>
+            <input matInput #partyTrigger="matAutocompleteTrigger" [matAutocomplete]="partyAuto"
+              [ngModel]="partyDisplayValue(partyFilter)"
+              (ngModelChange)="onPartyInput($event)" placeholder="Search party" />
+            @if (partyFilter) {
+              <button mat-icon-button matSuffix type="button" (click)="clearPartyFilter(partyTrigger)">
+                <mat-icon class="icon-size-4">close</mat-icon>
+              </button>
+            }
+            <mat-autocomplete #partyAuto="matAutocomplete" [displayWith]="partyDisplayValue.bind(this)"
+              (opened)="onPartyPanelOpened(partyAuto)" (closed)="onPartyPanelClosed()"
+              (optionSelected)="onPartySelected($event.option.value)">
+              @if (partySearch.loading) {
+                <mat-option disabled>Loading…</mat-option>
+              }
+              @for (p of partySearch.items; track p.id) {
+                <mat-option [value]="p">{{ p.name }}</mat-option>
+              }
+              @if (partySearch.isEmpty) {
+                <mat-option disabled>No parties found</mat-option>
+              }
+            </mat-autocomplete>
+          </mat-form-field>
+          <mat-form-field class="fuse-mat-dense w-full">
+            <mat-label>Issued from</mat-label>
+            <input matInput [matDatepicker]="issuedFromPicker" [(ngModel)]="filterIssuedFrom" (ngModelChange)="applyFilters()" />
+            <mat-datepicker-toggle matSuffix [for]="issuedFromPicker"></mat-datepicker-toggle>
+            <mat-datepicker #issuedFromPicker></mat-datepicker>
+          </mat-form-field>
+          <mat-form-field class="fuse-mat-dense w-full">
+            <mat-label>Issued to</mat-label>
+            <input matInput [matDatepicker]="issuedToPicker" [(ngModel)]="filterIssuedTo" (ngModelChange)="applyFilters()" />
+            <mat-datepicker-toggle matSuffix [for]="issuedToPicker"></mat-datepicker-toggle>
+            <mat-datepicker #issuedToPicker></mat-datepicker>
+          </mat-form-field>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <div class="bg-card rounded-xl shadow overflow-hidden border border-slate-200/60 dark:border-zinc-700/60" [overlayLoader]="pageLoader">
+    <div class="overflow-x-auto">
+      <table mat-table [dataSource]="items" class="w-full min-w-[900px]">
+        <ng-container matColumnDef="invoiceNumber">
+          <th mat-header-cell *matHeaderCellDef>Number</th>
+          <td mat-cell *matCellDef="let item">
+            <button type="button" class="font-semibold text-primary hover:underline" (click)="openDetail(item)">
+              {{ item.invoiceNumber }}
+            </button>
+          </td>
+        </ng-container>
+        <ng-container matColumnDef="party">
+          <th mat-header-cell *matHeaderCellDef>Party</th>
+          <td mat-cell *matCellDef="let item">{{ item.partyName || item.party?.name || '—' }}</td>
+        </ng-container>
+        <ng-container matColumnDef="issueDate">
+          <th mat-header-cell *matHeaderCellDef>Issue date</th>
+          <td mat-cell *matCellDef="let item">{{ item.issueDate | date: 'mediumDate' }}</td>
+        </ng-container>
+        <ng-container matColumnDef="dueDate">
+          <th mat-header-cell *matHeaderCellDef>Due date</th>
+          <td mat-cell *matCellDef="let item">{{ item.dueDate | date: 'mediumDate' }}</td>
+        </ng-container>
+        <ng-container matColumnDef="status">
+          <th mat-header-cell *matHeaderCellDef>Status</th>
+          <td mat-cell *matCellDef="let item">
+            <span class="px-2 py-0.5 rounded-full text-xs font-medium" [ngClass]="invoiceStatusChipClass(item.status)">
+              {{ invoiceStatusLabel(item.status) }}
+            </span>
+          </td>
+        </ng-container>
+        <ng-container matColumnDef="total">
+          <th mat-header-cell *matHeaderCellDef>Total</th>
+          <td mat-cell *matCellDef="let item">{{ item.total | currency: item.currency }}</td>
+        </ng-container>
+        <ng-container matColumnDef="amountPaid">
+          <th mat-header-cell *matHeaderCellDef>Paid</th>
+          <td mat-cell *matCellDef="let item">{{ item.amountPaid | currency: item.currency }}</td>
+        </ng-container>
+        <ng-container matColumnDef="amountDue">
+          <th mat-header-cell *matHeaderCellDef>Due</th>
+          <td mat-cell *matCellDef="let item">{{ item.amountDue | currency: item.currency }}</td>
+        </ng-container>
+        <tr mat-header-row *matHeaderRowDef="displayedColumns" class="bg-zinc-100 dark:bg-zinc-800/50 font-semibold"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns" class="cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/30" (click)="openDetail(row)"></tr>
+        <tr *matNoDataRow>
+          <td class="py-16 text-center" [attr.colspan]="displayedColumns.length">
+            <div class="text-secondary">No {{ entityPlural | lowercase }} found</div>
+          </td>
+        </tr>
+      </table>
+    </div>
+    <mat-paginator class="border-t" [length]="total" [pageSize]="pageSize" [pageIndex]="pageIndex"
+      [pageSizeOptions]="[5, 10, 20, 50]" (page)="handlePageEvent($event)" showFirstLastButtons></mat-paginator>
+  </div>
+</div>

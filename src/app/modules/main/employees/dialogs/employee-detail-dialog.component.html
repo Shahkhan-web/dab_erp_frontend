@@ -187,9 +187,9 @@
           <mat-icon class="icon-size-5" [svgIcon]="'heroicons_outline:truck'"></mat-icon>
           Assets currently held
         </div>
-        @if (assets && assets.length > 0) {
+        @if (employeeAssets && employeeAssets.length > 0) {
           <div class="flex flex-col gap-3">
-            @for (asset of assets; track asset.id) {
+            @for (asset of employeeAssets; track asset.assignmentId || asset.assetId) {
               <div class="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl border border-slate-200 dark:border-zinc-700 bg-slate-50/50 dark:bg-zinc-800/10 gap-3">
                 <div class="flex flex-col">
                   <span class="text-sm font-semibold text-neutral-900 dark:text-neutral-100">{{ asset.name }}</span>
@@ -199,8 +199,8 @@
                   <div class="flex flex-col">
                     <span class="text-xs text-secondary">Assigned Since</span>
                     <span class="font-medium">
-                      @if (asset.currentAssignment?.assignedAt) {
-                        {{ asset.currentAssignment.assignedAt | date: 'mediumDate' }}
+                      @if (asset.assignedAt) {
+                        {{ asset.assignedAt | date: 'mediumDate' }}
                       } @else {
                         —
                       }
@@ -208,12 +208,12 @@
                   </div>
                   <div class="flex flex-col">
                     <span class="text-xs text-secondary">Monthly Cost</span>
-                    <span class="font-semibold">{{ asset.monthlyCost | currency: 'AED ' }}</span>
+                    <span class="font-semibold">{{ getAssetMonthlyCost(asset) | currency: 'AED ' }}</span>
                   </div>
                   <div class="flex flex-col">
                     <span class="text-xs text-secondary">Salary Deduction</span>
-                    <span class="font-semibold" [ngClass]="asset.currentAssignment?.deductFromSalary ? 'text-emerald-600 dark:text-emerald-400' : 'text-secondary'">
-                      {{ asset.currentAssignment?.deductFromSalary ? 'Yes' : 'No' }}
+                    <span class="font-semibold" [ngClass]="asset.deductFromSalary ? 'text-emerald-600 dark:text-emerald-400' : 'text-secondary'">
+                      {{ asset.deductFromSalary ? 'Yes' : 'No' }}
                     </span>
                   </div>
                 </div>

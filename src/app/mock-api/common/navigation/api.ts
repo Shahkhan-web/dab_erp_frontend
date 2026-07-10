@@ -56,6 +56,13 @@ export class NavigationMockApi {
             link: '/main/salary-slips',
         },
         {
+            id: 'invoice',
+            title: 'Invoicing',
+            type: 'basic',
+            icon: 'heroicons_outline:document-currency-dollar',
+            link: '/main/invoicing',
+        },
+        {
             id: 'talabat-occupation-rates',
             title: 'Talabat Occupation Rates',
             type: 'basic',

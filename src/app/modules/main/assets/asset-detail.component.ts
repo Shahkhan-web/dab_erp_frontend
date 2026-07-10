@@ -57,7 +57,7 @@ export class AssetDetailComponent implements OnInit {
     pageLoader = false;
 
     // Table Columns
-    assignmentColumns: string[] = ['employee', 'assignedAt', 'returnedAt', 'deductFromSalary', 'notes'];
+    assignmentColumns: string[] = ['employee', 'assignedAt', 'returnedAt', 'deductFromSalary', 'monthlyCostSnapshot', 'notes'];
     registrationColumns: string[] = ['plate', 'regNumber', 'dates', 'fee', 'document'];
     insuranceColumns: string[] = ['provider', 'policyNumber', 'coverage', 'dates', 'cost', 'document'];
     maintenanceColumns: string[] = ['type', 'date', 'cost', 'odometer', 'workshop', 'description', 'document'];
@@ -93,6 +93,10 @@ export class AssetDetailComponent implements OnInit {
         }
     }
 
+    get showsMulkiyaTab(): boolean {
+        return this.asset?.type === 'bike' || this.asset?.type === 'cycle';
+    }
+
     openAssignDialog(): void {
         if (!this.assetId) return;
         this._matDialog
@@ -103,6 +107,8 @@ export class AssetDetailComponent implements OnInit {
                     assetId: this.assetId,
                     companyId: this.asset?.companyId,
                     companyName: this.asset?.companyName ?? this.asset?.company?.name,
+                    acquisitionType: this.asset?.acquisitionType,
+                    monthlyCost: this.asset?.monthlyCost,
                 },
             })
             .afterClosed()

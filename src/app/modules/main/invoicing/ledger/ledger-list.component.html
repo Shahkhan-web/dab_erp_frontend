@@ -1,0 +1,145 @@
+<div class="flex-auto p-4 sm:p-6 md:p-5 flex flex-col gap-4">
+  @if (summary) {
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <mat-card appearance="outlined">
+        <mat-card-content class="p-4">
+          <p class="text-xs uppercase text-secondary">Total credits</p>
+          <p class="text-2xl font-bold text-emerald-600">{{ summary.totalCredits | currency: 'AED' }}</p>
+        </mat-card-content>
+      </mat-card>
+      <mat-card appearance="outlined">
+        <mat-card-content class="p-4">
+          <p class="text-xs uppercase text-secondary">Total debits</p>
+          <p class="text-2xl font-bold text-red-600">{{ summary.totalDebits | currency: 'AED' }}</p>
+        </mat-card-content>
+      </mat-card>
+      <mat-card appearance="outlined">
+        <mat-card-content class="p-4">
+          <p class="text-xs uppercase text-secondary">Net balance</p>
+          <p class="text-2xl font-bold">{{ summary.netBalance | currency: 'AED' }}</p>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  }
+
+  <div class="flex justify-end">
+    @if (canWrite) {
+      <button mat-flat-button color="primary" (click)="openCreateDialog()">
+        <mat-icon class="icon-size-5" [svgIcon]="'heroicons_solid:plus'"></mat-icon>
+        <span class="ms-2">Add entry</span>
+      </button>
+    }
+  </div>
+
+  <mat-card appearance="filled" class="bg-zinc-100 dark:bg-zinc-800/50">
+    <mat-card-header class="flex flex-row items-center justify-between w-full">
+      <mat-card-title class="text-lg font-medium">Filters</mat-card-title>
+      <button mat-icon-button (click)="clearFilters()"><mat-icon [svgIcon]="'heroicons_outline:x-mark'"></mat-icon></button>
+    </mat-card-header>
+    <mat-card-content class="border border-neutral-200 dark:border-neutral-700">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+        <mat-form-field class="fuse-mat-dense w-full">
+          <mat-label>Search</mat-label>
+          <input matInput [(ngModel)]="filterSearch" (ngModelChange)="scheduleApplyFilters()" />
+        </mat-form-field>
+        @if (isAdmin) {
+          <mat-form-field class="fuse-mat-dense w-full">
+            <mat-label>Company</mat-label>
+            <mat-select [(ngModel)]="filterCompanyId" (ngModelChange)="applyFilters()">
+              <mat-option [value]="null">All</mat-option>
+              @for (c of companies; track c.id) {
+                <mat-option [value]="c.id">{{ c.name }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        }
+        <mat-form-field class="fuse-mat-dense w-full">
+          <mat-label>Type</mat-label>
+          <mat-select [(ngModel)]="filterEntryType" (ngModelChange)="applyFilters()">
+            <mat-option [value]="null">All</mat-option>
+            @for (t of entryTypes; track t) {
+              <mat-option [value]="t">{{ entryTypeLabel(t) }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+        <mat-form-field class="fuse-mat-dense w-full">
+          <mat-label>Category</mat-label>
+          <mat-select [(ngModel)]="filterCategory" (ngModelChange)="applyFilters()">
+            <mat-option [value]="null">All</mat-option>
+            @for (c of categories; track c) {
+              <mat-option [value]="c">{{ ledgerCategoryLabel(c) }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+        <mat-form-field class="fuse-mat-dense w-full">
+          <mat-label>Source</mat-label>
+          <mat-select [(ngModel)]="filterSource" (ngModelChange)="applyFilters()">
+            <mat-option [value]="null">All</mat-option>
+            <mat-option value="manual">Manual</mat-option>
+            <mat-option value="invoice">Invoice</mat-option>
+          </mat-select>
+        </mat-form-field>
+        <mat-form-field class="fuse-mat-dense w-full">
+          <mat-label>From</mat-label>
+          <input matInput [matDatepicker]="fromPicker" [(ngModel)]="filterDateFrom" (ngModelChange)="applyFilters()" />
+          <mat-datepicker-toggle matSuffix [for]="fromPicker"></mat-datepicker-toggle>
+          <mat-datepicker #fromPicker></mat-datepicker>
+        </mat-form-field>
+        <mat-form-field class="fuse-mat-dense w-full">
+          <mat-label>To</mat-label>
+          <input matInput [matDatepicker]="toPicker" [(ngModel)]="filterDateTo" (ngModelChange)="applyFilters()" />
+          <mat-datepicker-toggle matSuffix [for]="toPicker"></mat-datepicker-toggle>
+          <mat-datepicker #toPicker></mat-datepicker>
+        </mat-form-field>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <div class="bg-card rounded-xl shadow overflow-hidden border" [overlayLoader]="pageLoader">
+    <div class="overflow-x-auto">
+      <table mat-table [dataSource]="items" class="w-full min-w-[960px]">
+        <ng-container matColumnDef="entryDate"><th mat-header-cell *matHeaderCellDef>Date</th><td mat-cell *matCellDef="let row">{{ row.entryDate | date: 'mediumDate' }}</td></ng-container>
+        <ng-container matColumnDef="entryType">
+          <th mat-header-cell *matHeaderCellDef>Type</th>
+          <td mat-cell *matCellDef="let row">
+            <span class="px-2 py-0.5 rounded-full text-xs font-medium" [ngClass]="entryTypeChipClass(row.entryType)">{{ entryTypeLabel(row.entryType) }}</span>
+          </td>
+        </ng-container>
+        <ng-container matColumnDef="amount"><th mat-header-cell *matHeaderCellDef>Amount</th><td mat-cell *matCellDef="let row">{{ row.amount | currency: 'AED' }}</td></ng-container>
+        <ng-container matColumnDef="category"><th mat-header-cell *matHeaderCellDef>Category</th><td mat-cell *matCellDef="let row">{{ ledgerCategoryLabel(row.category) }}</td></ng-container>
+        <ng-container matColumnDef="description"><th mat-header-cell *matHeaderCellDef>Description</th><td mat-cell *matCellDef="let row">{{ row.description || '—' }}</td></ng-container>
+        <ng-container matColumnDef="reference"><th mat-header-cell *matHeaderCellDef>Reference</th><td mat-cell *matCellDef="let row">{{ row.reference || '—' }}</td></ng-container>
+        <ng-container matColumnDef="partyName"><th mat-header-cell *matHeaderCellDef>Party</th><td mat-cell *matCellDef="let row">{{ row.partyName || '—' }}</td></ng-container>
+        <ng-container matColumnDef="runningBalance"><th mat-header-cell *matHeaderCellDef>Balance</th><td mat-cell *matCellDef="let row">{{ row.runningBalance | currency: 'AED' }}</td></ng-container>
+        <ng-container matColumnDef="source">
+          <th mat-header-cell *matHeaderCellDef>Source</th>
+          <td mat-cell *matCellDef="let row">
+            @if (row.source === 'invoice') {
+              <mat-icon class="icon-size-4 text-secondary align-middle" matTooltip="Created from invoice payment">lock</mat-icon>
+              Invoice
+            } @else {
+              Manual
+            }
+          </td>
+        </ng-container>
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef class="w-14"></th>
+          <td mat-cell *matCellDef="let row">
+            @if (canWrite && isManualEntry(row)) {
+              <button mat-icon-button [matMenuTriggerFor]="rowMenu"><mat-icon>more_vert</mat-icon></button>
+              <mat-menu #rowMenu="matMenu">
+                <button mat-menu-item (click)="openEditDialog(row)">Edit</button>
+                <button mat-menu-item (click)="confirmDelete(row)">Delete</button>
+              </mat-menu>
+            }
+          </td>
+        </ng-container>
+        <tr mat-header-row *matHeaderRowDef="displayedColumns" class="bg-zinc-100 dark:bg-zinc-800/50"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+        <tr *matNoDataRow><td class="py-16 text-center text-secondary" [attr.colspan]="displayedColumns.length">No ledger entries</td></tr>
+      </table>
+    </div>
+    <mat-paginator [length]="total" [pageSize]="pageSize" [pageIndex]="pageIndex"
+      [pageSizeOptions]="[10, 20, 50, 100]" (page)="handlePageEvent($event)" showFirstLastButtons></mat-paginator>
+  </div>
+</div>

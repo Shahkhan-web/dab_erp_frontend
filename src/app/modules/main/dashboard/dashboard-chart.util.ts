@@ -185,6 +185,29 @@ export function buildBarChart(
     };
 }
 
+/** Ledger insights: earnings vs expenses time series. */
+export function buildEarningsExpensesChart(
+    series: Array<{ bucket: string; earnings?: number; expenses?: number }>,
+    meta: DashboardMeta,
+    options?: { colors?: string[]; yFormatter?: (v: number) => string }
+): ApexChartOptions | null {
+    if (!series?.length) return null;
+    const asSeries: DashboardSeriesPoint[] = series.map((p) => ({
+        bucket: p.bucket,
+        earnings: p.earnings ?? 0,
+        expenses: p.expenses ?? 0,
+    }));
+    return buildLineChart(
+        asSeries,
+        [
+            { key: 'earnings', name: 'Earnings' },
+            { key: 'expenses', name: 'Expenses' },
+        ],
+        meta,
+        options
+    );
+}
+
 export function buildDonutChart(
     items: DashboardBreakdownItem[],
     valueKey: 'count' | 'amount' | 'value' = 'count'

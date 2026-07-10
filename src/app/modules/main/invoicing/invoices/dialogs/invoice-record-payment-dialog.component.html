@@ -1,0 +1,56 @@
+<h2 mat-dialog-title>Record payment</h2>
+<mat-dialog-content class="min-w-[min(96vw,480px)]">
+  <p class="text-sm text-secondary mb-4">
+    {{ invoice.invoiceNumber }} · Amount due: {{ invoice.amountDue | currency: invoice.currency }}
+  </p>
+
+  <form [formGroup]="form" class="flex flex-col gap-1">
+    <mat-form-field class="fuse-mat-dense w-full">
+      <mat-label>Amount</mat-label>
+      <input matInput type="number" formControlName="amount" (blur)="loadPreview()" />
+      <mat-hint>Max {{ maxAmount | currency: invoice.currency }}</mat-hint>
+    </mat-form-field>
+    <mat-form-field class="fuse-mat-dense w-full">
+      <mat-label>Paid date</mat-label>
+      <input matInput [matDatepicker]="paidPicker" formControlName="paidDate" />
+      <mat-datepicker-toggle matSuffix [for]="paidPicker"></mat-datepicker-toggle>
+      <mat-datepicker #paidPicker></mat-datepicker>
+    </mat-form-field>
+    <mat-form-field class="fuse-mat-dense w-full">
+      <mat-label>Method</mat-label>
+      <mat-select formControlName="method">
+        @for (m of paymentMethods; track m) {
+          <mat-option [value]="m">{{ paymentMethodLabel(m) }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field class="fuse-mat-dense w-full">
+      <mat-label>Reference</mat-label>
+      <input matInput formControlName="reference" />
+    </mat-form-field>
+    <mat-form-field class="fuse-mat-dense w-full">
+      <mat-label>Notes</mat-label>
+      <textarea matInput formControlName="notes" rows="2"></textarea>
+    </mat-form-field>
+  </form>
+
+  @if (previewLoading) {
+    <div class="flex justify-center py-4">
+      <mat-progress-spinner diameter="32" mode="indeterminate"></mat-progress-spinner>
+    </div>
+  } @else if (preview?.message) {
+    <div class="mt-4 rounded-lg border border-blue-200 bg-blue-50 dark:bg-blue-950/30 dark:border-blue-800 p-3 text-sm">
+      {{ preview.message }}
+    </div>
+  }
+
+  <mat-checkbox class="mt-4" [(ngModel)]="postToLedger" [ngModelOptions]="{ standalone: true }">
+    Also post this to the ledger
+  </mat-checkbox>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button type="button" (click)="cancel()" [disabled]="saving">Cancel</button>
+  <button mat-flat-button color="primary" type="button" (click)="confirm()" [disabled]="saving || previewLoading || !preview">
+    Confirm payment
+  </button>
+</mat-dialog-actions>

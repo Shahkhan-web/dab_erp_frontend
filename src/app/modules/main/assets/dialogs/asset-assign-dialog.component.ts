@@ -75,6 +75,14 @@ export class AssetAssignDialogComponent implements OnInit, OnDestroy {
     ngOnInit(): void {
         this.employeeSearch.setCompanyId(this.data.companyId);
         void this.employeeSearch.resetAndLoad();
+        if (!this.canDeductFromSalary) {
+            this.form.patchValue({ deductFromSalary: false });
+            this.form.get('deductFromSalary')!.disable({ emitEvent: false });
+        }
+    }
+
+    get canDeductFromSalary(): boolean {
+        return this.data.acquisitionType === 'rented' && Number(this.data.monthlyCost) > 0;
     }
 
     ngOnDestroy(): void {
@@ -158,7 +166,7 @@ export class AssetAssignDialogComponent implements OnInit, OnDestroy {
         const payload = {
             employeeId: employee.id,
             assignedAt: raw.assignedAt ? raw.assignedAt : undefined,
-            deductFromSalary: !!raw.deductFromSalary,
+            deductFromSalary: this.canDeductFromSalary ? !!raw.deductFromSalary : false,
             assignmentNotes: raw.assignmentNotes ? String(raw.assignmentNotes).trim() : undefined,
         };
 

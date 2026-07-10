@@ -34,6 +34,7 @@ export class AssetPhotoDialogComponent implements OnInit {
     form: FormGroup;
     saving = false;
     selectedFile: File | null = null;
+    isDragOver = false;
 
     constructor(
         private _fb: FormBuilder,
@@ -49,15 +50,43 @@ export class AssetPhotoDialogComponent implements OnInit {
 
     ngOnInit(): void {}
 
-    onFileSelected(event: any): void {
-        const file = event.target.files?.[0];
+    onFileSelected(event: Event): void {
+        const input = event.target as HTMLInputElement;
+        const file = input.files?.[0];
         if (file) {
-            this.selectedFile = file;
-            if (!this.form.get('displayName')?.value) {
-                // Pre-populate with file name without extension
-                const nameWithoutExt = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
-                this.form.patchValue({ displayName: nameWithoutExt });
-            }
+            this._setSelectedFile(file);
+        }
+    }
+
+    onDragOver(event: DragEvent): void {
+        event.preventDefault();
+        event.stopPropagation();
+        this.isDragOver = true;
+    }
+
+    onDragLeave(event: DragEvent): void {
+        event.preventDefault();
+        event.stopPropagation();
+        this.isDragOver = false;
+    }
+
+    onDrop(event: DragEvent): void {
+        event.preventDefault();
+        event.stopPropagation();
+        this.isDragOver = false;
+        const file = event.dataTransfer?.files?.[0];
+        if (file && file.type.startsWith('image/')) {
+            this._setSelectedFile(file);
+        } else if (file) {
+            this._toast.error('Please drop an image file (PNG, JPG, JPEG, WEBP, GIF)');
+        }
+    }
+
+    private _setSelectedFile(file: File): void {
+        this.selectedFile = file;
+        if (!this.form.get('displayName')?.value) {
+            const nameWithoutExt = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
+            this.form.patchValue({ displayName: nameWithoutExt });
         }
     }
 

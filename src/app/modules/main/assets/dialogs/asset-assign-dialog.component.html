@@ -62,13 +62,19 @@
     </mat-form-field>
 
     <!-- Deduct From Salary -->
-    <div class="flex items-center justify-between gap-3 py-2 px-1 border rounded-xl border-slate-200/60 dark:border-zinc-700/60 bg-slate-50/50 dark:bg-zinc-800/10">
-      <div class="flex flex-col">
-        <span class="text-sm font-semibold text-neutral-900 dark:text-neutral-100">Deduct From Salary</span>
-        <span class="text-xs text-secondary">Automatically calculate and deduct asset cost from employee's monthly salary slip</span>
+    @if (canDeductFromSalary) {
+      <div class="flex items-center justify-between gap-3 py-2 px-1 border rounded-xl border-slate-200/60 dark:border-zinc-700/60 bg-slate-50/50 dark:bg-zinc-800/10">
+        <div class="flex flex-col">
+          <span class="text-sm font-semibold text-neutral-900 dark:text-neutral-100">Deduct From Salary</span>
+          <span class="text-xs text-secondary">Prorated cost from assignment snapshot will be deducted on salary slips</span>
+        </div>
+        <mat-slide-toggle formControlName="deductFromSalary" color="primary"></mat-slide-toggle>
       </div>
-      <mat-slide-toggle formControlName="deductFromSalary" color="primary"></mat-slide-toggle>
-    </div>
+    } @else {
+      <div class="rounded-xl border border-slate-200/60 dark:border-zinc-700/60 bg-slate-50/50 dark:bg-zinc-800/10 px-4 py-3 text-xs text-secondary">
+        Salary deduction is only available for rented assets with a monthly cost greater than zero.
+      </div>
+    }
 
     <!-- Assignment Notes -->
     <mat-form-field class="fuse-mat-dense w-full">

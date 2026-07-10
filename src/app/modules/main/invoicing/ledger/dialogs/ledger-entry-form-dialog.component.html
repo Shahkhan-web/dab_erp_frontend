@@ -1,0 +1,53 @@
+<h2 mat-dialog-title>{{ isEdit ? 'Edit ledger entry' : 'Add ledger entry' }}</h2>
+<mat-dialog-content class="min-w-[min(96vw,420px)]">
+  <form [formGroup]="form" class="flex flex-col gap-1 pt-2">
+    @if (isAdmin && !isEdit) {
+      <mat-form-field class="fuse-mat-dense w-full">
+        <mat-label>Company</mat-label>
+        <mat-select formControlName="companyId">
+          @for (c of companies; track c.id) {
+            <mat-option [value]="c.id">{{ c.name }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+    }
+    <mat-form-field class="fuse-mat-dense w-full">
+      <mat-label>Date</mat-label>
+      <input matInput [matDatepicker]="datePicker" formControlName="entryDate" />
+      <mat-datepicker-toggle matSuffix [for]="datePicker"></mat-datepicker-toggle>
+      <mat-datepicker #datePicker></mat-datepicker>
+    </mat-form-field>
+    <mat-form-field class="fuse-mat-dense w-full">
+      <mat-label>Type</mat-label>
+      <mat-select formControlName="entryType">
+        @for (t of entryTypes; track t) {
+          <mat-option [value]="t">{{ t === 'credit' ? 'Credit (in)' : 'Debit (out)' }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field class="fuse-mat-dense w-full">
+      <mat-label>Amount</mat-label>
+      <input matInput type="number" formControlName="amount" />
+    </mat-form-field>
+    <mat-form-field class="fuse-mat-dense w-full">
+      <mat-label>Category</mat-label>
+      <mat-select formControlName="category">
+        @for (c of categories; track c) {
+          <mat-option [value]="c">{{ ledgerCategoryLabel(c) }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field class="fuse-mat-dense w-full">
+      <mat-label>Description</mat-label>
+      <textarea matInput formControlName="description" rows="2"></textarea>
+    </mat-form-field>
+    <mat-form-field class="fuse-mat-dense w-full">
+      <mat-label>Reference</mat-label>
+      <input matInput formControlName="reference" />
+    </mat-form-field>
+  </form>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button type="button" (click)="cancel()" [disabled]="saving">Cancel</button>
+  <button mat-flat-button color="primary" type="button" (click)="save()" [disabled]="saving">Save</button>
+</mat-dialog-actions>

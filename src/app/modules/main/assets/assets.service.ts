@@ -47,6 +47,7 @@ export interface AssetAssignment {
     assignedAt: string;
     returnedAt?: string | null;
     deductFromSalary: boolean;
+    monthlyCostSnapshot?: number;
     assignmentNotes?: string | null;
     returnNotes?: string | null;
     createdAt: string;

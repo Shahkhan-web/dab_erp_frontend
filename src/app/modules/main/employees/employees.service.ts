@@ -47,6 +47,7 @@ export interface EmployeeAssignedAsset {
     status: string;
     acquisitionType?: string;
     monthlyCost: number;
+    monthlyCostSnapshot?: number;
     purchasePrice?: number | null;
     acquisitionDate?: string;
     companyId?: string;

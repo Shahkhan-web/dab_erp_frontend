@@ -174,7 +174,7 @@ export interface SalarySlipCreatePayload {
     talabatCaseRiderEarning?: number;
     codDeduction?: number;
     deliveryIncentive?: number;
-    inventoryDeduction?: number;
+    inventoryDeduction?: number | null;
     fuelIncentive?: number;
     clawbackDeduction?: number;
     /** Basic salary from employee profile at selection time (optional). */

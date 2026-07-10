@@ -391,7 +391,7 @@
                     <mat-form-field class="fuse-mat-dense w-full">
                       <mat-label>Inventory deduction</mat-label>
                       <input matInput type="number" formControlName="inventoryDeduction" placeholder="Auto-calculated if blank" />
-                      <mat-hint>Leave blank to auto-calculate from active assets</mat-hint>
+                      <mat-hint>Leave blank for server auto-calculation (prorated by slip dates). Enter 0 to override with zero.</mat-hint>
                     </mat-form-field>
                     @if (canReadAssets) {
                       <div class="md:col-span-2 rounded-xl border border-slate-200/80 bg-white px-4 py-3 shadow-sm dark:border-zinc-600/60 dark:bg-zinc-900/50">
@@ -419,7 +419,7 @@
                                   <p class="text-xs text-secondary font-mono">{{ asset.serialNumber }} · {{ getAssetTypeLabel(asset.type) }}</p>
                                 </div>
                                 <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm shrink-0">
-                                  <span class="font-semibold tabular-nums">{{ asset.monthlyCost | number: '1.2-2' }} AED/mo</span>
+                                  <span class="font-semibold tabular-nums">{{ getAssetDeductionMonthlyCost(asset) | number: '1.2-2' }} AED/mo</span>
                                   <span
                                     class="text-xs font-medium"
                                     [ngClass]="asset.deductFromSalary ? 'text-emerald-700 dark:text-emerald-400' : 'text-secondary'"
@@ -437,7 +437,7 @@
                             </span>
                           </div>
                           <p class="mt-2 text-xs text-secondary">
-                            Total is the sum of monthly costs for held assets marked “deduct from salary”. Leave the field blank to let the server auto-calculate.
+                            Suggested total uses assignment cost snapshots for rented, salary-deductible assets. Leave the field blank to let the server prorate by slip period; enter a number (including 0) to override.
                           </p>
                         }
                       </div>

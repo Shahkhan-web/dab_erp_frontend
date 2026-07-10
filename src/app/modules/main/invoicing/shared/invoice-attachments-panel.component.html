@@ -1,0 +1,68 @@
+<div class="space-y-4">
+  <div class="text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-zinc-400">Attachments</div>
+
+  @if (canUpload) {
+    <div
+      class="relative overflow-hidden rounded-xl border-2 border-dashed transition-all"
+      [ngClass]="uploadDragActive ? 'border-primary bg-primary-500-5' : 'border-zinc-300 dark:border-zinc-600'"
+      (dragenter)="onUploadDragEnter($event)"
+      (dragleave)="onUploadDragLeave($event)"
+      (dragover)="onUploadDragOver($event)"
+      (drop)="onUploadDrop($event)">
+      <div class="flex flex-col items-center justify-center gap-2 text-center py-8 px-4">
+        <mat-icon class="icon-size-10 text-primary" [svgIcon]="'heroicons_outline:arrow-up-tray'"></mat-icon>
+        <p class="text-sm font-medium">Drop files here or</p>
+        <button mat-stroked-button color="primary" type="button" (click)="fileInput.click()">Browse files</button>
+        <input #fileInput type="file" class="sr-only" multiple [accept]="acceptAttr" (change)="onFileInputChange($event)" />
+        <p class="text-xs text-secondary">PDF, JPEG, PNG, WebP, GIF · max 15 MB each</p>
+      </div>
+    </div>
+
+    @if (pendingItems.length) {
+      <div class="rounded-xl border p-4 space-y-3">
+        <div class="flex justify-between items-center">
+          <span class="text-sm font-medium">Ready to upload ({{ pendingItems.length }})</span>
+          <div class="flex gap-2">
+            <button mat-flat-button color="primary" [disabled]="uploading || !pendingUploadReady()" (click)="uploadPending()">
+              Upload
+            </button>
+            <button mat-stroked-button [disabled]="uploading" (click)="clearPending()">Clear</button>
+          </div>
+        </div>
+        @for (item of pendingItems; track trackByPendingId($index, item)) {
+          <div class="flex gap-2 items-center">
+            <mat-form-field class="fuse-mat-dense flex-1">
+              <mat-label>Display name</mat-label>
+              <input matInput [(ngModel)]="item.displayName" />
+            </mat-form-field>
+            <button mat-icon-button color="warn" (click)="removePendingItem(item)">
+              <mat-icon class="icon-size-5">close</mat-icon>
+            </button>
+          </div>
+        }
+      </div>
+    }
+  }
+
+  @if (attachments.length) {
+    <ul class="divide-y divide-zinc-200 dark:divide-zinc-700 rounded-xl border">
+      @for (att of attachments; track trackByAttachmentId($index, att)) {
+        <li class="flex items-center justify-between gap-3 p-3">
+          <div class="min-w-0">
+            <button type="button" class="font-medium text-primary hover:underline truncate block" (click)="openAttachment(att)">
+              {{ att.displayName }}
+            </button>
+            <p class="text-xs text-secondary">{{ formatFileSize(att.fileSize) }} · {{ att.createdAt | date: 'short' }}</p>
+          </div>
+          @if (canWrite) {
+            <button mat-icon-button color="warn" [disabled]="deletingId === att.id" (click)="deleteAttachment(att)">
+              <mat-icon class="icon-size-5" [svgIcon]="'heroicons_outline:trash'"></mat-icon>
+            </button>
+          }
+        </li>
+      }
+    </ul>
+  } @else if (!canUpload) {
+    <p class="text-sm text-secondary">No attachments.</p>
+  }
+</div>

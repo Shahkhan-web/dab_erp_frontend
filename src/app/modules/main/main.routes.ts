@@ -32,4 +32,8 @@ export const mainRoutes: Route[] = [
         path: 'talabat-occupation-rates',
         loadChildren: () => import('./talabat-occupation-rates/talabat-occupation-rates.routes').then(m => m.talabatOccupationRatesRoutes),
     },
+    {
+        path: 'invoicing',
+        loadChildren: () => import('./invoicing/invoicing.routes').then(m => m.invoicingRoutes),
+    },
 ];

@@ -1,0 +1,144 @@
+<div class="flex-auto p-4 sm:p-6 md:p-5" [overlayLoader]="pageLoader">
+  <div class="max-w-4xl mx-auto flex flex-col gap-4">
+    <div class="flex items-center justify-between">
+      <h2 class="text-xl font-bold">{{ isEdit ? 'Edit' : 'New' }} {{ entityLabel | lowercase }}</h2>
+      <app-back-button></app-back-button>
+    </div>
+
+    <mat-card appearance="outlined">
+      <mat-card-content class="p-4 flex flex-col gap-3">
+        <form [formGroup]="form" class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          @if (isAdmin) {
+            <mat-form-field class="fuse-mat-dense w-full sm:col-span-2">
+              <mat-label>Company</mat-label>
+              <mat-select formControlName="companyId">
+                @for (c of companies; track c.id) {
+                  <mat-option [value]="c.id">{{ c.name }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+          }
+          <mat-form-field class="fuse-mat-dense w-full sm:col-span-2">
+            <mat-label>Party</mat-label>
+            <input matInput [matAutocomplete]="partyAuto"
+              [disabled]="!canEditField('partyId')"
+              [ngModel]="partyDisplayValue(partyFilter)"
+              [ngModelOptions]="{ standalone: true }"
+              (ngModelChange)="onPartyInput($event)" placeholder="Search party" />
+            <mat-autocomplete #partyAuto="matAutocomplete" [displayWith]="partyDisplayValue.bind(this)"
+              (opened)="onPartyPanelOpened(partyAuto)" (closed)="onPartyPanelClosed()"
+              (optionSelected)="onPartySelected($event.option.value)">
+              @for (p of partySearch.items; track p.id) {
+                <mat-option [value]="p">{{ p.name }}</mat-option>
+              }
+            </mat-autocomplete>
+          </mat-form-field>
+          <mat-form-field class="fuse-mat-dense w-full">
+            <mat-label>{{ entityLabel }} number</mat-label>
+            <input matInput formControlName="invoiceNumber" placeholder="Auto-generated if empty" />
+          </mat-form-field>
+          <mat-form-field class="fuse-mat-dense w-full">
+            <mat-label>Currency</mat-label>
+            <input matInput formControlName="currency" />
+          </mat-form-field>
+          <mat-form-field class="fuse-mat-dense w-full">
+            <mat-label>Issue date</mat-label>
+            <input matInput [matDatepicker]="issuePicker" formControlName="issueDate" />
+            <mat-datepicker-toggle matSuffix [for]="issuePicker"></mat-datepicker-toggle>
+            <mat-datepicker #issuePicker></mat-datepicker>
+          </mat-form-field>
+          <mat-form-field class="fuse-mat-dense w-full">
+            <mat-label>Due date</mat-label>
+            <input matInput [matDatepicker]="duePicker" formControlName="dueDate" />
+            <mat-datepicker-toggle matSuffix [for]="duePicker"></mat-datepicker-toggle>
+            <mat-datepicker #duePicker></mat-datepicker>
+          </mat-form-field>
+          @if (!isEdit) {
+            <mat-form-field class="fuse-mat-dense w-full">
+              <mat-label>Status</mat-label>
+              <mat-select formControlName="status">
+                @for (s of createStatuses; track s) {
+                  <mat-option [value]="s">{{ s | titlecase }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+          }
+          <mat-form-field class="fuse-mat-dense w-full sm:col-span-2">
+            <mat-label>Notes</mat-label>
+            <textarea matInput formControlName="notes" rows="2"></textarea>
+          </mat-form-field>
+          <mat-form-field class="fuse-mat-dense w-full sm:col-span-2">
+            <mat-label>Terms</mat-label>
+            <textarea matInput formControlName="terms" rows="2"></textarea>
+          </mat-form-field>
+        </form>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card appearance="outlined">
+      <mat-card-header class="flex flex-row items-center justify-between w-full pb-2">
+        <mat-card-title class="text-lg">Line items</mat-card-title>
+        @if (canEditField('lines')) {
+          <button mat-stroked-button type="button" (click)="addLineRow()">
+            <mat-icon class="icon-size-5" [svgIcon]="'heroicons_outline:plus'"></mat-icon>
+            <span class="ms-1">Add line</span>
+          </button>
+        }
+      </mat-card-header>
+      <mat-card-content class="p-4 space-y-3">
+        @for (line of lines.controls; track $index; let i = $index) {
+          <div class="grid grid-cols-1 sm:grid-cols-12 gap-2 items-start border-b border-zinc-200 dark:border-zinc-700 pb-3" [formGroup]="line">
+            <mat-form-field class="fuse-mat-dense sm:col-span-5">
+              <mat-label>Description</mat-label>
+              <input matInput formControlName="description" />
+            </mat-form-field>
+            <mat-form-field class="fuse-mat-dense sm:col-span-2">
+              <mat-label>Qty</mat-label>
+              <input matInput type="number" formControlName="quantity" />
+            </mat-form-field>
+            <mat-form-field class="fuse-mat-dense sm:col-span-2">
+              <mat-label>Unit price</mat-label>
+              <input matInput type="number" formControlName="unitPrice" />
+            </mat-form-field>
+            <mat-form-field class="fuse-mat-dense sm:col-span-2">
+              <mat-label>VAT %</mat-label>
+              <input matInput type="number" formControlName="taxRatePct" />
+            </mat-form-field>
+            <div class="sm:col-span-1 flex items-center gap-1 pt-2">
+              @if (canEditField('lines') && lines.length > 1) {
+                <button mat-icon-button type="button" color="warn" (click)="removeLineRow(i)">
+                  <mat-icon class="icon-size-5" [svgIcon]="'heroicons_outline:trash'"></mat-icon>
+                </button>
+              }
+            </div>
+            <div class="sm:col-span-12 text-xs text-secondary">
+              Line total (preview): {{ linePreview(i).lineTotal | currency: currency }}
+            </div>
+          </div>
+        }
+        <div class="flex flex-col items-end gap-1 pt-2 text-sm">
+          <div>Subtotal (preview): <strong>{{ previewTotals.subtotal | currency: currency }}</strong></div>
+          <div>Tax (preview): <strong>{{ previewTotals.taxAmount | currency: currency }}</strong></div>
+          <div class="text-base">Total (preview): <strong>{{ previewTotals.total | currency: currency }}</strong></div>
+          @if (isEdit && invoice) {
+            <div class="text-xs text-secondary mt-1">
+              Saved totals: {{ invoice.subtotal | currency: invoice.currency }} + tax
+              {{ invoice.taxAmount | currency: invoice.currency }} =
+              {{ invoice.total | currency: invoice.currency }}
+            </div>
+          }
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <div class="flex justify-end gap-2">
+      <button mat-stroked-button type="button" (click)="cancel()" [disabled]="saving">Cancel</button>
+      <button mat-flat-button color="primary" type="button" (click)="save()" [disabled]="saving">
+        @if (saving) {
+          <mat-progress-spinner class="inline-block align-middle me-2" diameter="20" mode="indeterminate"></mat-progress-spinner>
+        }
+        Save
+      </button>
+    </div>
+  </div>
+</div>

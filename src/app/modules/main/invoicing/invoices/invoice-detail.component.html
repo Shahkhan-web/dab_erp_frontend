@@ -1,0 +1,128 @@
+<div class="flex-auto p-4 sm:p-6 md:p-5 flex flex-col gap-4" [overlayLoader]="pageLoader">
+  @if (invoice) {
+    <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+      <div>
+        <div class="flex items-center gap-2 flex-wrap">
+          <h2 class="text-xl font-bold">{{ invoice.invoiceNumber }}</h2>
+          <span class="px-2 py-0.5 rounded-full text-xs font-medium" [ngClass]="invoiceStatusChipClass(invoice.status)">
+            {{ invoiceStatusLabel(invoice.status) }}
+          </span>
+        </div>
+        <p class="text-secondary text-sm mt-1">
+          {{ entityLabel }} · {{ invoice.partyName || invoice.party?.name || '—' }}
+        </p>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        @if (canEdit) {
+          <button mat-stroked-button (click)="editInvoice()">
+            <mat-icon class="icon-size-5" [svgIcon]="'heroicons_outline:pencil-square'"></mat-icon>
+            <span class="ms-1">Edit</span>
+          </button>
+        }
+        @if (canRecordPayment) {
+          <button mat-flat-button color="primary" (click)="openRecordPayment()">
+            <mat-icon class="icon-size-5" [svgIcon]="'heroicons_outline:banknotes'"></mat-icon>
+            <span class="ms-1">Record payment</span>
+          </button>
+        }
+        @if (canWrite && !isVoid) {
+          <button mat-icon-button [matMenuTriggerFor]="actionsMenu">
+            <mat-icon>more_vert</mat-icon>
+          </button>
+          <mat-menu #actionsMenu="matMenu">
+            @if (canDelete) {
+              <button mat-menu-item (click)="confirmDelete()">
+                <mat-icon class="icon-size-4" [svgIcon]="'heroicons_outline:trash'"></mat-icon>
+                <span>Delete</span>
+              </button>
+            }
+            <button mat-menu-item (click)="confirmVoid()">
+              <mat-icon class="icon-size-4" [svgIcon]="'heroicons_outline:no-symbol'"></mat-icon>
+              <span>Void</span>
+            </button>
+          </mat-menu>
+        }
+        <app-back-button></app-back-button>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <mat-card appearance="outlined" class="lg:col-span-2">
+        <mat-card-header><mat-card-title>Dates & notes</mat-card-title></mat-card-header>
+        <mat-card-content class="grid grid-cols-2 gap-3 text-sm">
+          <div><span class="text-secondary">Issue date</span><br />{{ invoice.issueDate | date: 'mediumDate' }}</div>
+          <div><span class="text-secondary">Due date</span><br />{{ invoice.dueDate | date: 'mediumDate' }}</div>
+          <div class="col-span-2"><span class="text-secondary">Notes</span><br />{{ invoice.notes || '—' }}</div>
+          <div class="col-span-2"><span class="text-secondary">Terms</span><br />{{ invoice.terms || '—' }}</div>
+        </mat-card-content>
+      </mat-card>
+      <mat-card appearance="outlined">
+        <mat-card-header><mat-card-title>Totals</mat-card-title></mat-card-header>
+        <mat-card-content class="space-y-2 text-sm">
+          <div class="flex justify-between"><span>Subtotal</span><span>{{ invoice.subtotal | currency: invoice.currency }}</span></div>
+          <div class="flex justify-between"><span>Tax</span><span>{{ invoice.taxAmount | currency: invoice.currency }}</span></div>
+          <div class="flex justify-between font-semibold"><span>Total</span><span>{{ invoice.total | currency: invoice.currency }}</span></div>
+          <div class="flex justify-between text-emerald-600"><span>Paid</span><span>{{ invoice.amountPaid | currency: invoice.currency }}</span></div>
+          <div class="flex justify-between text-amber-600 font-semibold"><span>Due</span><span>{{ invoice.amountDue | currency: invoice.currency }}</span></div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <mat-card appearance="outlined">
+      <mat-card-header><mat-card-title>Line items</mat-card-title></mat-card-header>
+      <mat-card-content class="overflow-x-auto p-0">
+        <table mat-table [dataSource]="invoice.lines || []" class="w-full min-w-[640px]">
+          <ng-container matColumnDef="description"><th mat-header-cell *matHeaderCellDef>Description</th><td mat-cell *matCellDef="let row">{{ row.description }}</td></ng-container>
+          <ng-container matColumnDef="quantity"><th mat-header-cell *matHeaderCellDef>Qty</th><td mat-cell *matCellDef="let row">{{ row.quantity }}</td></ng-container>
+          <ng-container matColumnDef="unitPrice"><th mat-header-cell *matHeaderCellDef>Unit price</th><td mat-cell *matCellDef="let row">{{ row.unitPrice | currency: invoice.currency }}</td></ng-container>
+          <ng-container matColumnDef="taxRatePct"><th mat-header-cell *matHeaderCellDef>VAT %</th><td mat-cell *matCellDef="let row">{{ row.taxRatePct }}%</td></ng-container>
+          <ng-container matColumnDef="lineSubtotal"><th mat-header-cell *matHeaderCellDef>Subtotal</th><td mat-cell *matCellDef="let row">{{ row.lineSubtotal | currency: invoice.currency }}</td></ng-container>
+          <ng-container matColumnDef="lineTax"><th mat-header-cell *matHeaderCellDef>Tax</th><td mat-cell *matCellDef="let row">{{ row.lineTax | currency: invoice.currency }}</td></ng-container>
+          <ng-container matColumnDef="lineTotal"><th mat-header-cell *matHeaderCellDef>Total</th><td mat-cell *matCellDef="let row">{{ row.lineTotal | currency: invoice.currency }}</td></ng-container>
+          <tr mat-header-row *matHeaderRowDef="lineColumns" class="bg-zinc-100 dark:bg-zinc-800/50"></tr>
+          <tr mat-row *matRowDef="let row; columns: lineColumns"></tr>
+        </table>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card appearance="outlined">
+      <mat-card-header><mat-card-title>Payments</mat-card-title></mat-card-header>
+      <mat-card-content class="overflow-x-auto p-0">
+        @if (invoice.payments?.length) {
+          <table mat-table [dataSource]="invoice.payments" class="w-full min-w-[560px]">
+            <ng-container matColumnDef="paidDate"><th mat-header-cell *matHeaderCellDef>Date</th><td mat-cell *matCellDef="let row">{{ row.paidDate | date: 'mediumDate' }}</td></ng-container>
+            <ng-container matColumnDef="amount"><th mat-header-cell *matHeaderCellDef>Amount</th><td mat-cell *matCellDef="let row">{{ row.amount | currency: invoice.currency }}</td></ng-container>
+            <ng-container matColumnDef="method"><th mat-header-cell *matHeaderCellDef>Method</th><td mat-cell *matCellDef="let row">{{ paymentMethodLabel(row.method) }}</td></ng-container>
+            <ng-container matColumnDef="reference"><th mat-header-cell *matHeaderCellDef>Reference</th><td mat-cell *matCellDef="let row">{{ row.reference || '—' }}</td></ng-container>
+            <ng-container matColumnDef="notes"><th mat-header-cell *matHeaderCellDef>Notes</th><td mat-cell *matCellDef="let row">{{ row.notes || '—' }}</td></ng-container>
+            <ng-container matColumnDef="ledger">
+              <th mat-header-cell *matHeaderCellDef>Ledger</th>
+              <td mat-cell *matCellDef="let row">
+                @if (row.ledgerEntryId) {
+                  <a [routerLink]="['/main/invoicing/ledger']" [queryParams]="{ search: row.ledgerEntryId }" class="text-primary text-sm">View entry</a>
+                } @else {
+                  <span class="text-secondary text-sm">Not posted</span>
+                }
+              </td>
+            </ng-container>
+            <tr mat-header-row *matHeaderRowDef="paymentColumns" class="bg-zinc-100 dark:bg-zinc-800/50"></tr>
+            <tr mat-row *matRowDef="let row; columns: paymentColumns"></tr>
+          </table>
+        } @else {
+          <p class="p-4 text-secondary text-sm">No payments recorded yet.</p>
+        }
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card appearance="outlined">
+      <mat-card-content class="p-4">
+        <app-invoice-attachments-panel
+          [invoiceId]="invoice.id"
+          [attachments]="invoice.attachments || []"
+          [canWrite]="canWrite && !isVoid"
+          (attachmentsChange)="onAttachmentsChange()">
+        </app-invoice-attachments-panel>
+      </mat-card-content>
+    </mat-card>
+  }
+</div>

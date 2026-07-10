@@ -7,8 +7,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ToastrService } from 'ngx-toastr';
 import { lastValueFrom } from 'rxjs';
-import { EmployeesService } from '../employees.service';
-import { AssetsService, Asset } from 'app/modules/main/assets/assets.service';
+import { EmployeesService, EmployeeAssignedAsset } from '../employees.service';
 import { AuthService } from 'app/core/auth/auth.service';
 import { hasModuleRead } from 'app/core/auth/module-access.util';
 
@@ -34,7 +33,7 @@ export class EmployeeDetailDialogComponent implements OnInit {
     data: any | null = null;
     loading = true;
     error: string | null = null;
-    assets: Asset[] = [];
+    employeeAssets: EmployeeAssignedAsset[] = [];
 
     constructor(
         private dialogRef: MatDialogRef<EmployeeDetailDialogComponent>,
@@ -42,7 +41,6 @@ export class EmployeeDetailDialogComponent implements OnInit {
         private datePipe: DatePipe,
         private decimalPipe: DecimalPipe,
         private employeesService: EmployeesService,
-        private assetsService: AssetsService,
         private authService: AuthService,
         private toast: ToastrService
     ) {}
@@ -75,13 +73,12 @@ export class EmployeeDetailDialogComponent implements OnInit {
                 this.data = raw;
                 if (this.canReadAssets) {
                     try {
-                        const assetsResp = await lastValueFrom(this.assetsService.getAssets(1, 100, { employeeId: id }));
-                        this.assets = assetsResp?.data ?? [];
+                        this.employeeAssets = await lastValueFrom(this.employeesService.getEmployeeAssets(id));
                     } catch {
-                        this.assets = [];
+                        this.employeeAssets = [];
                     }
                 } else {
-                    this.assets = [];
+                    this.employeeAssets = [];
                 }
                 this.loading = false;
             })
@@ -136,6 +133,10 @@ export class EmployeeDetailDialogComponent implements OnInit {
             case 'sim_card': return 'SIM Card';
             default: return 'Other';
         }
+    }
+
+    getAssetMonthlyCost(asset: EmployeeAssignedAsset): number {
+        return Number(asset.monthlyCostSnapshot ?? asset.monthlyCost) || 0;
     }
 
     /** Same URL resolution as employee form / list. */

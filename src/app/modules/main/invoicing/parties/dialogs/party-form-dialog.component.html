@@ -1,0 +1,63 @@
+<h2 mat-dialog-title>{{ isEdit ? 'Edit party' : 'Add party' }}</h2>
+<mat-dialog-content class="min-w-[min(96vw,420px)]">
+  @if (loading) {
+    <div class="flex justify-center py-8">
+      <mat-progress-spinner diameter="40" mode="indeterminate"></mat-progress-spinner>
+    </div>
+  } @else {
+    <form [formGroup]="form" class="flex flex-col gap-1 pt-2">
+      <mat-form-field class="fuse-mat-dense w-full">
+        <mat-label>Name</mat-label>
+        <input matInput formControlName="name" />
+      </mat-form-field>
+      <mat-form-field class="fuse-mat-dense w-full">
+        <mat-label>Type</mat-label>
+        <mat-select formControlName="type">
+          @for (t of partyTypes; track t) {
+            <mat-option [value]="t">{{ t === 'both' ? 'Customer & Vendor' : (t | titlecase) }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+      @if (isAdmin) {
+        <mat-form-field class="fuse-mat-dense w-full">
+          <mat-label>Company</mat-label>
+          <mat-select formControlName="companyId">
+            <mat-option [value]="null">Shared / all companies</mat-option>
+            @for (c of companies; track c.id) {
+              <mat-option [value]="c.id">{{ c.name }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      }
+      <mat-form-field class="fuse-mat-dense w-full">
+        <mat-label>Email</mat-label>
+        <input matInput type="email" formControlName="email" />
+      </mat-form-field>
+      <mat-form-field class="fuse-mat-dense w-full">
+        <mat-label>Phone</mat-label>
+        <input matInput formControlName="phone" />
+      </mat-form-field>
+      <mat-form-field class="fuse-mat-dense w-full">
+        <mat-label>TRN</mat-label>
+        <input matInput formControlName="trn" />
+      </mat-form-field>
+      <mat-form-field class="fuse-mat-dense w-full">
+        <mat-label>Address</mat-label>
+        <textarea matInput formControlName="address" rows="2"></textarea>
+      </mat-form-field>
+      <mat-form-field class="fuse-mat-dense w-full">
+        <mat-label>Notes</mat-label>
+        <textarea matInput formControlName="notes" rows="2"></textarea>
+      </mat-form-field>
+    </form>
+  }
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button type="button" (click)="cancel()" [disabled]="saving">Cancel</button>
+  <button mat-flat-button color="primary" type="button" (click)="save()" [disabled]="saving || loading">
+    @if (saving) {
+      <mat-progress-spinner class="inline-block align-middle me-2" diameter="20" mode="indeterminate"></mat-progress-spinner>
+    }
+    Save
+  </button>
+</mat-dialog-actions>
