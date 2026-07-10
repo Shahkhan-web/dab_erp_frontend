@@ -20,6 +20,7 @@ import { firstValueFrom, lastValueFrom } from 'rxjs';
 import { AuthService } from 'app/core/auth/auth.service';
 import { hasModuleWrite } from 'app/core/auth/module-access.util';
 import { BackButtonComponent } from 'app/core/components/back-button/back-button.component';
+import { ConfirmDeleteDialogComponent } from 'app/core/components/confirm-delete-dialog/confirm-delete-dialog.component';
 import { OverlayLoaderDirective } from 'app/core/directives/overlay-loader.directive';
 import { createDebouncedFilterApply } from 'app/core/utils/filter-debounce.util';
 import { CompaniesService } from '../companies/companies.service';
@@ -239,6 +240,34 @@ export class SalarySlipsListComponent implements OnInit {
 
     canEditSlip(slip: SalarySlipListItem): boolean {
         return String(slip?.status ?? '').toLowerCase() === 'pending';
+    }
+
+    async confirmDeleteSlip(slip: SalarySlipListItem): Promise<void> {
+        if (!slip?.employeeId || !slip?.id) return;
+        if (!this.canEditSlip(slip)) {
+            this._toast.warning('Only pending salary slips can be deleted');
+            return;
+        }
+        const period = `${slip.startDate} – ${slip.endDate}`;
+        const label = slip.employeeCode ? `${slip.employeeCode} (${period})` : period;
+        const confirmed = await lastValueFrom(
+            this._matDialog
+                .open(ConfirmDeleteDialogComponent, {
+                    data: { message: `Delete salary slip for ${label}? This cannot be undone.` },
+                    width: '420px',
+                })
+                .afterClosed()
+        );
+        if (!confirmed) return;
+        try {
+            const resp = await lastValueFrom(this._service.deleteSalarySlip(slip.employeeId, slip.id));
+            this._toast.success(resp?.message?.trim() || 'Salary slip deleted');
+            this.selectedIds.delete(slip.id);
+            await this.loadList();
+        } catch (e: unknown) {
+            const err = e as { error?: { message?: string } };
+            this._toast.error(err?.error?.message || 'Failed to delete salary slip');
+        }
     }
 
     canSelectForStatusChange(slip: SalarySlipListItem): boolean {

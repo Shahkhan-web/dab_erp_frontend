@@ -1,12 +1,15 @@
 import { CommonModule, DatePipe } from '@angular/common';
 import { Component, Inject, OnInit } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatExpansionModule } from '@angular/material/expansion';
+import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSelectModule } from '@angular/material/select';
 import { MatTableModule } from '@angular/material/table';
 import { ToastrService } from 'ngx-toastr';
 import { lastValueFrom } from 'rxjs';
@@ -15,6 +18,10 @@ import {
     LoanDeductionHistoryEntry,
     LoansService,
     loanShowsApproverInfo,
+    loanShowsRemainingBalance,
+    loanStatusChipClass,
+    loanStatusLabel,
+    normalizeLoanStatus,
 } from '../../loans/loans.service';
 import {
     SalarySlipDetailDialogComponent,
@@ -27,18 +34,35 @@ export interface EmployeeLoanHistoryDialogData {
     employeeName: string;
 }
 
+export type LoanHistorySort =
+    | 'date_desc'
+    | 'status'
+    | 'amount_asc'
+    | 'remaining_desc';
+
+const LOAN_STATUS_SORT_ORDER: Record<string, number> = {
+    open: 0,
+    approved: 1,
+    disbursed: 2,
+    reimbursed: 3,
+    rejected: 4,
+};
+
 @Component({
     selector: 'app-employee-loan-history-dialog',
     standalone: true,
     imports: [
         CommonModule,
+        FormsModule,
         MatDialogModule,
         MatButtonModule,
+        MatFormFieldModule,
         MatIconModule,
         MatProgressSpinnerModule,
         MatExpansionModule,
         MatTableModule,
         MatPaginatorModule,
+        MatSelectModule,
         DatePipe,
     ],
     providers: [DatePipe],
@@ -46,13 +70,21 @@ export interface EmployeeLoanHistoryDialogData {
     styleUrl: './employee-loan-history-dialog.component.scss',
 })
 export class EmployeeLoanHistoryDialogComponent implements OnInit {
-    loans: EmployeeLoanHistoryItem[] = [];
+    private allLoans: EmployeeLoanHistoryItem[] = [];
     total = 0;
     pageIndex = 0;
     pageSize = 10;
+    sortBy: LoanHistorySort = 'date_desc';
     loading = true;
     error: string | null = null;
     slipLoadingId: string | null = null;
+
+    readonly sortOptions: { value: LoanHistorySort; label: string }[] = [
+        { value: 'date_desc', label: 'Date (newest first)' },
+        { value: 'status', label: 'Status' },
+        { value: 'amount_asc', label: 'Amount (low to high)' },
+        { value: 'remaining_desc', label: 'Remaining (highest first)' },
+    ];
 
     deductionColumns: string[] = ['period', 'frequency', 'amount', 'salarySlip', 'deductedAt'];
 
@@ -82,17 +114,17 @@ export class EmployeeLoanHistoryDialogComponent implements OnInit {
         try {
             const resp = await lastValueFrom(
                 this._loansService.getEmployeeLoanHistory(id, {
-                    page: this.pageIndex + 1,
-                    limit: this.pageSize,
+                    page: 1,
+                    limit: 100,
                 })
             );
-            this.loans = resp.data ?? [];
-            this.total = resp.count ?? this.loans.length;
+            this.allLoans = resp.data ?? [];
+            this.total = resp.count ?? this.allLoans.length;
         } catch (err: unknown) {
             const httpErr = err as HttpErrorResponse;
             this.error = httpErr?.error?.message ?? 'Failed to load loan history.';
             this._toast.error(this.error);
-            this.loans = [];
+            this.allLoans = [];
             this.total = 0;
         } finally {
             this.loading = false;
@@ -102,24 +134,57 @@ export class EmployeeLoanHistoryDialogComponent implements OnInit {
     handlePageEvent(event: PageEvent): void {
         this.pageIndex = event.pageIndex;
         this.pageSize = event.pageSize;
-        this.loadHistory();
+    }
+
+    onSortChange(): void {
+        this.pageIndex = 0;
+    }
+
+    get displayedLoans(): EmployeeLoanHistoryItem[] {
+        const sorted = this._sortLoans(this.allLoans);
+        const start = this.pageIndex * this.pageSize;
+        return sorted.slice(start, start + this.pageSize);
+    }
+
+    get hasLoans(): boolean {
+        return this.allLoans.length > 0;
+    }
+
+    private _sortLoans(list: EmployeeLoanHistoryItem[]): EmployeeLoanHistoryItem[] {
+        const items = [...list];
+        switch (this.sortBy) {
+            case 'status':
+                return items.sort(
+                    (a, b) =>
+                        (LOAN_STATUS_SORT_ORDER[normalizeLoanStatus(a.status)] ?? 99) -
+                        (LOAN_STATUS_SORT_ORDER[normalizeLoanStatus(b.status)] ?? 99)
+                );
+            case 'amount_asc':
+                return items.sort((a, b) => Number(a.loanAmount) - Number(b.loanAmount));
+            case 'remaining_desc':
+                return items.sort(
+                    (a, b) => this._remainingSortValue(b) - this._remainingSortValue(a)
+                );
+            case 'date_desc':
+            default:
+                return items.sort(
+                    (a, b) => Date.parse(b.createdAt ?? '') - Date.parse(a.createdAt ?? '')
+                );
+        }
+    }
+
+    /** Non-disbursed loans sort after active balances when sorting by remaining. */
+    private _remainingSortValue(loan: EmployeeLoanHistoryItem): number {
+        if (!loanShowsRemainingBalance(loan.status)) return -1;
+        return Number(loan.remaining) || 0;
     }
 
     close(): void {
         this._dialogRef.close();
     }
 
-    statusChipClass(status: string | undefined): Record<string, boolean> {
-        const s = (status || '').toLowerCase();
-        return {
-            'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300': s === 'open',
-            'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300': s === 'approved',
-            'bg-rose-100 text-rose-800 dark:bg-rose-500/15 dark:text-rose-300': s === 'rejected',
-            'bg-sky-100 text-sky-800 dark:bg-sky-500/15 dark:text-sky-300': s === 'paid',
-            'bg-zinc-100 text-zinc-800 dark:bg-zinc-500/15 dark:text-zinc-300':
-                !['open', 'approved', 'rejected', 'paid'].includes(s),
-        };
-    }
+    readonly statusChipClass = loanStatusChipClass;
+    readonly statusLabel = loanStatusLabel;
 
     formatJsonField(value: unknown): string {
         if (value == null || value === '') return '—';
@@ -146,6 +211,10 @@ export class EmployeeLoanHistoryDialogComponent implements OnInit {
 
     showsApproverInfo(loan: EmployeeLoanHistoryItem): boolean {
         return loanShowsApproverInfo(loan.status);
+    }
+
+    showsRemainingBalance(loan: EmployeeLoanHistoryItem): boolean {
+        return loanShowsRemainingBalance(loan.status);
     }
 
     async viewSalarySlip(entry: LoanDeductionHistoryEntry): Promise<void> {

@@ -47,9 +47,19 @@
                 <input matInput formControlName="employee" placeholder="Search by employee ID or name"
                   [matAutocomplete]="empAuto" #empTrigger="matAutocompleteTrigger"
                   (focus)="openEmployeePanel(empTrigger)" (click)="openEmployeePanel(empTrigger)" />
-                <mat-autocomplete #empAuto="matAutocomplete" [displayWith]="displayEmployee">
-                  @for (e of filteredEmployees; track e.id) {
+                <mat-autocomplete #empAuto="matAutocomplete" [displayWith]="displayEmployee"
+                  (opened)="onEmployeeAutocompleteOpened(empAuto)" (closed)="onEmployeeAutocompleteClosed()">
+                  @if (employeeSearch.loading) {
+                  <mat-option disabled>Searching…</mat-option>
+                  }
+                  @for (e of employeeSearch.items; track e.id) {
                   <mat-option [value]="e">{{ employeeLabel(e) }}</mat-option>
+                  }
+                  @if (employeeSearch.loadingMore) {
+                  <mat-option disabled>Loading more…</mat-option>
+                  }
+                  @if (employeeSearch.isEmpty && !employeeSearch.loading) {
+                  <mat-option disabled>No employees found</mat-option>
                   }
                 </mat-autocomplete>
                 @if (form.get('employee')?.hasError('required') && form.get('employee')?.touched) {

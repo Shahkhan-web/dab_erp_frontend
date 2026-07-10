@@ -120,6 +120,20 @@ export class EmployeeDetailDialogComponent implements OnInit {
         return n && n !== '—' ? `Photo of ${n}` : 'Employee photo';
     }
 
+    get occupationLabel(): string {
+        const occ = String(this.data?.occupation ?? '').trim().toLowerCase();
+        switch (occ) {
+            case 'bicyclist':
+                return 'Bicyclist';
+            case 'bike rider':
+                return 'Bike rider';
+            case 'staff':
+                return 'Staff';
+            default:
+                return this.data?.occupation ? String(this.data.occupation) : '—';
+        }
+    }
+
     close(): void {
         this.dialogRef.close();
     }

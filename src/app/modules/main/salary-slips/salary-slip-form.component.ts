@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, DestroyRef, inject, OnInit } from '@angular/core';
+import { Component, DestroyRef, inject, OnDestroy, OnInit } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
     AbstractControl,
@@ -11,7 +11,7 @@ import {
     ValidatorFn,
     Validators,
 } from '@angular/forms';
-import { MatAutocompleteModule, MatAutocompleteTrigger } from '@angular/material/autocomplete';
+import { MatAutocompleteModule, MatAutocompleteTrigger, MatAutocomplete } from '@angular/material/autocomplete';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import {
@@ -27,9 +27,11 @@ import { StepperSelectionEvent } from '@angular/cdk/stepper';
 import { MatStepperModule } from '@angular/material/stepper';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
-import { lastValueFrom, map, merge, startWith } from 'rxjs';
+import { lastValueFrom, merge } from 'rxjs';
 import { BackButtonComponent } from 'app/core/components/back-button/back-button.component';
 import { OverlayLoaderDirective } from 'app/core/directives/overlay-loader.directive';
+import { createDebouncedFilterApply } from 'app/core/utils/filter-debounce.util';
+import { EmployeeAutocompleteSearch } from '../employees/employee-autocomplete-search';
 import { EmployeesService, EmployeeListItem } from '../employees/employees.service';
 import { LoanListItem, LoansService } from '../loans/loans.service';
 import { PayComponent, PayComponentsService } from '../pay-components/pay-components.service';
@@ -74,7 +76,7 @@ function employeeOptionValidator(): ValidatorFn {
     ],
     templateUrl: './salary-slip-form.component.html',
 })
-export class SalarySlipFormComponent implements OnInit {
+export class SalarySlipFormComponent implements OnInit, OnDestroy {
     private _destroyRef = inject(DestroyRef);
 
     pageLoader = false;
@@ -96,8 +98,7 @@ export class SalarySlipFormComponent implements OnInit {
     /** Last step: wraps `bankForm` + `riderPerformanceForm` for a single mat-step `stepControl`. */
     bankAndRiderForm: FormGroup;
 
-    employees: EmployeeListItem[] = [];
-    filteredEmployees: EmployeeListItem[] = [];
+    readonly employeeSearch: EmployeeAutocompleteSearch;
     earningComponents: PayComponent[] = [];
     deductionComponents: PayComponent[] = [];
     employeeLoans: LoanListItem[] = [];
@@ -114,6 +115,10 @@ export class SalarySlipFormComponent implements OnInit {
     isEditMode = false;
     editEmployeeId: string | null = null;
     editSalarySlipId: string | null = null;
+
+    private readonly _employeeSearchApply = createDebouncedFilterApply(() => {
+        void this._scheduleEmployeeSearch();
+    });
 
     displayEmployee = (value: EmployeeListItem | string | null): string => {
         if (!value) return '';
@@ -132,6 +137,8 @@ export class SalarySlipFormComponent implements OnInit {
         private _talabatOccupationRatesService: TalabatOccupationRatesService,
         private _toast: ToastrService
     ) {
+        this.employeeSearch = new EmployeeAutocompleteSearch(this._employeesService);
+
         this.detailsForm = this._fb.group({
             employee: [null as EmployeeListItem | string | null, employeeOptionValidator()],
             payrollFrequency: ['monthly' ],
@@ -204,32 +211,19 @@ export class SalarySlipFormComponent implements OnInit {
 
         this.detailsForm
             .get('employee')!
-            .valueChanges.pipe(
-                startWith(this.detailsForm.get('employee')!.value),
-                map((val) =>
-                    this._filterEmployees(
-                        typeof val === 'string' ? val : val ? this.employeeLabel(val as EmployeeListItem) : ''
-                    )
-                ),
-                takeUntilDestroyed(this._destroyRef)
-            )
-            .subscribe((list) => {
-                this.filteredEmployees = list;
-            });
-
-        this.detailsForm
-            .get('employee')!
             .valueChanges.pipe(takeUntilDestroyed(this._destroyRef))
             .subscribe((v) => {
                 if (v && typeof v === 'object' && (v as EmployeeListItem).id) {
                     const emp = v as EmployeeListItem;
                     this._loadLoansForEmployee(emp.id);
                     void this._syncEmployeeProfileFromServer(emp);
-                } else {
-                    this.employeeLoans = [];
-                    this._employeeOccupationForRates = null;
-                    this._syncPerformanceDerivedFields();
+                    return;
                 }
+                if (v && typeof v === 'object') return;
+                this.employeeLoans = [];
+                this._employeeOccupationForRates = null;
+                this._syncPerformanceDerivedFields();
+                this._employeeSearchApply.schedule();
             });
     }
 
@@ -330,19 +324,17 @@ export class SalarySlipFormComponent implements OnInit {
                 .then((r) => r.items ?? [])
                 .catch(() => [] as TalabatOccupationRate[]);
 
-            const [empResp, pcResp, talabatItems] = await Promise.all([
-                lastValueFrom(this._employeesService.getEmployees(1, 100, {})),
+            const [pcResp, talabatItems] = await Promise.all([
                 lastValueFrom(
                     this._payComponentsService.getPayComponents(undefined, undefined, { isActive: true })
                 ),
                 talabatItemsPromise,
             ]);
             this.talabatOccupationRates = talabatItems;
-            this.employees = empResp.employees ?? [];
             const pcs = pcResp.items ?? [];
             this.earningComponents = pcs.filter((p) => p.type === 'earning');
             this.deductionComponents = pcs.filter((p) => p.type === 'deduction');
-            this.refreshEmployeeFilterList();
+            await this.employeeSearch.resetAndLoad();
             await this._applyPreselectedEmployeeFromQuery();
             await this._initEditIfNeeded();
             if (this.earningLines.length === 0) this.addEarningRow();
@@ -355,6 +347,19 @@ export class SalarySlipFormComponent implements OnInit {
         }
     }
 
+    ngOnDestroy(): void {
+        this.employeeSearch.unbindPanelScroll();
+    }
+
+    private _employeeSearchQuery(): string {
+        const val = this.detailsForm.get('employee')!.value;
+        return typeof val === 'string' ? val.trim() : '';
+    }
+
+    private async _scheduleEmployeeSearch(): Promise<void> {
+        await this.employeeSearch.resetAndLoad(this._employeeSearchQuery());
+    }
+
     onEmployeeOptionSelected(): void {
         this._suppressNextEmployeePanelOpen = true;
     }
@@ -364,21 +369,24 @@ export class SalarySlipFormComponent implements OnInit {
             this._suppressNextEmployeePanelOpen = false;
             return;
         }
-        this.refreshEmployeeFilterList();
-        setTimeout(() => {
-            trigger.updatePosition();
-            trigger.openPanel();
+        void this.employeeSearch.resetAndLoad(this._employeeSearchQuery()).then(() => {
+            setTimeout(() => {
+                trigger.updatePosition();
+                trigger.openPanel();
+            });
         });
+    }
+
+    onEmployeeAutocompleteOpened(auto: MatAutocomplete): void {
+        this.employeeSearch.bindPanelScroll(auto);
+    }
+
+    onEmployeeAutocompleteClosed(): void {
+        this.employeeSearch.unbindPanelScroll();
     }
 
     onStepperSelectionChange(ev: StepperSelectionEvent): void {
         this.stepperIndex = ev.selectedIndex;
-    }
-
-    private refreshEmployeeFilterList(): void {
-        const val = this.detailsForm.get('employee')!.value;
-        const q = typeof val === 'string' ? val : val ? this.employeeLabel(val as EmployeeListItem) : '';
-        this.filteredEmployees = this._filterEmployees(q);
     }
 
     /** When opened from e.g. employees list with `?employeeId=`. */
@@ -386,18 +394,17 @@ export class SalarySlipFormComponent implements OnInit {
         if (this.isEditMode) return;
         const id = this._route.snapshot.queryParamMap.get('employeeId')?.trim();
         if (!id) return;
-        let emp = this.employees.find((e) => e.id === id);
+        let emp = this.employeeSearch.items.find((e) => e.id === id);
         if (!emp) {
             try {
                 emp = (await lastValueFrom(this._employeesService.getEmployee(id))) as EmployeeListItem;
-                this.employees = [emp, ...this.employees.filter((e) => e.id !== id)];
+                this.employeeSearch.ensureInList(emp);
             } catch {
                 this._toast.error('Could not load the selected employee');
                 return;
             }
         }
         this.detailsForm.patchValue({ employee: emp });
-        this.refreshEmployeeFilterList();
     }
 
     employeeLabel(e: EmployeeListItem): string {
@@ -407,25 +414,12 @@ export class SalarySlipFormComponent implements OnInit {
         return [empId, name, arabic].filter(Boolean).join(' ');
     }
 
-    private _filterEmployees(query: string): EmployeeListItem[] {
-        const q = query.trim().toLowerCase();
-        if (!q) return this.employees;
-        return this.employees.filter(
-            (e) =>
-                this.employeeLabel(e).toLowerCase().includes(q) ||
-                e.id.toLowerCase().includes(q) ||
-                `${e.firstName ?? ''} ${e.lastName ?? ''}`.toLowerCase().includes(q) ||
-                String(e.employeeId ?? '').toLowerCase().includes(q) ||
-                String(e.employeeNameArabic ?? '').toLowerCase().includes(q)
-        );
-    }
-
     private async _loadLoansForEmployee(employeeId: string): Promise<void> {
         try {
             const resp = await lastValueFrom(
-                this._loansService.getLoans(1, 100, { employeeId, status: 'paid' })
+                this._loansService.getLoans(1, 100, { employeeId, status: 'disbursed' })
             );
-            this.employeeLoans = resp.data ?? [];
+            this.employeeLoans = (resp.data ?? []).filter((l) => Number(l.remaining) > 0);
         } catch {
             this.employeeLoans = [];
         }
@@ -555,7 +549,19 @@ export class SalarySlipFormComponent implements OnInit {
             await this._router.navigate(['/main/salary-slips']);
             return;
         }
-        const selectedEmployee = this.employees.find((e) => e.id === employeeId) ?? null;
+        let selectedEmployee = this.employeeSearch.items.find((e) => e.id === employeeId) ?? null;
+        if (!selectedEmployee) {
+            try {
+                selectedEmployee = (await lastValueFrom(
+                    this._employeesService.getEmployee(employeeId)
+                )) as EmployeeListItem;
+            } catch {
+                selectedEmployee = null;
+            }
+        }
+        if (selectedEmployee) {
+            this.employeeSearch.ensureInList(selectedEmployee);
+        }
         this.detailsForm.patchValue({
             employee: selectedEmployee,
             payrollFrequency: slip.payrollFrequency ?? 'monthly',

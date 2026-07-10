@@ -99,10 +99,77 @@ export interface DeleteLoanResponse {
     message?: string;
 }
 
-/** Approver fields are populated when status is approved (kept through paid); null for open/rejected. */
+/** Loan lifecycle statuses (API `LoanStatus` enum). */
+export const LOAN_STATUSES = ['open', 'rejected', 'approved', 'disbursed', 'reimbursed'] as const;
+export type LoanStatus = (typeof LOAN_STATUSES)[number];
+
+/** Maps legacy `paid` → `reimbursed` for display and transition logic. */
+export function normalizeLoanStatus(status: string | null | undefined): string {
+    const s = (status ?? '').trim().toLowerCase();
+    return s === 'paid' ? 'reimbursed' : s;
+}
+
+export function loanStatusLabel(status: string | null | undefined): string {
+    switch (normalizeLoanStatus(status)) {
+        case 'open':
+            return 'Open';
+        case 'rejected':
+            return 'Rejected';
+        case 'approved':
+            return 'Approved';
+        case 'disbursed':
+            return 'Disbursed';
+        case 'reimbursed':
+            return 'Reimbursed';
+        default:
+            return status?.trim() ? String(status) : '—';
+    }
+}
+
+export function loanStatusChipClass(status: string | null | undefined): Record<string, boolean> {
+    const s = normalizeLoanStatus(status);
+    return {
+        'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300': s === 'open',
+        'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300': s === 'approved',
+        'bg-violet-100 text-violet-800 dark:bg-violet-500/15 dark:text-violet-300': s === 'disbursed',
+        'bg-sky-100 text-sky-800 dark:bg-sky-500/15 dark:text-sky-300': s === 'reimbursed',
+        'bg-rose-100 text-rose-800 dark:bg-rose-500/15 dark:text-rose-300': s === 'rejected',
+        'bg-zinc-100 text-zinc-800 dark:bg-zinc-500/15 dark:text-zinc-300':
+            !LOAN_STATUSES.includes(s as LoanStatus),
+    };
+}
+
+/** Allowed manual status transitions per backend rules. */
+export function allowedLoanStatusTransitions(current: string | null | undefined): LoanStatus[] {
+    switch (normalizeLoanStatus(current)) {
+        case 'open':
+            return ['approved', 'rejected'];
+        case 'approved':
+            return ['disbursed', 'rejected'];
+        case 'rejected':
+            return ['approved'];
+        case 'disbursed':
+            return ['reimbursed'];
+        case 'reimbursed':
+        default:
+            return [];
+    }
+}
+
+export function canChangeLoanStatus(current: string | null | undefined): boolean {
+    return allowedLoanStatusTransitions(current).length > 0;
+}
+
+/** Remaining balance is meaningful only after disbursement (active or fully repaid). */
+export function loanShowsRemainingBalance(status: string | null | undefined): boolean {
+    const s = normalizeLoanStatus(status);
+    return s === 'disbursed' || s === 'reimbursed';
+}
+
+/** Approver fields are shown for approved and post-approval statuses. */
 export function loanShowsApproverInfo(status: string | null | undefined): boolean {
-    const s = (status ?? '').toLowerCase();
-    return s === 'approved' || s === 'paid';
+    const s = normalizeLoanStatus(status);
+    return s === 'approved' || s === 'disbursed' || s === 'reimbursed';
 }
 
 @Injectable({ providedIn: 'root' })

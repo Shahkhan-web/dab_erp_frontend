@@ -116,6 +116,9 @@ export class EmployeeFormComponent implements OnInit, OnDestroy {
 
     companies: Company[] = [];
 
+    /** Occupation loaded from API — used to warn when edit changes occupation without updating employee ID. */
+    private _initialOccupation: string | null = null;
+
     /**
      * Mat datepicker filter: on **create**, managers may pick only today.
      * On **edit**, posting date is read-only (backend value); filter is not applied.
@@ -286,6 +289,48 @@ export class EmployeeFormComponent implements OnInit, OnDestroy {
         return this.companies.find((c) => c.id === id)?.employeeIdPrefix?.trim() ?? '';
     }
 
+    get isStaffOccupationSelected(): boolean {
+        return String(this.overviewForm.get('occupation')?.value ?? '').trim().toLowerCase() === 'staff';
+    }
+
+    /** Prefix segment shown before the numeric index input (`DXB-` or `DXB-STAFF-`). */
+    get selectedEmployeeIdInputPrefix(): string {
+        const prefix = this.selectedEmployeeIdPrefix;
+        if (!prefix) return '';
+        return this.isStaffOccupationSelected ? `${prefix}-STAFF-` : `${prefix}-`;
+    }
+
+    /** Hint for auto-assigned employee ID format on create. */
+    get employeeIdFormatHint(): string | null {
+        const companySelected = !!this.overviewForm.get('companyId')?.value;
+        if (!companySelected) {
+            return 'Select a company to see the employee ID format';
+        }
+        const prefix = this.selectedEmployeeIdPrefix || 'DXB';
+        if (this.isStaffOccupationSelected) {
+            return `Employee ID will be assigned as ${prefix}-STAFF-01 (staff sequence; auto-assigned if empty)`;
+        }
+        return `Employee ID will be assigned as ${prefix}-01 (rider sequence; auto-assigned if empty)`;
+    }
+
+    /** Preview of the full code when a numeric index is entered. */
+    get employeeIdIndexPreview(): string | null {
+        const idx = this.overviewForm.get('employeeIdIndex')?.value as number | string | null | undefined;
+        if (idx === null || idx === undefined || idx === '') return null;
+        const n = Number(idx);
+        if (!Number.isFinite(n) || n < 1) return null;
+        const prefix = this.selectedEmployeeIdPrefix || 'DXB';
+        const nn = String(Math.trunc(n)).padStart(2, '0');
+        return this.isStaffOccupationSelected ? `${prefix}-STAFF-${nn}` : `${prefix}-${nn}`;
+    }
+
+    /** True when occupation was changed on edit — assigned ID is not auto-updated. */
+    get showOccupationChangeWarning(): boolean {
+        if (!this.isEdit || this._initialOccupation == null) return false;
+        const current = String(this.overviewForm.get('occupation')?.value ?? '').trim();
+        return current !== this._initialOccupation;
+    }
+
     async loadCompanies(): Promise<void> {
         try {
             this.companies = await lastValueFrom(this._companiesService.getList());
@@ -356,6 +401,7 @@ export class EmployeeFormComponent implements OnInit, OnDestroy {
                 { emitEvent: false }
             );
             this._syncOverviewAssignedEmployeeIdFromEmployee(emp);
+            this._initialOccupation = emp.occupation ?? '';
 
             const postingCtrl = this.overviewForm.get('postingDate');
             if (this.isManagerRole && this.isEdit) {
@@ -446,7 +492,8 @@ export class EmployeeFormComponent implements OnInit, OnDestroy {
     }
 
     /**
-     * Parses the numeric index from the stored employee display id (`prefix-number`, usually `prefix-index`).
+     * Parses the numeric index from the stored employee display id
+     * (`PREFIX-NN` for riders, `PREFIX-STAFF-NN` for staff).
      */
     private _indexFromEmployeeDisplayCode(displayId: unknown, prefix: string): number | null {
         if (typeof displayId !== 'string' || !displayId.trim() || !prefix?.trim()) {
@@ -454,9 +501,18 @@ export class EmployeeFormComponent implements OnInit, OnDestroy {
         }
         const id = displayId.trim();
         const p = prefix.trim();
+        const staffPrefix = `${p}-STAFF-`;
+        if (id.startsWith(staffPrefix)) {
+            const tail = id.slice(staffPrefix.length);
+            const n = Number(tail);
+            return Number.isFinite(n) ? n : null;
+        }
         const withHyphen = `${p}-`;
         if (id.startsWith(withHyphen)) {
             const tail = id.slice(withHyphen.length);
+            if (tail.toUpperCase().startsWith('STAFF-')) {
+                return null;
+            }
             const n = Number(tail);
             return Number.isFinite(n) ? n : null;
         }
@@ -464,6 +520,14 @@ export class EmployeeFormComponent implements OnInit, OnDestroy {
             let tail = id.slice(p.length);
             if (tail.startsWith('-')) {
                 tail = tail.slice(1);
+            }
+            if (tail.toUpperCase().startsWith('STAFF-')) {
+                const staffTail = tail.slice('STAFF-'.length);
+                if (staffTail.startsWith('-')) {
+                    const n = Number(staffTail.slice(1));
+                    return Number.isFinite(n) ? n : null;
+                }
+                return null;
             }
             const n = Number(tail);
             return Number.isFinite(n) ? n : null;
@@ -523,16 +587,28 @@ export class EmployeeFormComponent implements OnInit, OnDestroy {
                 if (!newId) throw new Error('Employee created but id was not returned');
                 this.employeeId = String(newId);
                 this.isEdit = true;
+                this._initialOccupation = raw.occupation ?? '';
                 this._toast.success('Employee created. You can continue to the next steps.');
                 await this._router.navigate(['/main/employees', this.employeeId, 'edit'], { replaceUrl: true });
                 return;
             }
             await lastValueFrom(this._employeesService.updateEmployeeOverview(this.employeeId, payload));
+            const prevOccupation = this._initialOccupation;
+            const nextOccupation = raw.occupation ?? '';
+            const occupationCategoryChanged =
+                (prevOccupation?.trim().toLowerCase() === 'staff') !==
+                (String(nextOccupation).trim().toLowerCase() === 'staff');
+            this._initialOccupation = nextOccupation;
             try {
                 const refreshed: any = await lastValueFrom(
                     this._employeesService.getEmployee(this.employeeId)
                 );
                 this._syncOverviewAssignedEmployeeIdFromEmployee(refreshed);
+                if (occupationCategoryChanged) {
+                    this._toast.info(
+                        'Occupation updated. The assigned employee ID was not changed automatically — set Employee ID index to assign a new code.'
+                    );
+                }
             } catch {
                 // Assigned ID in the form may be stale; overview fields were still saved.
             }

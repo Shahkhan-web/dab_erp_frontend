@@ -208,6 +208,10 @@
                 matTooltip="Edit pending salary slip only" aria-label="Edit salary slip">
                 <mat-icon class="text-secondary icon-size-5" [svgIcon]="'heroicons_outline:pencil-square'"></mat-icon>
               </button>
+              <button mat-icon-button type="button" (click)="confirmDeleteSlip(item)" [disabled]="!canEditSlip(item)"
+                matTooltip="Delete pending salary slip only" aria-label="Delete salary slip" class="!text-warn">
+                <mat-icon class="icon-size-5" [svgIcon]="'heroicons_outline:trash'"></mat-icon>
+              </button>
               }
             </td>
           </ng-container>

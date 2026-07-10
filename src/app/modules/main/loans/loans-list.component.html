@@ -67,7 +67,8 @@
                 <mat-option value="open">Open</mat-option>
                 <mat-option value="rejected">Rejected</mat-option>
                 <mat-option value="approved">Approved</mat-option>
-                <mat-option value="paid">Paid</mat-option>
+                <mat-option value="disbursed">Disbursed</mat-option>
+                <mat-option value="reimbursed">Reimbursed</mat-option>
               </mat-select>
             </mat-form-field>
             <mat-form-field class="fuse-mat-dense w-full">
@@ -119,7 +120,7 @@
             <th mat-header-cell *matHeaderCellDef>Status</th>
             <td mat-cell *matCellDef="let item">
               <span class="px-2 py-0.5 rounded-full text-xs font-medium" [ngClass]="statusChipClass(item?.status)">
-                {{ item?.status | titlecase }}
+                {{ statusLabel(item?.status) }}
               </span>
             </td>
           </ng-container>
@@ -133,7 +134,13 @@
           </ng-container>
           <ng-container matColumnDef="remaining">
             <th mat-header-cell *matHeaderCellDef>Remaining</th>
-            <td mat-cell *matCellDef="let item">AED {{ item?.remaining | number: '1.2-2' }}</td>
+            <td mat-cell *matCellDef="let item">
+              @if (showsRemainingBalance(item?.status)) {
+                AED {{ item?.remaining | number: '1.2-2' }}
+              } @else {
+                —
+              }
+            </td>
           </ng-container>
           <ng-container matColumnDef="createdAt">
             <th mat-header-cell *matHeaderCellDef>Created</th>
@@ -162,10 +169,12 @@
                   <span>Delete loan</span>
                 </button>
                 }
+                @if (canUpdateLoanStatus(item)) {
                 <button mat-menu-item (click)="openStatusDialog(item)">
                   <mat-icon class="text-secondary icon-size-4" [svgIcon]="'heroicons_outline:arrow-path'"></mat-icon>
                   <span>Update status</span>
                 </button>
+                }
               </mat-menu>
             </td>
           </ng-container>

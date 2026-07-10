@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, DestroyRef, inject, OnInit } from '@angular/core';
+import { Component, DestroyRef, inject, OnDestroy, OnInit } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
     AbstractControl,
@@ -10,7 +10,7 @@ import {
     ValidatorFn,
     Validators,
 } from '@angular/forms';
-import { MatAutocompleteModule, MatAutocompleteTrigger } from '@angular/material/autocomplete';
+import { MatAutocompleteModule, MatAutocompleteTrigger, MatAutocomplete } from '@angular/material/autocomplete';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -21,6 +21,8 @@ import { ToastrService } from 'ngx-toastr';
 import { lastValueFrom, map, startWith } from 'rxjs';
 import { BackButtonComponent } from 'app/core/components/back-button/back-button.component';
 import { OverlayLoaderDirective } from 'app/core/directives/overlay-loader.directive';
+import { createDebouncedFilterApply } from 'app/core/utils/filter-debounce.util';
+import { EmployeeAutocompleteSearch } from '../employees/employee-autocomplete-search';
 import { EmployeesService, EmployeeListItem } from '../employees/employees.service';
 import { LoanListItem, LoansService } from './loans.service';
 
@@ -62,7 +64,7 @@ function permittedValueValidator(allowed: string[]): ValidatorFn {
     ],
     templateUrl: './loan-form.component.html',
 })
-export class LoanFormComponent implements OnInit {
+export class LoanFormComponent implements OnInit, OnDestroy {
     private _destroyRef = inject(DestroyRef);
 
     pageLoader = false;
@@ -75,12 +77,15 @@ export class LoanFormComponent implements OnInit {
     private _editLoanId: string | null = null;
 
     form: FormGroup;
-    employees: EmployeeListItem[] = [];
+    readonly employeeSearch: EmployeeAutocompleteSearch;
     applicantTypeOptions: LabeledOption[] = [{ value: 'employee', label: 'Employee' }];
     statusOptions: LabeledOption[] = [{ value: 'open', label: 'Open' }];
-    filteredEmployees: EmployeeListItem[] = [];
     filteredApplicantOptions: LabeledOption[] = [];
     filteredStatusOptions: LabeledOption[] = [];
+
+    private readonly _employeeSearchApply = createDebouncedFilterApply(() => {
+        void this._scheduleEmployeeSearch();
+    });
 
     constructor(
         private _fb: FormBuilder,
@@ -90,6 +95,8 @@ export class LoanFormComponent implements OnInit {
         private _employeesService: EmployeesService,
         private _toast: ToastrService
     ) {
+        this.employeeSearch = new EmployeeAutocompleteSearch(this._employeesService);
+
         this.form = this._fb.group({
             employee: [null as EmployeeListItem | string | null, employeeOptionValidator()],
             applicantType: ['employee', [permittedValueValidator(['employee'])]],
@@ -102,17 +109,10 @@ export class LoanFormComponent implements OnInit {
 
         this.form
             .get('employee')!
-            .valueChanges.pipe(
-                startWith(this.form.get('employee')!.value),
-                map((val) =>
-                    this._filterEmployees(
-                        typeof val === 'string' ? val : val ? this.employeeLabel(val as EmployeeListItem) : ''
-                    )
-                ),
-                takeUntilDestroyed(this._destroyRef)
-            )
-            .subscribe((list) => {
-                this.filteredEmployees = list;
+            .valueChanges.pipe(takeUntilDestroyed(this._destroyRef))
+            .subscribe((val) => {
+                if (val && typeof val === 'object') return;
+                this._employeeSearchApply.schedule();
             });
 
         this.form
@@ -146,18 +146,26 @@ export class LoanFormComponent implements OnInit {
             if (employeeId && loanId) {
                 await this._loadEditMode(employeeId, loanId);
             } else {
-                const resp = await lastValueFrom(this._employeesService.getEmployees(1, 100, {}));
-                this.employees = resp.employees ?? [];
-                this.refreshEmployeeFilterList();
+                await this.employeeSearch.resetAndLoad();
             }
         } catch (e: any) {
             this._toast.error(e?.error?.message || 'Failed to load page');
         } finally {
             this.pageLoader = false;
-            if (!this.editMode) {
-                this.refreshEmployeeFilterList();
-            }
         }
+    }
+
+    ngOnDestroy(): void {
+        this.employeeSearch.unbindPanelScroll();
+    }
+
+    private _employeeSearchQuery(): string {
+        const val = this.form.get('employee')!.value;
+        return typeof val === 'string' ? val.trim() : '';
+    }
+
+    private async _scheduleEmployeeSearch(): Promise<void> {
+        await this.employeeSearch.resetAndLoad(this._employeeSearchQuery());
     }
 
     private async _loadEditMode(employeeId: string, loanId: string): Promise<void> {
@@ -194,8 +202,8 @@ export class LoanFormComponent implements OnInit {
         const deducted = Number(loan.totalDeductedSoFar);
         this.minLoanAmount = Math.max(Number.isFinite(deducted) ? deducted : 0, 0.01);
 
-        this.employees = [emp];
-        this.filteredEmployees = [emp];
+        this.employeeSearch.items = [emp];
+        this.employeeSearch.hasMore = false;
 
         this.form.patchValue({
             employee: emp,
@@ -229,19 +237,19 @@ export class LoanFormComponent implements OnInit {
         }
     }
 
-    /**
-     * Options only updated on valueChanges; recompute after employees are loaded so focus can open a full list.
-     */
-    private refreshEmployeeFilterList(): void {
-        const val = this.form.get('employee')!.value;
-        const q = typeof val === 'string' ? val : val ? this.employeeLabel(val as EmployeeListItem) : '';
-        this.filteredEmployees = this._filterEmployees(q);
-    }
-
     /** Deferred open so the overlay attaches after change detection (Material autocomplete + focus). */
     openEmployeePanel(trigger: MatAutocompleteTrigger): void {
-        this.refreshEmployeeFilterList();
-        setTimeout(() => trigger.openPanel());
+        void this.employeeSearch.resetAndLoad(this._employeeSearchQuery()).then(() => {
+            setTimeout(() => trigger.openPanel());
+        });
+    }
+
+    onEmployeeAutocompleteOpened(auto: MatAutocomplete): void {
+        this.employeeSearch.bindPanelScroll(auto);
+    }
+
+    onEmployeeAutocompleteClosed(): void {
+        this.employeeSearch.unbindPanelScroll();
     }
 
     employeeLabel(e: EmployeeListItem): string {
@@ -265,18 +273,6 @@ export class LoanFormComponent implements OnInit {
         if (value == null || value === '') return '';
         return this.statusOptions.find((o) => o.value === value)?.label ?? value;
     };
-
-    private _filterEmployees(query: string): EmployeeListItem[] {
-        const q = query.trim().toLowerCase();
-        if (!q) return this.employees;
-        return this.employees.filter(
-            (e) =>
-                this.employeeLabel(e).toLowerCase().includes(q) ||
-                (e.employeeId && e.employeeId.toLowerCase().includes(q)) ||
-                `${e.firstName ?? ''} ${e.middleName ?? ''} ${e.lastName ?? ''}`.toLowerCase().includes(q) ||
-                e.id.toLowerCase().includes(q)
-        );
-    }
 
     private _filterLabeled(query: string, options: LabeledOption[]): LabeledOption[] {
         const q = query.trim().toLowerCase();

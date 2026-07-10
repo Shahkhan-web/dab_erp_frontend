@@ -65,6 +65,15 @@
           {{ workingStatusLabel }}
         </span>
         <span class="text-sm text-slate-600 dark:text-zinc-400">Profile: {{ profileCompletionFormatted }}</span>
+        @if (data?.employeeId) {
+          <span class="text-sm font-mono font-medium text-slate-800 dark:text-zinc-200">{{ data.employeeId }}</span>
+        }
+        @if (data?.occupation) {
+          <span class="text-sm text-slate-600 dark:text-zinc-400">Occupation: {{ occupationLabel }}</span>
+        }
+        @if (data?.riderId) {
+          <span class="text-sm text-slate-600 dark:text-zinc-400">Rider ID: {{ data.riderId }}</span>
+        }
         @if (data?.personalNumber) {
           <span class="text-sm text-slate-600 dark:text-zinc-400">Personal #: {{ data.personalNumber }}</span>
         }

@@ -37,7 +37,7 @@
         <div class="flex flex-wrap items-center gap-2">
           <span class="text-lg font-semibold text-neutral-900 dark:text-white">{{ loan.loanName }}</span>
           <span class="px-2 py-0.5 rounded-full text-xs font-medium" [ngClass]="statusChipClass(loan.status)">
-            {{ loan.status | titlecase }}
+            {{ statusLabel(loan.status) }}
           </span>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-3 text-sm">
@@ -60,10 +60,12 @@
               AED {{ loan.totalDeductedSoFar | number: '1.2-2' }}
             </div>
           </div>
-          <div>
-            <div class="text-slate-500 dark:text-zinc-500">Remaining</div>
-            <div class="font-medium text-slate-800 dark:text-zinc-200">AED {{ loan.remaining | number: '1.2-2' }}</div>
-          </div>
+          @if (showsRemainingBalance()) {
+            <div>
+              <div class="text-slate-500 dark:text-zinc-500">Remaining</div>
+              <div class="font-medium text-slate-800 dark:text-zinc-200">AED {{ loan.remaining | number: '1.2-2' }}</div>
+            </div>
+          }
           <div>
             <div class="text-slate-500 dark:text-zinc-500">Applicant type</div>
             <div class="font-medium text-slate-800 dark:text-zinc-200">{{ loan.applicantType | titlecase }}</div>

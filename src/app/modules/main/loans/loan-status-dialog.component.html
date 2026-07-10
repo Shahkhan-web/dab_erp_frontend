@@ -17,11 +17,12 @@
   </div>
 
   <form [formGroup]="form" class="p-6 sm:p-8 flex flex-col gap-2 min-w-[300px]">
+    <p class="text-sm text-secondary -mt-2 mb-1">Current status: <strong>{{ currentStatusLabel }}</strong></p>
     <mat-form-field class="fuse-mat-dense w-full">
-      <mat-label>Status</mat-label>
+      <mat-label>New status</mat-label>
       <mat-select formControlName="status">
-        @for (s of statusOptions; track s) {
-        <mat-option [value]="s">{{ s | titlecase }}</mat-option>
+        @for (s of allowedStatuses; track s) {
+        <mat-option [value]="s">{{ statusLabel(s) }}</mat-option>
         }
       </mat-select>
     </mat-form-field>

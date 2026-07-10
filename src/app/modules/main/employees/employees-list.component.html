@@ -26,7 +26,7 @@
   <div class="flex-auto p-4 sm:p-6 md:p-5 flex flex-col gap-3">
     <!-- Filters (same style as purchase request) -->
     <div class="flex justify-center">
-      <mat-card appearance="filled" class="bg-zinc-100 dark:bg-zinc-800/50 w-full max-w-4xl">
+      <mat-card appearance="filled" class="bg-zinc-100 dark:bg-zinc-800/50 w-full max-w-6xl">
         <mat-card-header class="flex flex-row items-center justify-between w-full">
           <div class="flex items-center gap-x-2">
             <mat-icon class="icon-size-5 text-zinc-900 dark:text-zinc-100"
@@ -41,14 +41,14 @@
           </div>
         </mat-card-header>
         <mat-card-content class="border border-neutral-200 dark:border-neutral-700">
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
             <mat-form-field class="fuse-mat-dense w-full">
               <mat-label>Rider ID</mat-label>
               <input matInput [(ngModel)]="filterRiderId" placeholder="Rider ID" (ngModelChange)="scheduleApplyFilters()" />
             </mat-form-field>
             <mat-form-field class="fuse-mat-dense w-full">
               <mat-label>Employee ID</mat-label>
-              <input matInput [(ngModel)]="filterEmployeeId" placeholder="e.g. DXB-001" (ngModelChange)="scheduleApplyFilters()" />
+              <input matInput [(ngModel)]="filterEmployeeId" placeholder="e.g. DXB-01 or DXB-STAFF-01" (ngModelChange)="scheduleApplyFilters()" />
             </mat-form-field>
             <mat-form-field class="fuse-mat-dense w-full">
               <mat-label>Name</mat-label>
@@ -71,6 +71,24 @@
                 <mat-option value="non_active">Non Active</mat-option>
                 <mat-option value="suspended">Suspended</mat-option>
                 <mat-option value="left">Left</mat-option>
+              </mat-select>
+            </mat-form-field>
+            <mat-form-field class="fuse-mat-dense w-full">
+              <mat-label>Company</mat-label>
+              <mat-select [(ngModel)]="filterCompanyId" placeholder="All" (ngModelChange)="applyFilters()">
+                <mat-option [value]="null">All</mat-option>
+                @for (company of companies; track company.id) {
+                  <mat-option [value]="company.id">{{ company.name }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+            <mat-form-field class="fuse-mat-dense w-full">
+              <mat-label>Occupation</mat-label>
+              <mat-select [(ngModel)]="filterOccupation" placeholder="All" (ngModelChange)="applyFilters()">
+                <mat-option [value]="null">All</mat-option>
+                @for (opt of occupationOptions; track opt.value) {
+                  <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                }
               </mat-select>
             </mat-form-field>
           </div>
@@ -131,9 +149,9 @@
             </td>
           </ng-container>
           <ng-container matColumnDef="employeeId">
-            <th mat-header-cell *matHeaderCellDef>Employee ID</th>
+            <th mat-header-cell *matHeaderCellDef class="min-w-[8rem]">Employee ID</th>
             <td mat-cell *matCellDef="let item">
-              <div class="font-semibold text-neutral-900 dark:text-white">
+              <div class="font-semibold font-mono text-sm text-neutral-900 dark:text-white break-all">
                 {{ item?.employeeId }}
               </div>
             </td>

@@ -124,6 +124,11 @@ export interface SalarySlipCreatePayload {
 
 export type SalarySlipUpdatePayload = SalarySlipCreatePayload;
 
+/** DELETE `/employee/:employeeId/salary-slips/:salarySlipId` — pending only. */
+export interface DeleteSalarySlipResponse {
+    message?: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class SalarySlipsService {
     private _http = inject(HttpClient);
@@ -164,6 +169,12 @@ export class SalarySlipsService {
 
     updateSalarySlip(employeeId: string, salarySlipId: string, payload: SalarySlipUpdatePayload): Observable<unknown> {
         return this._http.patch(`${this._baseEmployee}/${employeeId}/salary-slips/${salarySlipId}`, payload);
+    }
+
+    deleteSalarySlip(employeeId: string, salarySlipId: string): Observable<DeleteSalarySlipResponse> {
+        return this._http.delete<DeleteSalarySlipResponse>(
+            `${this._baseEmployee}/${employeeId}/salary-slips/${salarySlipId}`
+        );
     }
 
     bulkUpdateStatus(ids: string[], status: SalarySlipStatus): Observable<unknown> {

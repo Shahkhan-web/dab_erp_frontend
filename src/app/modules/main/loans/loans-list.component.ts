@@ -27,7 +27,7 @@ import { createDebouncedFilterApply } from 'app/core/utils/filter-debounce.util'
 import { EmployeeListItem, EmployeesService } from '../employees/employees.service';
 import { LoanDetailDialogComponent } from './loan-detail-dialog.component';
 import { LoanStatusDialogComponent } from './loan-status-dialog.component';
-import { LoanListItem, LoansService } from './loans.service';
+import { LoanListItem, LoansService, canChangeLoanStatus, loanShowsRemainingBalance, loanStatusChipClass, loanStatusLabel } from './loans.service';
 
 @Component({
     selector: 'app-loans-list',
@@ -261,6 +261,14 @@ export class LoansListComponent implements OnInit {
         return this.canWriteLoan && (loan.status || '').toLowerCase() === 'open';
     }
 
+    canUpdateLoanStatus(loan: LoanListItem): boolean {
+        return this.canWriteLoan && canChangeLoanStatus(loan.status);
+    }
+
+    readonly statusChipClass = loanStatusChipClass;
+    readonly statusLabel = loanStatusLabel;
+    readonly showsRemainingBalance = loanShowsRemainingBalance;
+
     async confirmDeleteLoan(loan: LoanListItem): Promise<void> {
         const label = loan.loanName?.trim() || 'this loan';
         const confirmed = await lastValueFrom(
@@ -279,18 +287,6 @@ export class LoansListComponent implements OnInit {
         } catch (e: any) {
             this._toast.error(e?.error?.message || 'Failed to delete loan');
         }
-    }
-
-    statusChipClass(status: string | undefined): Record<string, boolean> {
-        const s = (status || '').toLowerCase();
-        return {
-            'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300': s === 'open',
-            'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300': s === 'approved',
-            'bg-rose-100 text-rose-800 dark:bg-rose-500/15 dark:text-rose-300': s === 'rejected',
-            'bg-sky-100 text-sky-800 dark:bg-sky-500/15 dark:text-sky-300': s === 'paid',
-            'bg-zinc-100 text-zinc-800 dark:bg-zinc-500/15 dark:text-zinc-300':
-                !['open', 'approved', 'rejected', 'paid'].includes(s),
-        };
     }
 
     openLoanDetail(loan: LoanListItem): void {

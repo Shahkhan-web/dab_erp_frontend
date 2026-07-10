@@ -24,6 +24,7 @@ import { BackButtonComponent } from 'app/core/components/back-button/back-button
 import { OverlayLoaderDirective } from 'app/core/directives/overlay-loader.directive';
 import { createDebouncedFilterApply } from 'app/core/utils/filter-debounce.util';
 import { EmployeesService, EmployeeListItem } from './employees.service';
+import { Company, CompaniesService } from '../companies/companies.service';
 import { EmployeePersonalDialogComponent } from './dialogs/employee-personal-dialog.component';
 import { EmployeeSalaryDialogComponent } from './dialogs/employee-salary-dialog.component';
 import { EmployeeDetailDialogComponent } from './dialogs/employee-detail-dialog.component';
@@ -86,12 +87,24 @@ export class EmployeesListComponent implements OnInit {
     filterName: string | null = null;
     filterNationality: string | null = null;
     filterWorkingStatus: string | null = null;
+    filterCompanyId: string | null = null;
+    filterOccupation: string | null = null;
+
+    companies: Company[] = [];
+
+    /** API enum values for `occupation` — matches backend Occupation enum. */
+    readonly occupationOptions = [
+        { value: 'bicyclist', label: 'Bicyclist' },
+        { value: 'bike rider', label: 'Bike rider' },
+        { value: 'staff', label: 'Staff' },
+    ] as const;
 
     /** Same list as employee form / personal dialog nationality field. */
     readonly countryOptions = COUNTRY_NAMES;
 
     constructor(
         private _employeesService: EmployeesService,
+        private _companiesService: CompaniesService,
         private _router: Router,
         private _toast: ToastrService,
         private _matDialog: MatDialog,
@@ -112,7 +125,16 @@ export class EmployeesListComponent implements OnInit {
     }
 
     ngOnInit(): void {
+        void this.loadCompanies();
         this.loadEmployees();
+    }
+
+    async loadCompanies(): Promise<void> {
+        try {
+            this.companies = await lastValueFrom(this._companiesService.getList());
+        } catch {
+            this.companies = [];
+        }
     }
 
     async loadEmployees(): Promise<void> {
@@ -126,6 +148,8 @@ export class EmployeesListComponent implements OnInit {
                     name: this.filterName,
                     nationality: this.filterNationality,
                     workingStatus: this.filterWorkingStatus,
+                    companyId: this.filterCompanyId,
+                    occupation: this.filterOccupation,
                 })
             );
             this.employees = resp.employees ?? [];
@@ -167,6 +191,8 @@ export class EmployeesListComponent implements OnInit {
         this.filterName = null;
         this.filterNationality = null;
         this.filterWorkingStatus = null;
+        this.filterCompanyId = null;
+        this.filterOccupation = null;
         this._suppressFilterApply = false;
         this._filterApply.now();
     }

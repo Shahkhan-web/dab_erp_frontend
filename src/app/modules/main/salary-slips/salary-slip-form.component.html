@@ -45,9 +45,19 @@
                       [matAutocomplete]="empAuto" #empTrigger="matAutocompleteTrigger"
                       (focus)="openEmployeePanel(empTrigger)" (click)="openEmployeePanel(empTrigger)" />
                     <mat-autocomplete #empAuto="matAutocomplete" [displayWith]="displayEmployee"
-                      (optionSelected)="onEmployeeOptionSelected()">
-                      @for (e of filteredEmployees; track e.id) {
+                      (optionSelected)="onEmployeeOptionSelected()"
+                      (opened)="onEmployeeAutocompleteOpened(empAuto)" (closed)="onEmployeeAutocompleteClosed()">
+                      @if (employeeSearch.loading) {
+                      <mat-option disabled>Searching…</mat-option>
+                      }
+                      @for (e of employeeSearch.items; track e.id) {
                       <mat-option [value]="e">{{ employeeLabel(e) }}</mat-option>
+                      }
+                      @if (employeeSearch.loadingMore) {
+                      <mat-option disabled>Loading more…</mat-option>
+                      }
+                      @if (employeeSearch.isEmpty && !employeeSearch.loading) {
+                      <mat-option disabled>No employees found</mat-option>
                       }
                     </mat-autocomplete>
                     @if (detailsForm.get('employee')?.hasError('required') && detailsForm.get('employee')?.touched) {

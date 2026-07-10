@@ -11,9 +11,14 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
-import { LoanListItem, UpdateLoanStatusPayload } from './loans.service';
-
-export const LOAN_STATUS_OPTIONS = ['open', 'rejected', 'approved', 'paid'] as const;
+import {
+    allowedLoanStatusTransitions,
+    LoanListItem,
+    LoanStatus,
+    loanStatusLabel,
+    normalizeLoanStatus,
+    UpdateLoanStatusPayload,
+} from './loans.service';
 
 export interface LoanStatusDialogData {
     loan: LoanListItem;
@@ -36,18 +41,24 @@ export interface LoanStatusDialogData {
 })
 export class LoanStatusDialogComponent {
     form: FormGroup;
-    statusOptions = [...LOAN_STATUS_OPTIONS];
+    readonly allowedStatuses: LoanStatus[];
+    readonly statusLabel = loanStatusLabel;
 
     constructor(
         private _fb: FormBuilder,
         private _dialogRef: MatDialogRef<LoanStatusDialogComponent, false | UpdateLoanStatusPayload>,
         @Inject(MAT_DIALOG_DATA) public data: LoanStatusDialogData
     ) {
+        this.allowedStatuses = allowedLoanStatusTransitions(data.loan.status);
         this.form = this._fb.group({
-            status: [data.loan.status || 'open', Validators.required],
+            status: [this.allowedStatuses[0] ?? '', Validators.required],
             reason: [''],
             remarks: [''],
         });
+    }
+
+    get currentStatusLabel(): string {
+        return loanStatusLabel(normalizeLoanStatus(this.data.loan.status));
     }
 
     cancel(): void {

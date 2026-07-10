@@ -70,31 +70,15 @@
                     <mat-error>Company is required</mat-error>
                   }
                 </mat-form-field>
-                @if (isEdit) {
-                  <mat-form-field class="fuse-mat-dense w-full md:col-span-2">
-                    <mat-label>Assigned employee Id</mat-label>
-                    <input matInput formControlName="employeeId" readonly />
-                  </mat-form-field>
-                }
-                <mat-form-field class="fuse-mat-dense w-full md:col-span-2">
-                  <mat-label>Employee ID</mat-label>
-                  @if (overviewForm.get('companyId')?.value) {
-                    <span matTextPrefix class="text-secondary me-1 whitespace-nowrap">{{ selectedEmployeeIdPrefix || '—' }}&nbsp;|&nbsp;</span>
-                  }
-                  <input
-                    matInput
-                    type="number"
-                    formControlName="employeeIdIndex"
-                    min="1"
-                    step="1"
-                    [placeholder]="isEdit ? 'Enter number' : 'Optional — auto-assigned if empty'"
-                  />
-                  @if (overviewForm.get('employeeIdIndex')?.invalid && overviewForm.get('employeeIdIndex')?.touched) {
-                    <mat-error>
-                      @if (overviewForm.get('employeeIdIndex')?.errors?.['min']) {
-                        Enter a whole number of at least 1
-                      }
-                    </mat-error>
+                <mat-form-field class="fuse-mat-dense w-full">
+                  <mat-label>Occupation</mat-label>
+                  <mat-select formControlName="occupation">
+                    <mat-option *ngFor="let opt of occupationOptions" [value]="opt.value">{{ opt.label }}</mat-option>
+                  </mat-select>
+                  @if (showOccupationChangeWarning) {
+                    <mat-hint class="text-amber-700 dark:text-amber-400">
+                      Changing occupation does not update the assigned employee ID automatically. Set Employee ID index explicitly to assign a new code.
+                    </mat-hint>
                   }
                 </mat-form-field>
                 <mat-form-field class="fuse-mat-dense w-full">
@@ -106,11 +90,37 @@
                     <mat-option value="left">Left</mat-option>
                   </mat-select>
                 </mat-form-field>
-                <mat-form-field class="fuse-mat-dense w-full">
-                  <mat-label>Occupation</mat-label>
-                  <mat-select formControlName="occupation">
-                    <mat-option *ngFor="let opt of occupationOptions" [value]="opt.value">{{ opt.label }}</mat-option>
-                  </mat-select>
+                @if (isEdit) {
+                  <mat-form-field class="fuse-mat-dense w-full md:col-span-2">
+                    <mat-label>Assigned employee Id</mat-label>
+                    <input matInput formControlName="employeeId" readonly class="font-mono" />
+                  </mat-form-field>
+                }
+                <mat-form-field class="fuse-mat-dense w-full md:col-span-2">
+                  <mat-label>Employee ID</mat-label>
+                  @if (overviewForm.get('companyId')?.value) {
+                    <span matTextPrefix class="text-secondary me-1 whitespace-nowrap font-mono text-sm">{{ selectedEmployeeIdInputPrefix || '—' }}</span>
+                  }
+                  <input
+                    matInput
+                    type="number"
+                    formControlName="employeeIdIndex"
+                    min="1"
+                    step="1"
+                    [placeholder]="isEdit ? 'Enter number' : 'Optional — auto-assigned if empty'"
+                  />
+                  @if (employeeIdIndexPreview) {
+                    <mat-hint>Saves as {{ employeeIdIndexPreview }}</mat-hint>
+                  } @else if (employeeIdFormatHint) {
+                    <mat-hint>{{ employeeIdFormatHint }}</mat-hint>
+                  }
+                  @if (overviewForm.get('employeeIdIndex')?.invalid && overviewForm.get('employeeIdIndex')?.touched) {
+                    <mat-error>
+                      @if (overviewForm.get('employeeIdIndex')?.errors?.['min']) {
+                        Enter a whole number of at least 1
+                      }
+                    </mat-error>
+                  }
                 </mat-form-field>
                 <!-- <mat-form-field class="fuse-mat-dense w-full">
                   <mat-label>Date of Joining</mat-label>

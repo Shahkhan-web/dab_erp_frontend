@@ -18,6 +18,9 @@ import {
     LoanResponseDto,
     LoansService,
     loanShowsApproverInfo,
+    loanShowsRemainingBalance,
+    loanStatusChipClass,
+    loanStatusLabel,
 } from './loans.service';
 
 export interface LoanDetailDialogData {
@@ -71,6 +74,10 @@ export class LoanDetailDialogComponent implements OnInit {
         return loanShowsApproverInfo(this.loan?.status);
     }
 
+    showsRemainingBalance(): boolean {
+        return loanShowsRemainingBalance(this.loan?.status);
+    }
+
     async loadLoan(): Promise<void> {
         const { employeeId, loanId } = this.dialogData ?? {};
         if (!employeeId || !loanId) {
@@ -96,17 +103,8 @@ export class LoanDetailDialogComponent implements OnInit {
         this._dialogRef.close();
     }
 
-    statusChipClass(status: string | undefined): Record<string, boolean> {
-        const s = (status || '').toLowerCase();
-        return {
-            'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300': s === 'open',
-            'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300': s === 'approved',
-            'bg-rose-100 text-rose-800 dark:bg-rose-500/15 dark:text-rose-300': s === 'rejected',
-            'bg-sky-100 text-sky-800 dark:bg-sky-500/15 dark:text-sky-300': s === 'paid',
-            'bg-zinc-100 text-zinc-800 dark:bg-zinc-500/15 dark:text-zinc-300':
-                !['open', 'approved', 'rejected', 'paid'].includes(s),
-        };
-    }
+    readonly statusChipClass = loanStatusChipClass;
+    readonly statusLabel = loanStatusLabel;
 
     formatJsonField(value: unknown): string {
         if (value == null || value === '') return '—';
