@@ -253,6 +253,11 @@
                   <mat-icon class="text-secondary icon-size-4" [svgIcon]="'heroicons_outline:banknotes'"></mat-icon>
                   <span>View loan history</span>
                 </button>
+                <button mat-menu-item (click)="openSalaryDebtDialog(item)">
+                  <mat-icon class="text-secondary icon-size-4"
+                    [svgIcon]="'heroicons_outline:exclamation-triangle'"></mat-icon>
+                  <span>View salary debt</span>
+                </button>
                 <button mat-menu-item (click)="openDocumentsDialog(item)">
                   <mat-icon class="text-secondary icon-size-4"
                     [svgIcon]="'heroicons_outline:identification'"></mat-icon>

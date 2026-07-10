@@ -68,6 +68,17 @@
                     <mat-error>Choose an employee from the list</mat-error>
                     }
                   </mat-form-field>
+                  @if (!isEditMode && outstandingSalaryDebt > 0) {
+                  <div
+                    class="md:col-span-2 flex gap-3 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2.5 text-sm text-amber-950 dark:border-amber-700/50 dark:bg-amber-950/30 dark:text-amber-100">
+                    <mat-icon class="icon-size-5 shrink-0 text-amber-600 dark:text-amber-400"
+                      [svgIcon]="'heroicons_outline:exclamation-triangle'"></mat-icon>
+                    <p>
+                      This employee has <strong>AED {{ outstandingSalaryDebt | number: '1.2-2' }}</strong> outstanding
+                      from previous salary slips — it will be automatically deducted from this slip.
+                    </p>
+                  </div>
+                  }
                   <mat-form-field class="fuse-mat-dense w-full md:col-span-2">
                     <mat-label>Payroll frequency</mat-label>
                     <mat-select formControlName="payrollFrequency">

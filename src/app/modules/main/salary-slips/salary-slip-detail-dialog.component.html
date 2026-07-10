@@ -244,6 +244,52 @@
     </div>
     }
 
+    <!-- Salary debt carry-forward -->
+    @if (hasDebtSection) {
+    <div class="detail-section mb-3">
+      <div class="section-title">
+        <mat-icon class="icon-size-5" [svgIcon]="'heroicons_outline:exclamation-triangle'"></mat-icon>
+        Salary debt
+      </div>
+      @if (carriedForwardDebtDeduction > 0) {
+      <div
+        class="mb-3 flex flex-col gap-1 rounded-lg border border-amber-300/80 bg-amber-50/90 px-3 py-2.5 dark:border-amber-800/50 dark:bg-amber-950/30 sm:flex-row sm:items-center sm:justify-between">
+        <p class="text-sm text-amber-950 dark:text-amber-100">
+          Carried-forward debt deducted on this slip
+          <span class="text-xs text-amber-800/80 dark:text-amber-200/80">(included in total deduction above)</span>
+        </p>
+        <p class="shrink-0 text-lg font-bold tabular-nums text-amber-900 dark:text-amber-100">
+          AED {{ formatMoney(carriedForwardDebtDeduction) }}
+        </p>
+      </div>
+      }
+      @for (record of debtsCreatedOnThisSlip; track record.id) {
+      <div
+        class="mb-2 rounded-lg border border-red-200 bg-red-50/80 px-3 py-2 text-sm text-red-950 dark:border-red-900/40 dark:bg-red-950/25 dark:text-red-100">
+        <span class="font-semibold">Debt created on this slip:</span>
+        AED {{ formatMoney(record.amount) }}
+        @if (debtOutstanding(record) > 0) {
+        <span class="text-red-800/90 dark:text-red-200/90"> (AED {{ formatMoney(debtOutstanding(record)) }} still outstanding)</span>
+        } @else {
+        <span class="text-emerald-800 dark:text-emerald-200"> (fully recovered)</span>
+        }
+      </div>
+      }
+      @for (record of debtsRecoveredOnThisSlip; track record.id) {
+      <div
+        class="mb-2 rounded-lg border border-emerald-200 bg-emerald-50/80 px-3 py-2 text-sm text-emerald-950 dark:border-emerald-900/40 dark:bg-emerald-950/25 dark:text-emerald-100">
+        <span class="font-semibold">Debt recovered on this slip:</span>
+        AED {{ formatMoney(record.recoveredAmount) }}
+        <span class="text-emerald-800/90 dark:text-emerald-200/90"> from slip {{ shortSlipId(record.salarySlipId) }}</span>
+      </div>
+      }
+    </div>
+    } @else if (debtLoading) {
+    <div class="detail-section mb-3">
+      <p class="text-sm text-slate-500 dark:text-zinc-400">Loading salary debt details…</p>
+    </div>
+    }
+
     @if (hasRiderSection) {
     <div class="detail-section mb-3">
       <div class="section-title">

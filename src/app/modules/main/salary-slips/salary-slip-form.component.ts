@@ -102,6 +102,8 @@ export class SalarySlipFormComponent implements OnInit, OnDestroy {
     earningComponents: PayComponent[] = [];
     deductionComponents: PayComponent[] = [];
     employeeLoans: LoanListItem[] = [];
+    /** Outstanding salary debt from previous negative net slips (create mode warning). */
+    outstandingSalaryDebt = 0;
     /** Loaded from `GET talabat-occupation-rates` for rider earning calculation. */
     talabatOccupationRates: TalabatOccupationRate[] = [];
     private _employeeOccupationForRates: string | null = null;
@@ -216,11 +218,13 @@ export class SalarySlipFormComponent implements OnInit, OnDestroy {
                 if (v && typeof v === 'object' && (v as EmployeeListItem).id) {
                     const emp = v as EmployeeListItem;
                     this._loadLoansForEmployee(emp.id);
+                    void this._loadSalaryDebtForEmployee(emp.id);
                     void this._syncEmployeeProfileFromServer(emp);
                     return;
                 }
                 if (v && typeof v === 'object') return;
                 this.employeeLoans = [];
+                this.outstandingSalaryDebt = 0;
                 this._employeeOccupationForRates = null;
                 this._syncPerformanceDerivedFields();
                 this._employeeSearchApply.schedule();
@@ -422,6 +426,19 @@ export class SalarySlipFormComponent implements OnInit, OnDestroy {
             this.employeeLoans = (resp.data ?? []).filter((l) => Number(l.remaining) > 0);
         } catch {
             this.employeeLoans = [];
+        }
+    }
+
+    private async _loadSalaryDebtForEmployee(employeeId: string): Promise<void> {
+        if (this.isEditMode) {
+            this.outstandingSalaryDebt = 0;
+            return;
+        }
+        try {
+            const resp = await lastValueFrom(this._salarySlipsService.getSalaryDebtHistory(employeeId));
+            this.outstandingSalaryDebt = Math.max(0, Number(resp.totalOutstanding) || 0);
+        } catch {
+            this.outstandingSalaryDebt = 0;
         }
     }
 

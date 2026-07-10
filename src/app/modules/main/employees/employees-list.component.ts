@@ -33,6 +33,7 @@ import { EmployeeDocumentsViewDialogComponent } from './dialogs/employee-documen
 import { EmployeeJoiningDialogComponent } from './dialogs/employee-joining-dialog.component';
 import { EmployeeContactDialogComponent } from './dialogs/employee-contact-dialog.component';
 import { EmployeeLoanHistoryDialogComponent } from './dialogs/employee-loan-history-dialog.component';
+import { EmployeeSalaryDebtDialogComponent } from './dialogs/employee-salary-debt-dialog.component';
 import { ConfirmDeleteDialogComponent } from 'app/core/components/confirm-delete-dialog/confirm-delete-dialog.component';
 
 @Component({
@@ -259,6 +260,16 @@ export class EmployeesListComponent implements OnInit {
     openLoanHistoryDialog(employee: EmployeeListItem): void {
         const name = [employee.firstName, employee.middleName, employee.lastName].filter(Boolean).join(' ') || 'Employee';
         this._matDialog.open(EmployeeLoanHistoryDialogComponent, {
+            data: { employeeId: employee.id, employeeName: name },
+            width: '96vw',
+            maxWidth: '960px',
+            disableClose: false,
+        });
+    }
+
+    openSalaryDebtDialog(employee: EmployeeListItem): void {
+        const name = [employee.firstName, employee.middleName, employee.lastName].filter(Boolean).join(' ') || 'Employee';
+        this._matDialog.open(EmployeeSalaryDebtDialogComponent, {
             data: { employeeId: employee.id, employeeName: name },
             width: '96vw',
             maxWidth: '960px',

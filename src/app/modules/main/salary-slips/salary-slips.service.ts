@@ -13,7 +13,23 @@ export interface SalarySlipLine {
 
 export interface SalarySlipLoanDeduction {
     loanId: string;
+    loanName?: string;
     loanDeductedAmount?: number;
+}
+
+export interface SalaryDebtRecord {
+    id: string;
+    salarySlipId: string;
+    amount: number;
+    recoveredAmount: number;
+    recoveredOnSalarySlipId: string | null;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface SalaryDebtHistoryResponse {
+    totalOutstanding: number;
+    records: SalaryDebtRecord[];
 }
 
 export interface SalarySlipPerformance {
@@ -156,6 +172,12 @@ export class SalarySlipsService {
         return this._http.get<SalarySlipsListResponse>(
             `${this._baseEmployee}/${employeeId}/salary-slips`,
             { params }
+        );
+    }
+
+    getSalaryDebtHistory(employeeId: string): Observable<SalaryDebtHistoryResponse> {
+        return this._http.get<SalaryDebtHistoryResponse>(
+            `${this._baseEmployee}/${employeeId}/salary-slips/debt-history`
         );
     }
 

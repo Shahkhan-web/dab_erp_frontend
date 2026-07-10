@@ -1,5 +1,5 @@
 import { CommonModule, DatePipe, DecimalPipe } from '@angular/common';
-import { Component, Inject } from '@angular/core';
+import { Component, Inject, OnInit } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
@@ -7,9 +7,15 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { ToastrService } from 'ngx-toastr';
 import { firstValueFrom, lastValueFrom } from 'rxjs';
 import { CompaniesService } from '../companies/companies.service';
+import { inferredCarriedDebtDeduction, shortSlipId } from './salary-debt.util';
 import { SalarySlipLetterheadChoiceDialogComponent } from './salary-slip-letterhead-choice-dialog.component';
 import { SalarySlipPdfDialogComponent } from './salary-slip-pdf-dialog.component';
-import { SalarySlipLine, SalarySlipListItem, SalarySlipsService } from './salary-slips.service';
+import {
+    SalaryDebtRecord,
+    SalarySlipLine,
+    SalarySlipListItem,
+    SalarySlipsService,
+} from './salary-slips.service';
 
 export interface SalarySlipDetailDialogData {
     slip: SalarySlipListItem;
@@ -33,8 +39,10 @@ export interface SalarySlipDetailDialogData {
     templateUrl: './salary-slip-detail-dialog.component.html',
     styleUrl: './salary-slip-detail-dialog.component.scss',
 })
-export class SalarySlipDetailDialogComponent {
+export class SalarySlipDetailDialogComponent implements OnInit {
     pdfLoading = false;
+    debtLoading = false;
+    debtRecords: SalaryDebtRecord[] = [];
     /** Cached PDF for this slip so reopening the viewer avoids another request. */
     private _pdfBlob: Blob | null = null;
     /** Letterhead flag used when `_pdfBlob` was fetched (invalidate if it changes). */
@@ -50,6 +58,10 @@ export class SalarySlipDetailDialogComponent {
         private _toast: ToastrService,
         private _matDialog: MatDialog
     ) {}
+
+    ngOnInit(): void {
+        void this._loadDebtHistory();
+    }
 
     get slip(): SalarySlipListItem {
         return this.dialogData.slip;
@@ -70,6 +82,48 @@ export class SalarySlipDetailDialogComponent {
     get otherLines(): SalarySlipLine[] {
         const t = (c: string | undefined) => (c ?? '').toLowerCase();
         return (this.slip.lines ?? []).filter((l) => t(l.componentType) !== 'earning' && t(l.componentType) !== 'deduction');
+    }
+
+    get debtsCreatedOnThisSlip(): SalaryDebtRecord[] {
+        return this.debtRecords.filter((r) => r.salarySlipId === this.slip.id);
+    }
+
+    get debtsRecoveredOnThisSlip(): SalaryDebtRecord[] {
+        return this.debtRecords.filter((r) => r.recoveredOnSalarySlipId === this.slip.id);
+    }
+
+    get carriedForwardDebtDeduction(): number {
+        return inferredCarriedDebtDeduction(this.slip);
+    }
+
+    get hasDebtSection(): boolean {
+        return (
+            this.debtsCreatedOnThisSlip.length > 0 ||
+            this.debtsRecoveredOnThisSlip.length > 0 ||
+            this.carriedForwardDebtDeduction > 0
+        );
+    }
+
+    shortSlipId = shortSlipId;
+
+    debtOutstanding(record: SalaryDebtRecord): number {
+        const amount = Number(record.amount) || 0;
+        const recovered = Number(record.recoveredAmount) || 0;
+        return Math.max(0, amount - recovered);
+    }
+
+    private async _loadDebtHistory(): Promise<void> {
+        const employeeId = this.slip?.employeeId;
+        if (!employeeId) return;
+        this.debtLoading = true;
+        try {
+            const resp = await lastValueFrom(this._salarySlipsService.getSalaryDebtHistory(employeeId));
+            this.debtRecords = resp.records ?? [];
+        } catch {
+            this.debtRecords = [];
+        } finally {
+            this.debtLoading = false;
+        }
     }
 
     close(): void {

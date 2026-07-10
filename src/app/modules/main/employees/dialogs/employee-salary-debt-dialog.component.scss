@@ -1,0 +1,19 @@
+:host {
+  display: block;
+}
+
+table {
+  th {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: rgb(100 116 139);
+    white-space: nowrap;
+  }
+
+  td,
+  th {
+    padding: 0.625rem 0.75rem;
+  }
+}
