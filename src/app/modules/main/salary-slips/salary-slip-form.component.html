@@ -71,12 +71,22 @@
                   @if (!isEditMode && outstandingSalaryDebt > 0) {
                   <div
                     class="md:col-span-2 flex gap-3 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2.5 text-sm text-amber-950 dark:border-amber-700/50 dark:bg-amber-950/30 dark:text-amber-100">
-                    <mat-icon class="icon-size-5 shrink-0 text-amber-600 dark:text-amber-400"
+                    <mat-icon class="icon-size-5 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5"
                       [svgIcon]="'heroicons_outline:exclamation-triangle'"></mat-icon>
-                    <p>
-                      This employee has <strong>AED {{ outstandingSalaryDebt | number: '1.2-2' }}</strong> outstanding
-                      from previous salary slips — it will be automatically deducted from this slip.
-                    </p>
+                    <div class="flex min-w-0 flex-1 flex-col gap-2">
+                      <p>
+                        This employee has <strong>AED {{ outstandingSalaryDebt | number: '1.2-2' }}</strong> outstanding
+                        from previous salary slips.
+                      </p>
+                      <mat-checkbox color="primary" formControlName="deductOutstandingDebt" class="!-ms-2">
+                        Deduct outstanding salary debt on this slip
+                      </mat-checkbox>
+                      @if (!detailsForm.get('deductOutstandingDebt')?.value) {
+                      <p class="text-xs text-amber-800/90 dark:text-amber-200/90">
+                        Debt will remain outstanding and can be deducted on a future slip.
+                      </p>
+                      }
+                    </div>
                   </div>
                   }
                   <mat-form-field class="fuse-mat-dense w-full md:col-span-2">

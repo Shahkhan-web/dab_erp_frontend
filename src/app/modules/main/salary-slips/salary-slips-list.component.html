@@ -47,12 +47,26 @@
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
             <mat-form-field class="fuse-mat-dense w-full">
               <mat-label>Employee</mat-label>
-              <mat-select [(ngModel)]="filterEmployeeId" placeholder="All" (ngModelChange)="applyFilters()">
-                <mat-option [value]="null">All</mat-option>
-                @for (emp of employees; track emp.id) {
-                <mat-option [value]="emp.id">{{ employeeLabel(emp) }}</mat-option>
+              <input matInput [(ngModel)]="employeeFilter" placeholder="Search by name or ID"
+                [matAutocomplete]="empAuto" #empTrigger="matAutocompleteTrigger"
+                (focus)="openEmployeePanel(empTrigger)" (click)="openEmployeePanel(empTrigger)"
+                (ngModelChange)="onEmployeeFilterChange($event)" />
+              <mat-autocomplete #empAuto="matAutocomplete" [displayWith]="displayEmployee"
+                (optionSelected)="onEmployeeOptionSelected()"
+                (opened)="onEmployeeAutocompleteOpened(empAuto)" (closed)="onEmployeeAutocompleteClosed()">
+                @if (employeeSearch.loading) {
+                <mat-option disabled>Searching…</mat-option>
                 }
-              </mat-select>
+                @for (e of employeeSearch.items; track e.id) {
+                <mat-option [value]="e">{{ employeeLabel(e) }}</mat-option>
+                }
+                @if (employeeSearch.loadingMore) {
+                <mat-option disabled>Loading more…</mat-option>
+                }
+                @if (employeeSearch.isEmpty && !employeeSearch.loading) {
+                <mat-option disabled>No employees found</mat-option>
+                }
+              </mat-autocomplete>
             </mat-form-field>
             <mat-form-field class="fuse-mat-dense w-full">
               <mat-label>Payroll frequency</mat-label>

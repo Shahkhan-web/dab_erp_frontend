@@ -14,6 +14,7 @@ import {
 import { MatAutocompleteModule, MatAutocompleteTrigger, MatAutocomplete } from '@angular/material/autocomplete';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import {
     MatNativeDateModule,
 } from '@angular/material/core';
@@ -66,6 +67,7 @@ function employeeOptionValidator(): ValidatorFn {
         MatInputModule,
         MatButtonModule,
         MatIconModule,
+        MatCheckboxModule,
         MatSelectModule,
         MatDatepickerModule,
         MatNativeDateModule,
@@ -146,6 +148,7 @@ export class SalarySlipFormComponent implements OnInit, OnDestroy {
             payrollFrequency: ['monthly' ],
             startDate: [null as Date | null ],
             endDate: [null as Date | null ],
+            deductOutstandingDebt: [true],
         });
 
         this.paymentForm = this._fb.group({
@@ -225,6 +228,7 @@ export class SalarySlipFormComponent implements OnInit, OnDestroy {
                 if (v && typeof v === 'object') return;
                 this.employeeLoans = [];
                 this.outstandingSalaryDebt = 0;
+                this.detailsForm.patchValue({ deductOutstandingDebt: true }, { emitEvent: false });
                 this._employeeOccupationForRates = null;
                 this._syncPerformanceDerivedFields();
                 this._employeeSearchApply.schedule();
@@ -437,8 +441,13 @@ export class SalarySlipFormComponent implements OnInit, OnDestroy {
         try {
             const resp = await lastValueFrom(this._salarySlipsService.getSalaryDebtHistory(employeeId));
             this.outstandingSalaryDebt = Math.max(0, Number(resp.totalOutstanding) || 0);
+            this.detailsForm.patchValue(
+                { deductOutstandingDebt: this.outstandingSalaryDebt > 0 },
+                { emitEvent: false }
+            );
         } catch {
             this.outstandingSalaryDebt = 0;
+            this.detailsForm.patchValue({ deductOutstandingDebt: false }, { emitEvent: false });
         }
     }
 
@@ -777,6 +786,10 @@ export class SalarySlipFormComponent implements OnInit, OnDestroy {
 
         if (bank.bankName?.trim()) payload.bankName = bank.bankName.trim();
         if (bank.bankAccountNo?.trim()) payload.bankAccountNo = bank.bankAccountNo.trim();
+
+        if (!this.isEditMode && this.outstandingSalaryDebt > 0) {
+            payload.deductOutstandingDebt = Boolean(d.deductOutstandingDebt);
+        }
 
         this.saving = true;
         try {

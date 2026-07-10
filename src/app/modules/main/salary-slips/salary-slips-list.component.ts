@@ -1,6 +1,7 @@
 import { CommonModule, DatePipe } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { MatAutocompleteModule, MatAutocomplete, MatAutocompleteTrigger } from '@angular/material/autocomplete';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatCheckboxModule } from '@angular/material/checkbox';
@@ -24,6 +25,7 @@ import { ConfirmDeleteDialogComponent } from 'app/core/components/confirm-delete
 import { OverlayLoaderDirective } from 'app/core/directives/overlay-loader.directive';
 import { createDebouncedFilterApply } from 'app/core/utils/filter-debounce.util';
 import { CompaniesService } from '../companies/companies.service';
+import { EmployeeAutocompleteSearch } from '../employees/employee-autocomplete-search';
 import { EmployeeListItem, EmployeesService } from '../employees/employees.service';
 import {
     SalarySlipDetailDialogComponent,
@@ -49,6 +51,7 @@ import { SalarySlipUploadDialogComponent } from './salary-slip-upload-dialog.com
         MatIconModule,
         MatFormFieldModule,
         MatInputModule,
+        MatAutocompleteModule,
         MatSelectModule,
         MatDatepickerModule,
         MatNativeDateModule,
@@ -59,7 +62,7 @@ import { SalarySlipUploadDialogComponent } from './salary-slip-upload-dialog.com
     ],
     templateUrl: './salary-slips-list.component.html',
 })
-export class SalarySlipsListComponent implements OnInit {
+export class SalarySlipsListComponent implements OnInit, OnDestroy {
     private readonly _allDisplayedColumns = [
         'select',
         'employeeId',
@@ -82,7 +85,9 @@ export class SalarySlipsListComponent implements OnInit {
     pageSize = 10;
     pageLoader = false;
 
-    filterEmployeeId: string | null = null;
+    /** Bound to employee autocomplete: `EmployeeListItem` when chosen, or search string while typing. */
+    employeeFilter: EmployeeListItem | string | null = null;
+    readonly employeeSearch: EmployeeAutocompleteSearch;
     filterPayrollFrequency: string | null = null;
     filterStatus: SalarySlipStatus | null = null;
     /** UI: mapped to `slipStartFrom` / `slipStartTo` query params as `YYYY-MM-DD` (local). */
@@ -92,14 +97,23 @@ export class SalarySlipsListComponent implements OnInit {
     slipEndFromDate: Date | null = null;
     slipEndToDate: Date | null = null;
 
-    employees: EmployeeListItem[] = [];
-
     payrollFrequencyOptions = ['monthly', 'fortnightly', 'bimonthly', 'weekly', 'daily'] as const;
     statusOptions: SalarySlipStatus[] = ['pending', 'verified', 'paid'];
     bulkStatusOptions: SalarySlipStatus[] = ['verified', 'paid'];
     selectedIds = new Set<string>();
     bulkStatus: SalarySlipStatus | null = null;
     bulkUpdating = false;
+
+    private _suppressNextEmployeePanelOpen = false;
+    private readonly _employeeSearchApply = createDebouncedFilterApply(() => {
+        void this._scheduleEmployeeSearch();
+    });
+
+    displayEmployee = (value: EmployeeListItem | string | null): string => {
+        if (!value) return '';
+        if (typeof value === 'string') return value;
+        return this.employeeLabel(value);
+    };
 
     constructor(
         private _service: SalarySlipsService,
@@ -111,6 +125,7 @@ export class SalarySlipsListComponent implements OnInit {
         private _auth: AuthService,
         private _datePipe: DatePipe
     ) {
+        this.employeeSearch = new EmployeeAutocompleteSearch(this._employeesService);
         const write = hasModuleWrite(this._auth.profileData, 'salarySlip');
         this.displayedColumns = write
             ? [...this._allDisplayedColumns]
@@ -126,21 +141,78 @@ export class SalarySlipsListComponent implements OnInit {
     }
 
     employeeLabel(e: EmployeeListItem): string {
-        const name = [e.firstName, e.middleName, e.lastName].filter(Boolean).join(' ') || 'Employee';
-        return `${name} (${e.id.slice(0, 8)}…)`;
+        const empId = String(e.employeeId ?? '').trim() || e.id;
+        const name = [e.firstName, e.lastName].filter(Boolean).join(' ');
+        const arabic = String(e.employeeNameArabic ?? '').trim();
+        return [empId, name, arabic].filter(Boolean).join(' ');
+    }
+
+    ngOnDestroy(): void {
+        this.employeeSearch.unbindPanelScroll();
+    }
+
+    onEmployeeFilterChange(value: EmployeeListItem | string | null): void {
+        if (value && typeof value === 'object' && value.id) {
+            this.employeeSearch.ensureInList(value);
+            this.applyFilters();
+            return;
+        }
+        this._employeeSearchApply.schedule();
+        if (value == null || (typeof value === 'string' && value.trim() === '')) {
+            this.applyFilters();
+        }
+    }
+
+    onEmployeeOptionSelected(): void {
+        this._suppressNextEmployeePanelOpen = true;
+    }
+
+    openEmployeePanel(trigger: MatAutocompleteTrigger): void {
+        if (this._suppressNextEmployeePanelOpen) {
+            this._suppressNextEmployeePanelOpen = false;
+            return;
+        }
+        void this.employeeSearch.resetAndLoad(this._employeeSearchQuery()).then(() => {
+            setTimeout(() => {
+                trigger.updatePosition();
+                trigger.openPanel();
+            });
+        });
+    }
+
+    onEmployeeAutocompleteOpened(auto: MatAutocomplete): void {
+        this.employeeSearch.bindPanelScroll(auto);
+    }
+
+    onEmployeeAutocompleteClosed(): void {
+        this.employeeSearch.unbindPanelScroll();
+    }
+
+    private _employeeSearchQuery(): string {
+        const v = this.employeeFilter;
+        return typeof v === 'string' ? v.trim() : '';
+    }
+
+    private async _scheduleEmployeeSearch(): Promise<void> {
+        await this.employeeSearch.resetAndLoad(this._employeeSearchQuery());
+    }
+
+    private _selectedEmployeeId(): string | null {
+        const v = this.employeeFilter;
+        return v && typeof v === 'object' && 'id' in v ? (v as EmployeeListItem).id : null;
+    }
+
+    private _employeeById(employeeId: string | undefined): EmployeeListItem | null {
+        if (!employeeId) return null;
+        const fromFilter =
+            this.employeeFilter && typeof this.employeeFilter === 'object' && this.employeeFilter.id === employeeId
+                ? this.employeeFilter
+                : null;
+        return fromFilter ?? this.employeeSearch.items.find((e) => e.id === employeeId) ?? null;
     }
 
     private async _init(): Promise<void> {
-        await Promise.all([this.loadList()]);
-    }
-
-    private async _loadEmployees(): Promise<void> {
-        try {
-            const resp = await lastValueFrom(this._employeesService.getEmployees(1, 100, {}));
-            this.employees = resp.employees ?? [];
-        } catch {
-            this.employees = [];
-        }
+        await Promise.all([this.employeeSearch.resetAndLoad(), this.loadList()]);
     }
 
     async loadList(): Promise<void> {
@@ -149,7 +221,7 @@ export class SalarySlipsListComponent implements OnInit {
         try {
             const resp = await lastValueFrom(
                 this._service.getSalarySlips(this.pageIndex + 1, this.pageSize, {
-                    employeeId: this.filterEmployeeId,
+                    employeeId: this._selectedEmployeeId(),
                     payrollFrequency: this.filterPayrollFrequency,
                     status: this.filterStatus,
                     slipStartFrom: this._dateToYmd(this.slipStartFromDate),
@@ -193,7 +265,7 @@ export class SalarySlipsListComponent implements OnInit {
 
     clearFilters(): void {
         this._suppressFilterApply = true;
-        this.filterEmployeeId = null;
+        this.employeeFilter = null;
         this.filterPayrollFrequency = null;
         this.filterStatus = null;
         this.slipStartFromDate = null;
@@ -277,14 +349,14 @@ export class SalarySlipsListComponent implements OnInit {
 
     employeeDisplayName(employeeId: string | undefined): string | null {
         if (!employeeId) return null;
-        const e = this.employees.find((x) => x.id === employeeId);
+        const e = this._employeeById(employeeId);
         if (!e) return null;
         const name = [e.firstName, e.middleName, e.lastName].filter(Boolean).join(' ');
         return name || null;
     }
 
     openDetail(slip: SalarySlipListItem): void {
-        const emp = this.employees.find((e) => e.id === slip.employeeId);
+        const emp = this._employeeById(slip.employeeId);
         const data: SalarySlipDetailDialogData = {
             slip,
             employeeDisplayName: this.employeeDisplayName(slip.employeeId),
@@ -305,7 +377,7 @@ export class SalarySlipsListComponent implements OnInit {
             this._toast.error('Missing employee or slip id for PDF');
             return;
         }
-        const companyId = this.employees.find((e) => e.id === slip.employeeId)?.companyId ?? null;
+        const companyId = this._employeeById(slip.employeeId)?.companyId ?? null;
         const letterheadAvailable = await lastValueFrom(
             this._companiesService.letterheadEnabledForCompany(companyId)
         );

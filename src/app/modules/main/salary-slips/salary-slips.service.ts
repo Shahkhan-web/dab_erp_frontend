@@ -136,6 +136,8 @@ export interface SalarySlipCreatePayload {
     clawbackDeduction?: number;
     /** Basic salary from employee profile at selection time (optional). */
     basicSalaryFromProfile?: number;
+    /** When true, outstanding salary debt from prior slips is deducted on create. */
+    deductOutstandingDebt?: boolean;
 }
 
 export type SalarySlipUpdatePayload = SalarySlipCreatePayload;
