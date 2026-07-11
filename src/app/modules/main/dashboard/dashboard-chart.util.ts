@@ -61,7 +61,19 @@ export function formatChangePct(changePct: number | null | undefined): string {
     return `${sign}${changePct.toFixed(1)}%`;
 }
 
+const DEDUCTION_KIND_LABELS: Record<string, string> = {
+    loan: 'Loan',
+    cod: 'COD',
+    inventory: 'Inventory',
+    clawback: 'Clawback',
+    other: 'Other',
+};
+
 export function breakdownLabel(item: DashboardBreakdownItem): string {
+    const record = item as DashboardBreakdownItem & { kind?: string };
+    if (record.kind) {
+        return DEDUCTION_KIND_LABELS[record.kind] ?? record.kind;
+    }
     return (
         item.label ??
         item.status ??
@@ -71,6 +83,34 @@ export function breakdownLabel(item: DashboardBreakdownItem): string {
         item.key ??
         'Unknown'
     );
+}
+
+export function breakdownValue(
+    item: DashboardBreakdownItem,
+    valueKey: 'count' | 'amount' | 'value' | 'loanAmount' | 'remaining' = 'count'
+): number {
+    const record = item as DashboardBreakdownItem & Record<string, unknown>;
+    const primary = record[valueKey];
+    if (typeof primary === 'number' && !Number.isNaN(primary)) {
+        return primary;
+    }
+
+    const fallbacks: Record<string, string[]> = {
+        count: ['value', 'count', 'slips', 'actions'],
+        amount: ['amount', 'value'],
+        value: ['value', 'count', 'slips', 'actions'],
+        loanAmount: ['loanAmount', 'amount', 'value'],
+        remaining: ['remaining', 'amount', 'value'],
+    };
+
+    for (const key of fallbacks[valueKey] ?? ['value', 'count']) {
+        const candidate = record[key];
+        if (typeof candidate === 'number' && !Number.isNaN(candidate)) {
+            return candidate;
+        }
+    }
+
+    return 0;
 }
 
 function baseChart(type: ChartType, height = 280): ApexChart {
@@ -214,7 +254,7 @@ export function buildDonutChart(
 ): ApexChartOptions | null {
     if (!items?.length) return null;
     const labels = items.map((i) => breakdownLabel(i));
-    const data = items.map((i) => Number(i[valueKey] ?? i.count ?? 0));
+    const data = items.map((i) => breakdownValue(i, valueKey));
 
     return {
         series: data,
@@ -244,7 +284,7 @@ export function buildHorizontalBarChart(
         if (labelKey === 'name') return i.name ?? breakdownLabel(i);
         return breakdownLabel(i);
     });
-    const data = items.map((i) => Number(i[valueKey] ?? i.count ?? 0));
+    const data = items.map((i) => breakdownValue(i, valueKey));
 
     return {
         series: [{ data }],

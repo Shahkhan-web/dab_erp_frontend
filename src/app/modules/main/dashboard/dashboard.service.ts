@@ -32,12 +32,14 @@ export interface DashboardMetric {
 
 export interface DashboardBreakdownItem {
     key?: string;
+    kind?: string;
     label?: string;
     status?: string;
     frequency?: string;
     type?: string;
     name?: string;
-    count: number;
+    count?: number;
+    slips?: number;
     amount?: number;
     value?: number;
     remaining?: number;
@@ -60,6 +62,7 @@ export interface DashboardSeriesPoint {
     dropoffs?: number;
     distanceKm?: number;
     totalActions?: number;
+    actions?: number;
     [key: string]: string | number | undefined;
 }
 
@@ -177,7 +180,8 @@ export interface DashboardTopPerformer {
 export interface DashboardTopUser {
     userId: string;
     email: string;
-    count: number;
+    count?: number;
+    actions?: number;
 }
 
 export interface DashboardQueryParams {

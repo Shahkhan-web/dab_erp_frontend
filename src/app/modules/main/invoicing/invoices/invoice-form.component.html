@@ -20,16 +20,20 @@
           }
           <mat-form-field class="fuse-mat-dense w-full sm:col-span-2">
             <mat-label>Party</mat-label>
-            <input matInput [matAutocomplete]="partyAuto"
-              [disabled]="!canEditField('partyId')"
-              [ngModel]="partyDisplayValue(partyFilter)"
-              [ngModelOptions]="{ standalone: true }"
-              (ngModelChange)="onPartyInput($event)" placeholder="Search party" />
-            <mat-autocomplete #partyAuto="matAutocomplete" [displayWith]="partyDisplayValue.bind(this)"
+            <input matInput formControlName="party" placeholder="Search party"
+              [matAutocomplete]="partyAuto" #partyTrigger="matAutocompleteTrigger"
+              (focus)="openPartyPanel(partyTrigger)" (click)="openPartyPanel(partyTrigger)" />
+            <mat-autocomplete #partyAuto="matAutocomplete" [displayWith]="displayParty"
               (opened)="onPartyPanelOpened(partyAuto)" (closed)="onPartyPanelClosed()"
-              (optionSelected)="onPartySelected($event.option.value)">
+              (optionSelected)="onPartyOptionSelected($event.option.value)">
+              @if (partySearch.loading) {
+                <mat-option disabled>Loading…</mat-option>
+              }
               @for (p of partySearch.items; track p.id) {
                 <mat-option [value]="p">{{ p.name }}</mat-option>
+              }
+              @if (partySearch.isEmpty) {
+                <mat-option disabled>No parties found</mat-option>
               }
             </mat-autocomplete>
           </mat-form-field>
@@ -130,6 +134,17 @@
         </div>
       </mat-card-content>
     </mat-card>
+
+    @if (!isEdit) {
+      <mat-card appearance="outlined">
+        <mat-card-header class="pb-2">
+          <mat-card-title class="text-lg">Attachments</mat-card-title>
+        </mat-card-header>
+        <mat-card-content class="p-4">
+          <app-invoice-attachment-picker #attachmentPicker></app-invoice-attachment-picker>
+        </mat-card-content>
+      </mat-card>
+    }
 
     <div class="flex justify-end gap-2">
       <button mat-stroked-button type="button" (click)="cancel()" [disabled]="saving">Cancel</button>

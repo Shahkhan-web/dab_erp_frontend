@@ -22,6 +22,10 @@ import {
     InvoiceAttachment,
     InvoicesService,
 } from '../services/invoices.service';
+import {
+    defaultAttachmentDisplayName,
+    validateInvoiceAttachmentFile,
+} from './invoice-attachment.util';
 
 interface PendingAttachmentItem {
     id: number;
@@ -154,7 +158,7 @@ export class InvoiceAttachmentsPanelComponent implements OnDestroy {
             this.pendingItems.push({
                 id: this._nextPendingId++,
                 file,
-                displayName: file.name.replace(/\.[^/.]+$/, '') || file.name,
+                displayName: defaultAttachmentDisplayName(file),
                 previewUrl,
             });
         }
@@ -209,15 +213,7 @@ export class InvoiceAttachmentsPanelComponent implements OnDestroy {
     }
 
     private _validateFile(file: File): string | null {
-        if (file.size > this.maxBytes) {
-            return `File must be at most ${Math.round(this.maxBytes / (1024 * 1024))} MB.`;
-        }
-        const okMime =
-            !file.type ||
-            ['application/pdf', 'image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.type);
-        const okExt = /\.(pdf|jpe?g|png|webp|gif)$/i.test(file.name.toLowerCase());
-        if (!okMime && !okExt) return 'Allowed types: PDF, JPEG, PNG, WebP, GIF.';
-        return null;
+        return validateInvoiceAttachmentFile(file);
     }
 
     private _revokePendingPreview(item: PendingAttachmentItem): void {

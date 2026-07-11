@@ -3,8 +3,10 @@ import { Component, OnInit, inject } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
+import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
+import { MatSelectModule } from '@angular/material/select';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -15,7 +17,14 @@ import { AuthService } from 'app/core/auth/auth.service';
 import { hasModuleWrite, isAdminProfile } from 'app/core/auth/module-access.util';
 import { BackButtonComponent } from 'app/core/components/back-button/back-button.component';
 import { OverlayLoaderDirective } from 'app/core/directives/overlay-loader.directive';
-import { AssetsService, Asset, AssetType, AssetStatus, AcquisitionType, AssetAssignment, MulkiyaRegistration, InsurancePolicy, MaintenanceLog, AssetInventoryImage } from './assets.service';
+import { AssetsService, Asset, AssetType, AssetStatus, AcquisitionType, AssetInventoryImage } from './assets.service';
+import {
+    canChangeAssetStatusViaDropdown,
+    getAssetStatusClass,
+    getAssetStatusDropdownOptions,
+    getAssetStatusLabel,
+    isAssetLinkedButNotAssigned,
+} from './asset-status.util';
 import { AssetAssignDialogComponent } from './dialogs/asset-assign-dialog.component';
 import { AssetReturnDialogComponent } from './dialogs/asset-return-dialog.component';
 import { AssetRegistrationDialogComponent } from './dialogs/asset-registration-dialog.component';
@@ -32,8 +41,10 @@ import { ConfirmDeleteDialogComponent } from 'app/core/components/confirm-delete
         RouterLink,
         MatCardModule,
         MatButtonModule,
+        MatFormFieldModule,
         MatIconModule,
         MatMenuModule,
+        MatSelectModule,
         MatTabsModule,
         MatTableModule,
         MatTooltipModule,
@@ -55,6 +66,7 @@ export class AssetDetailComponent implements OnInit {
     assetId: string | null = null;
     asset: Asset | null = null;
     pageLoader = false;
+    statusChanging = false;
 
     // Table Columns
     assignmentColumns: string[] = ['employee', 'assignedAt', 'returnedAt', 'deductFromSalary', 'monthlyCostSnapshot', 'notes'];
@@ -95,6 +107,35 @@ export class AssetDetailComponent implements OnInit {
 
     get showsMulkiyaTab(): boolean {
         return this.asset?.type === 'bike' || this.asset?.type === 'cycle';
+    }
+
+    get statusDropdownOptions(): { value: AssetStatus; label: string }[] {
+        if (!this.asset) return [];
+        return getAssetStatusDropdownOptions(this.asset);
+    }
+
+    get canChangeStatus(): boolean {
+        return !!this.asset && canChangeAssetStatusViaDropdown(this.asset);
+    }
+
+    get isLinkedButNotAssigned(): boolean {
+        return !!this.asset && isAssetLinkedButNotAssigned(this.asset);
+    }
+
+    async onStatusChange(newStatus: AssetStatus): Promise<void> {
+        if (!this.assetId || !this.asset || newStatus === this.asset.status || this.statusChanging) {
+            return;
+        }
+
+        this.statusChanging = true;
+        try {
+            this.asset = await lastValueFrom(this._assetsService.updateAssetStatus(this.assetId, newStatus));
+            this._toast.success(`Status updated to ${getAssetStatusLabel(newStatus)}`);
+        } catch (e: any) {
+            this._toast.error(e?.error?.message || 'Failed to update asset status');
+        } finally {
+            this.statusChanging = false;
+        }
     }
 
     openAssignDialog(): void {
@@ -228,37 +269,8 @@ export class AssetDetailComponent implements OnInit {
         return options.find((o) => o.value === type)?.label ?? type;
     }
 
-    getAssetStatusLabel(status: AssetStatus | undefined): string {
-        if (!status) return '';
-        const options = [
-            { value: 'available', label: 'Available' },
-            { value: 'assigned', label: 'Assigned' },
-            { value: 'under_maintenance', label: 'Under Maintenance' },
-            { value: 'damaged', label: 'Damaged' },
-            { value: 'lost', label: 'Lost' },
-            { value: 'retired', label: 'Retired' },
-        ];
-        return options.find((o) => o.value === status)?.label ?? status;
-    }
-
-    getAssetStatusClass(status: AssetStatus | undefined): string {
-        if (!status) return '';
-        switch (status) {
-            case 'available':
-                return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300';
-            case 'assigned':
-                return 'bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300';
-            case 'under_maintenance':
-                return 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300';
-            case 'damaged':
-            case 'lost':
-                return 'bg-rose-100 text-rose-800 dark:bg-rose-500/15 dark:text-rose-300';
-            case 'retired':
-                return 'bg-zinc-100 text-zinc-800 dark:bg-zinc-500/15 dark:text-zinc-300';
-            default:
-                return 'bg-zinc-100 text-zinc-800';
-        }
-    }
+    getAssetStatusLabel = getAssetStatusLabel;
+    getAssetStatusClass = getAssetStatusClass;
 
     getAcquisitionTypeLabel(type: AcquisitionType | undefined): string {
         if (!type) return '';

@@ -390,10 +390,10 @@ export class MainDashboardComponent implements OnInit, OnDestroy {
         this.activityData = data;
         this.activitySeriesChart = buildBarChart(
             data.series.map((p) => ({
-                ...p,
-                totalActions: Number(p.totalActions ?? p.count ?? 0),
+                bucket: p.bucket,
+                actions: Number(p.actions ?? p.totalActions ?? p.count ?? 0),
             })),
-            [{ key: 'totalActions', name: 'Actions' }],
+            [{ key: 'actions', name: 'Actions' }],
             data.meta
         );
         this.activityActionChart = buildDonutChart(data.byAction, 'count');

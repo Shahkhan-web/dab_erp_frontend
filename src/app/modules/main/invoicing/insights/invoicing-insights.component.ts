@@ -1,4 +1,4 @@
-import { CommonModule, DecimalPipe } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -49,7 +49,6 @@ interface KpiCard {
         MatSelectModule,
         MatIconModule,
         MatTooltipModule,
-        DecimalPipe,
         OverlayLoaderDirective,
         DashboardChartComponent,
     ],

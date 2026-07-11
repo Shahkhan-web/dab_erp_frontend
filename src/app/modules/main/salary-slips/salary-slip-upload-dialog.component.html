@@ -47,6 +47,9 @@
       <button mat-stroked-button type="button" (click)="uploadInput.click()">Select file</button>
       <span class="text-sm text-secondary truncate max-w-[320px]">{{ uploadFile?.name || 'No file selected' }}</span>
     </div>
+    <p class="mt-3 text-xs text-secondary leading-relaxed">
+      Use separate <strong>Total Rider Salaries</strong> and <strong>Distance (LC)</strong> columns; the server combines them into stored Talabat rider earning.
+    </p>
   </div>
 
   <div class="mt-8 flex flex-wrap gap-3 justify-end">

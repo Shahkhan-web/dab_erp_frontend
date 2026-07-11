@@ -160,6 +160,12 @@ export class AssetsService {
         return this._http.put<Asset>(`${this._base}/${id}`, payload);
     }
 
+    updateAssetStatus(id: string, status: AssetStatus): Observable<Asset> {
+        return this._http
+            .patch<unknown>(`${this._base}/${id}/status`, { status })
+            .pipe(map((body) => this.normalizeAsset(body)));
+    }
+
     deleteAsset(id: string): Observable<unknown> {
         return this._http.delete(`${this._base}/${id}`);
     }

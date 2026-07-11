@@ -39,6 +39,8 @@ export interface SalarySlipPerformance {
     dropoffsCount?: unknown;
     deliveriesReturnLc?: unknown;
     distanceLc?: unknown;
+    pickupPayment?: unknown;
+    dropoffPayment?: unknown;
 }
 
 export interface SalarySlipListItem {

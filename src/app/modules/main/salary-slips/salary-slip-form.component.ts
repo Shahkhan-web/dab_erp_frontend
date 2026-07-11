@@ -207,7 +207,8 @@ export class SalarySlipFormComponent implements OnInit, OnDestroy {
         merge(
             this.performanceForm.get('pickupsCount')!.valueChanges,
             this.performanceForm.get('dropoffsCount')!.valueChanges,
-            this.performanceForm.get('deliveriesReturnLc')!.valueChanges
+            this.performanceForm.get('deliveriesReturnLc')!.valueChanges,
+            this.performanceForm.get('distanceLc')!.valueChanges
         )
             .pipe(takeUntilDestroyed(this._destroyRef))
             .subscribe(() => this._syncPerformanceDerivedFields());
@@ -323,19 +324,24 @@ export class SalarySlipFormComponent implements OnInit, OnDestroy {
         return this._findRateForEmployeeOccupation(this._employeeOccupationForRates);
     }
 
-    /** Shown under Talabat rider earning: count × rate breakdown. */
+    /** Shown under Talabat rider earning: count × rate breakdown including distance LC in the total. */
     get talabatEarningFormulaHint(): string {
         const rate = this.appliedTalabatRate;
         const p = Number(this.performanceForm.get('pickupsCount')?.value) || 0;
         const d = Number(this.performanceForm.get('dropoffsCount')?.value) || 0;
         const r = Number(this.performanceForm.get('deliveriesReturnLc')?.value) || 0;
+        const distanceLc = Number(this.performanceForm.get('distanceLc')?.value) || 0;
         if (!rate) {
             if (!this._employeeOccupationForRates) {
                 return 'Select an employee; Talabat earning uses their occupation and configured rates.';
             }
             return `No rate row for occupation “${this._employeeOccupationForRates}”. Check Talabat occupation rates.`;
         }
-        return `${p}×${rate.pickupRateAed} + ${d}×${rate.dropoffRateAed} + ${r}×${rate.deliveriesReturnLcRateAed} AED`;
+        let hint = `${p}×${rate.pickupRateAed} + ${d}×${rate.dropoffRateAed} + ${r}×${rate.deliveriesReturnLcRateAed} AED`;
+        if (distanceLc > 0) {
+            hint += ` + distance LC (${distanceLc})`;
+        }
+        return hint;
     }
 
     private _normalizeOccupationKey(s: string): string {
@@ -348,21 +354,29 @@ export class SalarySlipFormComponent implements OnInit, OnDestroy {
         return this.talabatOccupationRates.find((row) => this._normalizeOccupationKey(row.occupation) === want);
     }
 
-    private _syncPerformanceDerivedFields(): void {
+    private _computeTalabatBaseRiderEarning(): number {
         const pickups = Number(this.performanceForm.get('pickupsCount')?.value) || 0;
         const dropoffs = Number(this.performanceForm.get('dropoffsCount')?.value) || 0;
+        const returnLc = Number(this.performanceForm.get('deliveriesReturnLc')?.value) || 0;
+        const rate = this._findRateForEmployeeOccupation(this._employeeOccupationForRates);
+        if (!rate) return 0;
+        return (
+            pickups * (Number(rate.pickupRateAed) || 0) +
+            dropoffs * (Number(rate.dropoffRateAed) || 0) +
+            returnLc * (Number(rate.deliveriesReturnLcRateAed) || 0)
+        );
+    }
+
+    private _syncPerformanceDerivedFields(): void {
+        const pickups = Number(this.performanceForm.get('pickupsCount')?.value) || 0;
         const returnLc = Number(this.performanceForm.get('deliveriesReturnLc')?.value) || 0;
         /** Total delivered orders = pickups − deliveries return LC (e.g. 111 − 2 = 109). */
         const total = Math.max(0, pickups - returnLc);
         this.performanceForm.patchValue({ totalCompletedDeliveries: total }, { emitEvent: false });
 
-        const rate = this._findRateForEmployeeOccupation(this._employeeOccupationForRates);
-        const earning = rate
-            ? pickups * (Number(rate.pickupRateAed) || 0) +
-              dropoffs * (Number(rate.dropoffRateAed) || 0) +
-              returnLc * (Number(rate.deliveriesReturnLcRateAed) || 0)
-            : 0;
-        this.riderForm.patchValue({ talabatCaseRiderEarning: earning }, { emitEvent: false });
+        const baseEarning = this._computeTalabatBaseRiderEarning();
+        const distanceLc = Number(this.performanceForm.get('distanceLc')?.value) || 0;
+        this.riderForm.patchValue({ talabatCaseRiderEarning: baseEarning + distanceLc }, { emitEvent: false });
     }
 
     /**
@@ -775,7 +789,6 @@ export class SalarySlipFormComponent implements OnInit, OnDestroy {
             bankAccountNo: typeof slip.bankAccountNo === 'string' ? slip.bankAccountNo : '',
         });
         this.riderForm.patchValue({
-            talabatCaseRiderEarning: this._numOrUndef(slip.talabatCaseRiderEarning) ?? null,
             codDeduction: this._numOrUndef(slip.codDeduction) ?? null,
             deliveryIncentive: this._numOrUndef(slip.deliveryIncentive) ?? null,
             inventoryDeduction: this._numOrUndef(slip.inventoryDeduction) ?? null,
@@ -965,7 +978,7 @@ export class SalarySlipFormComponent implements OnInit, OnDestroy {
             },
         };
 
-        const tn = this._numOrUndef(rider.talabatCaseRiderEarning);
+        const tn = this._computeTalabatBaseRiderEarning();
         if (tn !== undefined) payload.talabatCaseRiderEarning = tn;
         const cod = this._numOrUndef(rider.codDeduction);
         if (cod !== undefined) payload.codDeduction = cod;
