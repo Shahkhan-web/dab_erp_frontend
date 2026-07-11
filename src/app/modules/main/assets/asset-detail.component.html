@@ -41,9 +41,24 @@
           <div class="flex flex-col">
             <span class="text-xs font-semibold text-secondary uppercase tracking-wider">Status</span>
             <div class="mt-1">
-              <span class="px-2.5 py-1 text-xs font-semibold rounded-full" [ngClass]="getAssetStatusClass(asset.status)">
-                {{ getAssetStatusLabel(asset.status) }}
-              </span>
+              @if (canWriteAsset) {
+                <mat-form-field class="fuse-mat-dense w-full max-w-[220px]" subscriptSizing="dynamic">
+                  <mat-select
+                    [value]="asset.status"
+                    [disabled]="statusChanging || !canChangeStatus"
+                    (selectionChange)="onStatusChange($event.value)"
+                    [matTooltip]="canChangeStatus ? 'Change asset status' : 'No manual status changes available'"
+                  >
+                    @for (opt of statusDropdownOptions; track opt.value) {
+                      <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+              } @else {
+                <span class="px-2.5 py-1 text-xs font-semibold rounded-full" [ngClass]="getAssetStatusClass(asset.status)">
+                  {{ getAssetStatusLabel(asset.status) }}
+                </span>
+              }
             </div>
           </div>
 
@@ -75,20 +90,26 @@
 
         <!-- Quick Actions -->
         @if (canWriteAsset) {
-          <div class="flex flex-col gap-2 min-w-[160px]">
+          <div class="flex flex-col gap-2 min-w-[180px]">
             @if (asset.status === 'available') {
               <button mat-flat-button color="primary" class="w-full" (click)="openAssignDialog()">
                 <mat-icon class="icon-size-4 mr-2" [svgIcon]="'heroicons_outline:user-plus'"></mat-icon>
-                Assign Asset
+                Assign
               </button>
             } @else if (asset.status === 'assigned') {
               <button mat-flat-button color="warn" class="w-full" (click)="openReturnDialog()">
                 <mat-icon class="icon-size-4 mr-2" [svgIcon]="'heroicons_outline:arrow-path'"></mat-icon>
-                Return Asset
+                Return
               </button>
-            } @else {
-              <div class="text-center text-xs text-secondary italic py-2">
-                Status: {{ getAssetStatusLabel(asset.status) }}
+            }
+            @if (asset.currentAssignment?.employeeName) {
+              <div class="text-xs text-secondary text-center px-1">
+                Assigned to <span class="font-semibold text-neutral-900 dark:text-neutral-100">{{ asset.currentAssignment.employeeName }}</span>
+              </div>
+            }
+            @if (isLinkedButNotAssigned) {
+              <div class="text-xs text-amber-700 dark:text-amber-300 text-center px-1">
+                Still linked to employee — set status to <strong>Assigned</strong> to restore, or use <strong>Return</strong> after restoring.
               </div>
             }
           </div>
@@ -99,8 +120,8 @@
       <mat-card appearance="outlined" class="overflow-hidden bg-card rounded-2xl border border-slate-200/60 dark:border-zinc-700/60 shadow-sm">
         <mat-tab-group animationDuration="200ms" mat-stretch-tabs="false" mat-align-tabs="start">
           
-          <!-- Assignments History Tab -->
-          <mat-tab label="Assignments History">
+          <!-- History Tab -->
+          <mat-tab label="History">
             <div class="p-6 flex flex-col gap-4">
               <div class="flex items-center justify-between">
                 <h3 class="text-lg font-bold tracking-tight text-neutral-900 dark:text-white">Allocation Timeline</h3>
@@ -195,9 +216,95 @@
             </div>
           </mat-tab>
 
-          <!-- Mulkiya Registration Tab (Bikes/Cycles only) -->
+          <!-- Maintenance Tab -->
+          <mat-tab label="Maintenance">
+            <div class="p-6 flex flex-col gap-4">
+              <div class="flex items-center justify-between">
+                <h3 class="text-lg font-bold tracking-tight text-neutral-900 dark:text-white">Maintenance & Service Log</h3>
+                @if (canWriteAsset) {
+                  <button mat-stroked-button color="primary" (click)="openMaintenanceDialog()">
+                    <mat-icon class="icon-size-4 mr-2" [svgIcon]="'heroicons_outline:plus'"></mat-icon>
+                    Log Maintenance Event
+                  </button>
+                }
+              </div>
+
+              <div class="overflow-x-auto border border-slate-200/60 dark:border-zinc-700/60 rounded-xl">
+                <table mat-table [dataSource]="asset.maintenances ?? []" class="w-full min-w-[768px]">
+                  
+                  <ng-container matColumnDef="type">
+                    <th mat-header-cell *matHeaderCellDef>Type</th>
+                    <td mat-cell *matCellDef="let row">
+                      <span class="font-semibold text-neutral-900 dark:text-neutral-100">{{ getMaintenanceTypeLabel(row.type) }}</span>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="date">
+                    <th mat-header-cell *matHeaderCellDef>Date</th>
+                    <td mat-cell *matCellDef="let row">
+                      {{ row.maintenanceDate | date: 'mediumDate' }}
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="cost">
+                    <th mat-header-cell *matHeaderCellDef>Cost</th>
+                    <td mat-cell *matCellDef="let row">
+                      <span class="font-semibold">{{ row.cost | currency: 'AED ' }}</span>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="odometer">
+                    <th mat-header-cell *matHeaderCellDef>Odometer</th>
+                    <td mat-cell *matCellDef="let row">
+                      {{ row.odometerReading ? (row.odometerReading | number) + ' km' : '—' }}
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="workshop">
+                    <th mat-header-cell *matHeaderCellDef>Workshop</th>
+                    <td mat-cell *matCellDef="let row">
+                      {{ row.workshopName ?? '—' }}
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="description">
+                    <th mat-header-cell *matHeaderCellDef>Description</th>
+                    <td mat-cell *matCellDef="let row">
+                      <span class="text-xs text-secondary truncate max-w-[200px] block" [matTooltip]="row.description">
+                        {{ row.description ?? '—' }}
+                      </span>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="document">
+                    <th mat-header-cell *matHeaderCellDef class="w-24 text-right">Invoice</th>
+                    <td mat-cell *matCellDef="let row" class="text-right">
+                      @if (row.invoiceScanUrl) {
+                        <button mat-icon-button color="primary" (click)="openDocumentUrl(row.invoiceScanUrl)" matTooltip="View Invoice">
+                          <mat-icon class="icon-size-4" [svgIcon]="'heroicons_outline:paper-clip'"></mat-icon>
+                        </button>
+                      } @else {
+                        <span class="text-secondary text-xs">—</span>
+                      }
+                    </td>
+                  </ng-container>
+
+                  <tr mat-header-row *matHeaderRowDef="maintenanceColumns" class="bg-zinc-100 dark:bg-zinc-800/50 font-semibold leading-8 text-neutral-900 tracking-tight"></tr>
+                  <tr mat-row *matRowDef="let row; columns: maintenanceColumns"></tr>
+                  
+                  <tr *matNoDataRow>
+                    <td class="py-8 text-center text-secondary" [attr.colspan]="maintenanceColumns.length">
+                      No maintenance events logged for this asset.
+                    </td>
+                  </tr>
+                </table>
+              </div>
+            </div>
+          </mat-tab>
+
+          <!-- Registration Tab (Bikes/Cycles only) -->
           @if (showsMulkiyaTab) {
-          <mat-tab label="Mulkiya Registration">
+          <mat-tab label="Registration">
             <div class="p-6 flex flex-col gap-6">
               <div class="flex items-center justify-between">
                 <h3 class="text-lg font-bold tracking-tight text-neutral-900 dark:text-white">Registration (Mulkiya)</h3>
@@ -424,94 +531,8 @@
             </div>
           </mat-tab>
 
-          <!-- Maintenance Log Tab -->
-          <mat-tab label="Maintenance Log">
-            <div class="p-6 flex flex-col gap-4">
-              <div class="flex items-center justify-between">
-                <h3 class="text-lg font-bold tracking-tight text-neutral-900 dark:text-white">Maintenance & Service Log</h3>
-                @if (canWriteAsset) {
-                  <button mat-stroked-button color="primary" (click)="openMaintenanceDialog()">
-                    <mat-icon class="icon-size-4 mr-2" [svgIcon]="'heroicons_outline:plus'"></mat-icon>
-                    Log Maintenance Event
-                  </button>
-                }
-              </div>
-
-              <div class="overflow-x-auto border border-slate-200/60 dark:border-zinc-700/60 rounded-xl">
-                <table mat-table [dataSource]="asset.maintenances ?? []" class="w-full min-w-[768px]">
-                  
-                  <ng-container matColumnDef="type">
-                    <th mat-header-cell *matHeaderCellDef>Type</th>
-                    <td mat-cell *matCellDef="let row">
-                      <span class="font-semibold text-neutral-900 dark:text-neutral-100">{{ getMaintenanceTypeLabel(row.type) }}</span>
-                    </td>
-                  </ng-container>
-
-                  <ng-container matColumnDef="date">
-                    <th mat-header-cell *matHeaderCellDef>Date</th>
-                    <td mat-cell *matCellDef="let row">
-                      {{ row.maintenanceDate | date: 'mediumDate' }}
-                    </td>
-                  </ng-container>
-
-                  <ng-container matColumnDef="cost">
-                    <th mat-header-cell *matHeaderCellDef>Cost</th>
-                    <td mat-cell *matCellDef="let row">
-                      <span class="font-semibold">{{ row.cost | currency: 'AED ' }}</span>
-                    </td>
-                  </ng-container>
-
-                  <ng-container matColumnDef="odometer">
-                    <th mat-header-cell *matHeaderCellDef>Odometer</th>
-                    <td mat-cell *matCellDef="let row">
-                      {{ row.odometerReading ? (row.odometerReading | number) + ' km' : '—' }}
-                    </td>
-                  </ng-container>
-
-                  <ng-container matColumnDef="workshop">
-                    <th mat-header-cell *matHeaderCellDef>Workshop</th>
-                    <td mat-cell *matCellDef="let row">
-                      {{ row.workshopName ?? '—' }}
-                    </td>
-                  </ng-container>
-
-                  <ng-container matColumnDef="description">
-                    <th mat-header-cell *matHeaderCellDef>Description</th>
-                    <td mat-cell *matCellDef="let row">
-                      <span class="text-xs text-secondary truncate max-w-[200px] block" [matTooltip]="row.description">
-                        {{ row.description ?? '—' }}
-                      </span>
-                    </td>
-                  </ng-container>
-
-                  <ng-container matColumnDef="document">
-                    <th mat-header-cell *matHeaderCellDef class="w-24 text-right">Invoice</th>
-                    <td mat-cell *matCellDef="let row" class="text-right">
-                      @if (row.invoiceScanUrl) {
-                        <button mat-icon-button color="primary" (click)="openDocumentUrl(row.invoiceScanUrl)" matTooltip="View Invoice">
-                          <mat-icon class="icon-size-4" [svgIcon]="'heroicons_outline:paper-clip'"></mat-icon>
-                        </button>
-                      } @else {
-                        <span class="text-secondary text-xs">—</span>
-                      }
-                    </td>
-                  </ng-container>
-
-                  <tr mat-header-row *matHeaderRowDef="maintenanceColumns" class="bg-zinc-100 dark:bg-zinc-800/50 font-semibold leading-8 text-neutral-900 tracking-tight"></tr>
-                  <tr mat-row *matRowDef="let row; columns: maintenanceColumns"></tr>
-                  
-                  <tr *matNoDataRow>
-                    <td class="py-8 text-center text-secondary" [attr.colspan]="maintenanceColumns.length">
-                      No maintenance events logged for this asset.
-                    </td>
-                  </tr>
-                </table>
-              </div>
-            </div>
-          </mat-tab>
-
-          <!-- Inventory Photos Tab -->
-          <mat-tab label="Inventory Photos">
+          <!-- Photos Tab -->
+          <mat-tab label="Photos">
             <div class="p-6 flex flex-col gap-6">
               <div class="flex items-center justify-between">
                 <h3 class="text-lg font-bold tracking-tight text-neutral-900 dark:text-white">Photo Gallery</h3>

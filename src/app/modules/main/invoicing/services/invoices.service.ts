@@ -298,6 +298,18 @@ export class InvoicesService {
         return this._http.post<InvoiceDetail>(this._base, payload);
     }
 
+    createInvoiceWithAttachments(
+        payload: InvoiceCreatePayload,
+        files: File[],
+        displayNames: string[]
+    ): Observable<InvoiceDetail> {
+        const body = new FormData();
+        body.append('invoice', JSON.stringify(payload));
+        for (const file of files) body.append('files', file);
+        body.append('displayNames', JSON.stringify(displayNames.map((n) => String(n).trim())));
+        return this._http.post<InvoiceDetail>(`${this._base}/with-attachments`, body);
+    }
+
     updateInvoice(id: string, payload: InvoiceUpdatePayload): Observable<InvoiceDetail> {
         return this._http.put<InvoiceDetail>(`${this._base}/${id}`, payload);
     }

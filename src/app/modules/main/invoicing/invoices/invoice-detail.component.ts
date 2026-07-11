@@ -147,9 +147,7 @@ export class InvoiceDetailComponent implements OnInit {
         this._matDialog
             .open(ConfirmDeleteDialogComponent, {
                 data: {
-                    title: `Void ${this.entityLabel.toLowerCase()}`,
                     message: `Void ${this.invoice.invoiceNumber}? This cannot be undone.`,
-                    confirmLabel: 'Void',
                 },
             })
             .afterClosed()
@@ -163,7 +161,6 @@ export class InvoiceDetailComponent implements OnInit {
         this._matDialog
             .open(ConfirmDeleteDialogComponent, {
                 data: {
-                    title: `Delete ${this.entityLabel.toLowerCase()}`,
                     message: `Delete ${this.invoice.invoiceNumber}?`,
                 },
             })

@@ -1,15 +1,19 @@
 import { CommonModule, CurrencyPipe } from '@angular/common';
-import { Component, OnDestroy, OnInit, inject } from '@angular/core';
+import { Component, DestroyRef, OnDestroy, OnInit, ViewChild, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
     FormArray,
     FormBuilder,
     FormGroup,
-    FormsModule,
     ReactiveFormsModule,
     Validators,
 } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { MatAutocomplete, MatAutocompleteModule } from '@angular/material/autocomplete';
+import {
+    MatAutocomplete,
+    MatAutocompleteModule,
+    MatAutocompleteTrigger,
+} from '@angular/material/autocomplete';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatNativeDateModule } from '@angular/material/core';
@@ -25,6 +29,7 @@ import { AuthService } from 'app/core/auth/auth.service';
 import { isAdminProfile } from 'app/core/auth/module-access.util';
 import { BackButtonComponent } from 'app/core/components/back-button/back-button.component';
 import { OverlayLoaderDirective } from 'app/core/directives/overlay-loader.directive';
+import { createDebouncedFilterApply } from 'app/core/utils/filter-debounce.util';
 import { CompaniesService, Company } from '../../companies/companies.service';
 import { Party, PartiesService } from '../services/parties.service';
 import {
@@ -40,13 +45,13 @@ import {
     isInvoiceVoid,
 } from '../services/invoices.service';
 import { PartyAutocompleteSearch } from '../shared/party-autocomplete-search';
+import { InvoiceAttachmentPickerComponent } from '../shared/invoice-attachment-picker.component';
 
 @Component({
     selector: 'app-invoice-form',
     standalone: true,
     imports: [
         CommonModule,
-        FormsModule,
         ReactiveFormsModule,
         MatCardModule,
         MatButtonModule,
@@ -61,10 +66,14 @@ import { PartyAutocompleteSearch } from '../shared/party-autocomplete-search';
         CurrencyPipe,
         BackButtonComponent,
         OverlayLoaderDirective,
+        InvoiceAttachmentPickerComponent,
     ],
     templateUrl: './invoice-form.component.html',
 })
 export class InvoiceFormComponent implements OnInit, OnDestroy {
+    @ViewChild('attachmentPicker') attachmentPicker?: InvoiceAttachmentPickerComponent;
+
+    private _destroyRef = inject(DestroyRef);
     private _fb = inject(FormBuilder);
     private _invoicesService = inject(InvoicesService);
     private _partiesService = inject(PartiesService);
@@ -81,18 +90,28 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
     saving = false;
     invoice: InvoiceDetail | null = null;
     companies: Company[] = [];
-    partyFilter: Party | string | null = null;
 
     form: FormGroup;
     lines: FormArray<FormGroup>;
     readonly createStatuses = INVOICE_CREATE_STATUSES;
     readonly partySearch: PartyAutocompleteSearch;
+    private _suppressNextPartyPanelOpen = false;
+    private readonly _partySearchApply = createDebouncedFilterApply(() => {
+        void this._schedulePartySearch();
+    });
+
+    displayParty = (value: Party | string | null): string => {
+        if (!value) return '';
+        if (typeof value === 'string') return value;
+        return value.name;
+    };
 
     constructor() {
         this.partySearch = new PartyAutocompleteSearch(this._partiesService);
         this.lines = this._fb.array<FormGroup>([]);
         this.form = this._fb.group({
             companyId: ['', Validators.required],
+            party: [null as Party | string | null],
             invoiceNumber: [''],
             issueDate: [new Date(), Validators.required],
             dueDate: [new Date(), Validators.required],
@@ -101,6 +120,15 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
             notes: [''],
             terms: [''],
         });
+
+        this.form
+            .get('party')!
+            .valueChanges.pipe(takeUntilDestroyed(this._destroyRef))
+            .subscribe((value) => {
+                if (value && typeof value === 'object' && (value as Party).id) return;
+                if (value && typeof value === 'object') return;
+                this._partySearchApply.schedule();
+            });
     }
 
     get entityLabel(): string {
@@ -149,9 +177,14 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
         } else {
             this.addLineRow();
         }
-        this.form.get('companyId')?.valueChanges.subscribe((companyId) => {
-            this.partySearch.setCompanyId(companyId);
-        });
+        this.form
+            .get('companyId')!
+            .valueChanges.pipe(takeUntilDestroyed(this._destroyRef))
+            .subscribe((companyId) => {
+                this.partySearch.setCompanyId(companyId);
+                this.form.patchValue({ party: null }, { emitEvent: false });
+                this.partySearch.resetAndLoad('', true);
+            });
     }
 
     ngOnDestroy(): void {
@@ -193,22 +226,25 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
             }
             this.invoice = inv;
             this.direction = inv.direction;
-            this.form.patchValue({
-                companyId: inv.companyId,
-                invoiceNumber: inv.invoiceNumber ?? '',
-                issueDate: new Date(inv.issueDate),
-                dueDate: new Date(inv.dueDate),
-                currency: inv.currency ?? 'AED',
-                notes: inv.notes ?? '',
-                terms: inv.terms ?? '',
-            });
+            this.form.patchValue(
+                {
+                    companyId: inv.companyId,
+                    invoiceNumber: inv.invoiceNumber ?? '',
+                    issueDate: new Date(inv.issueDate),
+                    dueDate: new Date(inv.dueDate),
+                    currency: inv.currency ?? 'AED',
+                    notes: inv.notes ?? '',
+                    terms: inv.terms ?? '',
+                },
+                { emitEvent: false }
+            );
             if (inv.party) {
-                this.partyFilter = inv.party;
+                this.form.patchValue({ party: inv.party }, { emitEvent: false });
                 this.partySearch.ensureInList(inv.party);
             } else if (inv.partyId) {
                 try {
                     const party = await lastValueFrom(this._partiesService.getParty(inv.partyId));
-                    this.partyFilter = party;
+                    this.form.patchValue({ party }, { emitEvent: false });
                     this.partySearch.ensureInList(party);
                 } catch {
                     /* ignore */
@@ -240,6 +276,7 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
         if (!this.canEditField('notes')) this.form.get('notes')?.disable({ emitEvent: false });
         if (!this.canEditField('terms')) this.form.get('terms')?.disable({ emitEvent: false });
         if (!this.canEditField('dueDate')) this.form.get('dueDate')?.disable({ emitEvent: false });
+        if (!this.canEditField('partyId')) this.form.get('party')?.disable({ emitEvent: false });
     }
 
     private _lineGroup(): FormGroup {
@@ -273,26 +310,34 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
         this.lines.removeAt(index);
     }
 
-    partyDisplayValue(party: Party | string | null): string {
-        if (!party) return '';
-        if (typeof party === 'string') return party;
-        return party.name;
+    private _partySearchQuery(): string {
+        const value = this.form.get('party')!.value;
+        return typeof value === 'string' ? value.trim() : '';
     }
 
-    onPartyInput(value: string): void {
-        if (typeof this.partyFilter !== 'string' && this.partyFilter) return;
-        this.partyFilter = value;
-        void this.partySearch.resetAndLoad(value);
+    private async _schedulePartySearch(): Promise<void> {
+        await this.partySearch.resetAndLoad(this._partySearchQuery());
     }
 
-    onPartySelected(party: Party): void {
-        this.partyFilter = party;
+    onPartyOptionSelected(party: Party): void {
         this.partySearch.ensureInList(party);
+        this._suppressNextPartyPanelOpen = true;
+    }
+
+    openPartyPanel(trigger: MatAutocompleteTrigger): void {
+        if (this._suppressNextPartyPanelOpen) {
+            this._suppressNextPartyPanelOpen = false;
+            return;
+        }
+        void this.partySearch.resetAndLoad(this._partySearchQuery()).then(() => {
+            setTimeout(() => {
+                trigger.updatePosition();
+                trigger.openPanel();
+            });
+        });
     }
 
     onPartyPanelOpened(autocomplete: MatAutocomplete): void {
-        const q = typeof this.partyFilter === 'string' ? this.partyFilter : this.partyFilter?.name ?? '';
-        void this.partySearch.resetAndLoad(q);
         this.partySearch.bindPanelScroll(autocomplete);
     }
 
@@ -314,7 +359,8 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
             this.lines.controls.forEach((c) => c.markAllAsTouched());
             return;
         }
-        const party = typeof this.partyFilter === 'string' ? null : this.partyFilter;
+        const partyValue = this.form.get('party')!.value;
+        const party = partyValue && typeof partyValue === 'object' ? (partyValue as Party) : null;
         if (!party?.id && this.canEditField('partyId')) {
             this._toast.error('Select a party');
             return;
@@ -331,6 +377,12 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
             unitPrice: Number(r.unitPrice),
             taxRatePct: Number(r.taxRatePct),
         }));
+
+        const picker = this.attachmentPicker;
+        if (!this.isEdit && picker?.hasPending && !picker.pendingReady()) {
+            this._toast.error('Enter a display name for each attachment');
+            return;
+        }
 
         this.saving = true;
         try {
@@ -350,20 +402,29 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
                 this._toast.success(`${this.entityLabel} updated`);
                 void this._router.navigate([this.listBasePath, updated.id]);
             } else {
+                const createPayload = {
+                    direction: this.direction,
+                    companyId: raw.companyId,
+                    partyId: party!.id,
+                    invoiceNumber: raw.invoiceNumber?.trim() || null,
+                    issueDate: this._formatDate(raw.issueDate)!,
+                    dueDate: this._formatDate(raw.dueDate)!,
+                    status: raw.status,
+                    currency: raw.currency,
+                    lines: linesPayload,
+                    notes: raw.notes?.trim() || null,
+                    terms: raw.terms?.trim() || null,
+                };
+                const picker = this.attachmentPicker;
+                const hasAttachments = !!picker?.hasPending;
                 const created = await lastValueFrom(
-                    this._invoicesService.createInvoice({
-                        direction: this.direction,
-                        companyId: raw.companyId,
-                        partyId: party!.id,
-                        invoiceNumber: raw.invoiceNumber?.trim() || null,
-                        issueDate: this._formatDate(raw.issueDate)!,
-                        dueDate: this._formatDate(raw.dueDate)!,
-                        status: raw.status,
-                        currency: raw.currency,
-                        lines: linesPayload,
-                        notes: raw.notes?.trim() || null,
-                        terms: raw.terms?.trim() || null,
-                    })
+                    hasAttachments
+                        ? this._invoicesService.createInvoiceWithAttachments(
+                              createPayload,
+                              picker!.getFiles(),
+                              picker!.getDisplayNames()
+                          )
+                        : this._invoicesService.createInvoice(createPayload)
                 );
                 this._toast.success(`${this.entityLabel} created`);
                 void this._router.navigate([this.listBasePath, created.id]);

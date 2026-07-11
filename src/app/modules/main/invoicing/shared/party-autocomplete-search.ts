@@ -26,8 +26,17 @@ export class PartyAutocompleteSearch {
         return !this.loading && this.items.length === 0;
     }
 
-    async resetAndLoad(searchQuery = ''): Promise<void> {
-        this._searchQuery = searchQuery.trim();
+    async resetAndLoad(searchQuery = '', force = false): Promise<void> {
+        const q = searchQuery.trim();
+        if (
+            !force &&
+            q === this._searchQuery &&
+            this._page === 1 &&
+            (this.loading || this.items.length > 0)
+        ) {
+            return;
+        }
+        this._searchQuery = q;
         this._page = 1;
         this.hasMore = true;
         this.items = [];
@@ -61,14 +70,32 @@ export class PartyAutocompleteSearch {
             this.unbindPanelScroll();
             this._panelEl = panel;
             this._scrollHandler = () => {
-                if (!this._panelEl) return;
+                if (!this._panelEl || this.loading || this.loadingMore || !this.hasMore) return;
                 const el = this._panelEl;
+                if (el.scrollHeight <= el.clientHeight + 1) return;
                 if (el.scrollTop + el.clientHeight >= el.scrollHeight - 48) {
                     void this.loadMore();
                 }
             };
             panel.addEventListener('scroll', this._scrollHandler, { passive: true });
+            void this._fillPanelIfNeeded();
         });
+    }
+
+    private async _fillPanelIfNeeded(): Promise<void> {
+        let guard = 0;
+        while (
+            this._panelEl &&
+            this.hasMore &&
+            !this.loading &&
+            !this.loadingMore &&
+            guard < 10
+        ) {
+            const el = this._panelEl;
+            if (el.scrollHeight > el.clientHeight + 1) break;
+            guard += 1;
+            await this.loadMore();
+        }
     }
 
     unbindPanelScroll(): void {

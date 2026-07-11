@@ -302,7 +302,15 @@
         Rider &amp; Talabat amounts
       </div>
       <div class="grid grid-cols-1 gap-x-4 sm:grid-cols-2">
-        <div class="detail-row sm:col-span-2"><span class="label">Talabat case rider earning</span><span class="value">AED {{ displayMoneyField(slip.talabatCaseRiderEarning) }}</span></div>
+        <div class="detail-row sm:col-span-2">
+          <span class="label">Talabat case rider earning</span>
+          <span class="value">
+            AED {{ displayMoneyField(slip.talabatCaseRiderEarning) }}
+            @if (hasDistanceLcInRiderEarning) {
+            <span class="ml-1 text-xs text-secondary">(includes distance LC)</span>
+            }
+          </span>
+        </div>
         <div class="detail-row"><span class="label">COD deduction</span><span class="value">AED {{ displayMoneyField(slip.codDeduction) }}</span></div>
         <div class="detail-row"><span class="label">Delivery incentive</span><span class="value">AED {{ displayMoneyField(slip.deliveryIncentive) }}</span></div>
         <div class="detail-row"><span class="label">Inventory deduction</span><span class="value">AED {{ displayMoneyField(slip.inventoryDeduction) }}</span></div>
@@ -322,7 +330,13 @@
       <div class="grid grid-cols-1 gap-x-4 sm:grid-cols-2">
         <div class="detail-row"><span class="label">Total completed deliveries</span><span class="value">{{ display(slip.performance!.totalCompletedDeliveries) }}</span></div>
         <div class="detail-row"><span class="label">Pickups count</span><span class="value">{{ display(slip.performance!.pickupsCount) }}</span></div>
+        @if (hasPickupPayment) {
+        <div class="detail-row"><span class="label">Pickup payment</span><span class="value">AED {{ formatMoney(pickupPayment) }}</span></div>
+        }
         <div class="detail-row"><span class="label">Dropoffs count</span><span class="value">{{ display(slip.performance!.dropoffsCount) }}</span></div>
+        @if (hasDropoffPayment) {
+        <div class="detail-row"><span class="label">Dropoff payment</span><span class="value">AED {{ formatMoney(dropoffPayment) }}</span></div>
+        }
         <div class="detail-row"><span class="label">Deliveries return LC</span><span class="value">{{ display(slip.performance!.deliveriesReturnLc) }}</span></div>
         <div class="detail-row sm:col-span-2"><span class="label">Distance LC</span><span class="value">{{ display(slip.performance!.distanceLc) }}</span></div>
       </div>

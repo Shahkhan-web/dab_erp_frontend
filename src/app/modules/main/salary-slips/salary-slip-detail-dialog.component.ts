@@ -7,6 +7,10 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { ToastrService } from 'ngx-toastr';
 import { firstValueFrom, lastValueFrom } from 'rxjs';
 import { CompaniesService } from '../companies/companies.service';
+import {
+    TalabatOccupationRate,
+    TalabatOccupationRatesService,
+} from '../talabat-occupation-rates/talabat-occupation-rates.service';
 import { inferredCarriedDebtDeduction, shortSlipId } from './salary-debt.util';
 import { SalarySlipLetterheadChoiceDialogComponent } from './salary-slip-letterhead-choice-dialog.component';
 import { SalarySlipPdfDialogComponent } from './salary-slip-pdf-dialog.component';
@@ -46,6 +50,7 @@ export class SalarySlipDetailDialogComponent implements OnInit {
     pdfLoading = false;
     debtLoading = false;
     debtRecords: SalaryDebtRecord[] = [];
+    talabatOccupationRates: TalabatOccupationRate[] = [];
     /** Cached PDF for this slip so reopening the viewer avoids another request. */
     private _pdfBlob: Blob | null = null;
     /** Letterhead flag used when `_pdfBlob` was fetched (invalidate if it changes). */
@@ -58,12 +63,23 @@ export class SalarySlipDetailDialogComponent implements OnInit {
         private _decimalPipe: DecimalPipe,
         private _salarySlipsService: SalarySlipsService,
         private _companiesService: CompaniesService,
+        private _talabatOccupationRatesService: TalabatOccupationRatesService,
         private _toast: ToastrService,
         private _matDialog: MatDialog
     ) {}
 
     ngOnInit(): void {
         void this._loadDebtHistory();
+        void this._loadTalabatRates();
+    }
+
+    private async _loadTalabatRates(): Promise<void> {
+        try {
+            const resp = await lastValueFrom(this._talabatOccupationRatesService.getRates());
+            this.talabatOccupationRates = resp.items ?? [];
+        } catch {
+            this.talabatOccupationRates = [];
+        }
     }
 
     get slip(): SalarySlipListItem {
@@ -273,6 +289,50 @@ export class SalarySlipDetailDialogComponent implements OnInit {
             p.deliveriesReturnLc,
             p.distanceLc,
         ].some((v) => this.display(v) !== '—');
+    }
+
+    /** Stored rider earning from the API includes distance LC when set. */
+    get hasDistanceLcInRiderEarning(): boolean {
+        const distanceLc = Number(this.slip.performance?.distanceLc);
+        return Number.isFinite(distanceLc) && distanceLc > 0;
+    }
+
+    private _appliedTalabatRate(): TalabatOccupationRate | undefined {
+        const occ = this.slip.employeeOccupation;
+        if (!occ || !this.talabatOccupationRates.length) return undefined;
+        const want = this._normalizeOccupationKey(String(occ));
+        return this.talabatOccupationRates.find((row) => this._normalizeOccupationKey(row.occupation) === want);
+    }
+
+    private _numField(value: unknown): number {
+        const n = Number(value);
+        return Number.isFinite(n) ? n : 0;
+    }
+
+    /** Pickup payment from API or pickups count × occupation pickup rate. */
+    get pickupPayment(): number | null {
+        const fromApi = this.slip.performance?.pickupPayment;
+        if (fromApi != null && Number.isFinite(Number(fromApi))) return Number(fromApi);
+        const rate = this._appliedTalabatRate();
+        if (!rate) return null;
+        return this._numField(this.slip.performance?.pickupsCount) * (Number(rate.pickupRateAed) || 0);
+    }
+
+    /** Dropoff payment from API or dropoffs count × occupation dropoff rate. */
+    get dropoffPayment(): number | null {
+        const fromApi = this.slip.performance?.dropoffPayment;
+        if (fromApi != null && Number.isFinite(Number(fromApi))) return Number(fromApi);
+        const rate = this._appliedTalabatRate();
+        if (!rate) return null;
+        return this._numField(this.slip.performance?.dropoffsCount) * (Number(rate.dropoffRateAed) || 0);
+    }
+
+    get hasPickupPayment(): boolean {
+        return this.pickupPayment != null;
+    }
+
+    get hasDropoffPayment(): boolean {
+        return this.dropoffPayment != null;
     }
 
     private _fieldHasValue(value: unknown): boolean {
