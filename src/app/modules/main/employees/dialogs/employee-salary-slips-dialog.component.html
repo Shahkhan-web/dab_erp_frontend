@@ -1,0 +1,92 @@
+<div class="bg-white dark:bg-zinc-900 rounded-2xl overflow-hidden flex flex-col max-h-[90vh]">
+  <div class="bg-gradient-to-r from-primary-600 to-primary-700 px-6 py-5 text-white shrink-0">
+    <div class="flex items-center justify-between gap-3">
+      <div class="flex items-center gap-3 min-w-0">
+        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-white/20 shrink-0">
+          <mat-icon class="icon-size-8 text-white" [svgIcon]="'heroicons_outline:document-text'"></mat-icon>
+        </div>
+        <div class="min-w-0">
+          <h2 class="text-xl font-bold tracking-tight">Salary slips</h2>
+          <p class="text-sm text-white/90 truncate">{{ dialogData.employeeName || 'Employee' }}</p>
+        </div>
+      </div>
+      <button mat-icon-button (click)="close()" class="text-white/90 hover:bg-white/20 shrink-0" aria-label="Close">
+        <mat-icon class="text-white">close</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  @if (loading) {
+  <div class="flex flex-col items-center justify-center gap-4 py-16">
+    <mat-spinner diameter="48"></mat-spinner>
+    <p class="text-sm text-slate-500 dark:text-zinc-400">Loading salary slips...</p>
+  </div>
+  } @else if (error && slips.length === 0) {
+  <div class="flex flex-col items-center justify-center gap-4 py-16 px-6">
+    <mat-icon class="text-5xl text-red-400">error_outline</mat-icon>
+    <p class="text-center text-slate-700 dark:text-zinc-300">{{ error }}</p>
+    <button mat-flat-button (click)="close()">Close</button>
+  </div>
+  } @else {
+  <div class="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6">
+    @if (slips.length === 0) {
+    <div class="flex flex-col items-center justify-center gap-3 py-12 text-slate-500">
+      <mat-icon class="text-5xl text-slate-300">search_off</mat-icon>
+      <div class="text-base font-semibold">No salary slips found</div>
+      <p class="text-sm text-center max-w-sm">This employee has no salary slip records.</p>
+    </div>
+    } @else {
+    <div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-zinc-700">
+      <table mat-table [dataSource]="slips" class="w-full">
+        <ng-container matColumnDef="period">
+          <th mat-header-cell *matHeaderCellDef>Period</th>
+          <td mat-cell *matCellDef="let item">
+            {{ item.startDate | date: 'mediumDate' }} — {{ item.endDate | date: 'mediumDate' }}
+          </td>
+        </ng-container>
+        <ng-container matColumnDef="frequency">
+          <th mat-header-cell *matHeaderCellDef>Frequency</th>
+          <td mat-cell *matCellDef="let item">{{ item.payrollFrequency | titlecase }}</td>
+        </ng-container>
+        <ng-container matColumnDef="netPayment">
+          <th mat-header-cell *matHeaderCellDef>Net pay</th>
+          <td mat-cell *matCellDef="let item" class="font-medium tabular-nums">
+            AED {{ item.netPayment | number: '1.2-2' }}
+          </td>
+        </ng-container>
+        <ng-container matColumnDef="status">
+          <th mat-header-cell *matHeaderCellDef>Status</th>
+          <td mat-cell *matCellDef="let item">
+            @if (item?.status) {
+            <span class="inline-flex rounded-full border px-2 py-0.5 text-xs font-medium" [ngClass]="{
+                'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/40': item.status === 'pending',
+                'bg-green-100 text-green-800 border-green-200 dark:bg-green-500/20 dark:text-green-300 dark:border-green-500/40': item.status === 'verified',
+                'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/40': item.status === 'paid'
+              }">
+              {{ item.status | titlecase }}
+            </span>
+            } @else {
+            <span class="text-slate-400">—</span>
+            }
+          </td>
+        </ng-container>
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef class="w-28"></th>
+          <td mat-cell *matCellDef="let item">
+            <button mat-stroked-button type="button" class="!min-h-8 !px-3 !text-xs"
+              (click)="viewSlip(item)" [disabled]="slipLoadingId === item.id">
+              {{ slipLoadingId === item.id ? 'Loading…' : 'View' }}
+            </button>
+          </td>
+        </ng-container>
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"
+          class="bg-zinc-100 dark:bg-zinc-800/50 text-sm font-semibold"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns" class="text-sm"></tr>
+      </table>
+    </div>
+    <mat-paginator class="border-t mt-2 text-sm" [length]="total" [pageSize]="pageSize" [pageIndex]="pageIndex"
+      [pageSizeOptions]="[5, 10, 20]" (page)="handlePageEvent($event)" showFirstLastButtons></mat-paginator>
+    }
+  </div>
+  }
+</div>

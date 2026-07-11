@@ -147,12 +147,17 @@ export function loanStatusLabel(status: string | null | undefined): string {
 export function loanStatusChipClass(status: string | null | undefined): Record<string, boolean> {
     const s = normalizeLoanStatus(status);
     return {
-        'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300': s === 'open',
-        'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300': s === 'approved',
-        'bg-violet-100 text-violet-800 dark:bg-violet-500/15 dark:text-violet-300': s === 'disbursed',
-        'bg-sky-100 text-sky-800 dark:bg-sky-500/15 dark:text-sky-300': s === 'reimbursed',
-        'bg-rose-100 text-rose-800 dark:bg-rose-500/15 dark:text-rose-300': s === 'rejected',
-        'bg-zinc-100 text-zinc-800 dark:bg-zinc-500/15 dark:text-zinc-300':
+        'bg-slate-100 text-slate-700 border border-slate-200/80 dark:bg-slate-500/15 dark:text-slate-300 dark:border-slate-500/30':
+            s === 'open',
+        'bg-blue-50 text-blue-800 border border-blue-200/80 dark:bg-blue-500/15 dark:text-blue-300 dark:border-blue-500/30':
+            s === 'approved',
+        'bg-indigo-50 text-indigo-800 border border-indigo-200/80 dark:bg-indigo-500/15 dark:text-indigo-300 dark:border-indigo-500/30':
+            s === 'disbursed',
+        'bg-emerald-50 text-emerald-800 border border-emerald-200/80 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/30':
+            s === 'reimbursed',
+        'bg-rose-50 text-rose-800 border border-rose-200/80 dark:bg-rose-500/15 dark:text-rose-300 dark:border-rose-500/30':
+            s === 'rejected',
+        'bg-zinc-100 text-zinc-700 border border-zinc-200/80 dark:bg-zinc-500/15 dark:text-zinc-300 dark:border-zinc-500/30':
             !LOAN_STATUSES.includes(s as LoanStatus),
     };
 }

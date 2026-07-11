@@ -45,9 +45,27 @@
               }
             </mat-select>
           </mat-form-field>
+          <mat-form-field class="fuse-mat-dense w-full sm:w-44" subscriptSizing="dynamic">
+            <mat-label>Group by</mat-label>
+            <mat-select [(ngModel)]="groupBy" (ngModelChange)="onGroupChange()">
+              @for (opt of groupOptions; track opt.value) {
+                <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
         </div>
+        @for (group of loanGroups; track group.key) {
+        <div class="mb-4 last:mb-0">
+          @if (groupBy === 'status' && group.label) {
+          <div class="mb-2 flex items-center gap-2">
+            <span class="px-2 py-0.5 rounded-full text-xs font-medium" [ngClass]="statusChipClass(group.key)">
+              {{ group.label }}
+            </span>
+            <span class="text-xs text-slate-500 dark:text-zinc-500">{{ group.loans.length }} loan{{ group.loans.length === 1 ? '' : 's' }}</span>
+          </div>
+          }
         <mat-accordion multi class="flex flex-col gap-2">
-          @for (loan of displayedLoans; track loan.id) {
+          @for (loan of group.loans; track loan.id) {
             <mat-expansion-panel class="loan-panel !rounded-xl border border-slate-200/80 dark:border-zinc-700/80">
               <mat-expansion-panel-header>
                 <mat-panel-title class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 w-full pr-2">
@@ -155,6 +173,8 @@
             </mat-expansion-panel>
           }
         </mat-accordion>
+        </div>
+        }
       }
     </div>
     <mat-paginator

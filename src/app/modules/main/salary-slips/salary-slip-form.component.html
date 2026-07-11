@@ -21,7 +21,7 @@
 
   <div class="p-4 sm:p-6 flex-1 overflow-auto">
     <div class="w-full ">
-      <mat-stepper #stepper [linear]="false" class="bg-transparent"
+      <mat-stepper #stepper [linear]="true" class="bg-transparent"
         (selectionChange)="onStepperSelectionChange($event)">
         <!-- 1 Details + payment days -->
         <mat-step [stepControl]="detailsAndPaymentForm">
@@ -98,16 +98,25 @@
                     </mat-select>
                   </mat-form-field>
                   <mat-form-field class="fuse-mat-dense w-full">
-                    <mat-label>Start date</mat-label>
+                    <mat-label>Start date <span class="text-warn">*</span></mat-label>
                     <input matInput [matDatepicker]="startPicker" formControlName="startDate" />
                     <mat-datepicker-toggle matSuffix [for]="startPicker"></mat-datepicker-toggle>
                     <mat-datepicker #startPicker></mat-datepicker>
+                    @if (detailsForm.get('startDate')?.hasError('required') && detailsForm.get('startDate')?.touched) {
+                    <mat-error>Start date is required</mat-error>
+                    }
                   </mat-form-field>
                   <mat-form-field class="fuse-mat-dense w-full">
-                    <mat-label>End date</mat-label>
+                    <mat-label>End date <span class="text-warn">*</span></mat-label>
                     <input matInput [matDatepicker]="endPicker" formControlName="endDate" />
                     <mat-datepicker-toggle matSuffix [for]="endPicker"></mat-datepicker-toggle>
                     <mat-datepicker #endPicker></mat-datepicker>
+                    @if (detailsForm.get('endDate')?.hasError('required') && detailsForm.get('endDate')?.touched) {
+                    <mat-error>End date is required</mat-error>
+                    }
+                    @if (detailsForm.hasError('dateRange') && (detailsForm.get('endDate')?.touched || detailsForm.get('startDate')?.touched)) {
+                    <mat-error>End date must be on or after start date</mat-error>
+                    }
                   </mat-form-field>
                 </div>
               </mat-card-content>
@@ -238,8 +247,8 @@
                         <mat-label>Loan</mat-label>
                         <mat-select formControlName="loanId">
                           <mat-option value="">—</mat-option>
-                          @for (ln of employeeLoans; track ln.id) {
-                          <mat-option [value]="ln.id">{{ ln.loanName }} ({{ ln.remaining | number:'1.0-0' }})</mat-option>
+                          @for (ln of loansAvailableForRow(j); track ln.id) {
+                          <mat-option [value]="ln.id">{{ ln.loanName }} (remaining {{ ln.remaining | number:'1.0-0' }} / {{ ln.loanAmount | number:'1.0-0' }})</mat-option>
                           }
                         </mat-select>
                       </mat-form-field>
@@ -247,7 +256,14 @@
 
                       <mat-form-field class="fuse-mat-dense w-full">
                         <mat-label>Deduction amount</mat-label>
-                        <input matInput type="number" formControlName="loanDeductionAmount" />
+                        <input matInput type="number" formControlName="loanDeductionAmount"
+                          [attr.max]="maxLoanDeductionAmount(lr.get('loanId')?.value)" />
+                        @if (lr.get('loanDeductionAmount')?.hasError('max') && lr.get('loanDeductionAmount')?.touched) {
+                        <mat-error>Must not exceed remaining and must be less than or equal to loan amount (max {{ maxLoanDeductionAmount(lr.get('loanId')?.value) | number:'1.0-2' }})</mat-error>
+                        }
+                        @if (lr.get('loanDeductionAmount')?.hasError('min') && lr.get('loanDeductionAmount')?.touched) {
+                        <mat-error>Amount must be greater than 0</mat-error>
+                        }
                       </mat-form-field>
                       <button mat-icon-button type="button" (click)="removeLoanDeductionRow(j)" matTooltip="Remove"
                         aria-label="Remove loan row">
@@ -257,7 +273,9 @@
                     </div>
                     }
                   </div>
-                  <button mat-stroked-button type="button" (click)="addLoanDeductionRow()">
+                  <button mat-stroked-button type="button" (click)="addLoanDeductionRow()"
+                    [disabled]="!canAddLoanDeductionRow"
+                    [matTooltip]="!canAddLoanDeductionRow ? 'Each loan can only be added once' : ''">
                     <mat-icon>add</mat-icon>
                     <span class="ms-1">Add loan deduction</span>
                   </button>
@@ -466,7 +484,7 @@
         </button>
         <div class="flex flex-wrap gap-2">
           @if (stepperIndex < lastStepIndex) {
-          <button mat-flat-button color="primary" type="button" (click)="stepper.next()">
+          <button mat-flat-button color="primary" type="button" (click)="goNext(stepper)">
             Next
           </button>
           } @else {

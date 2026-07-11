@@ -25,7 +25,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { StepperSelectionEvent } from '@angular/cdk/stepper';
-import { MatStepperModule } from '@angular/material/stepper';
+import { MatStepper, MatStepperModule } from '@angular/material/stepper';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
 import { lastValueFrom, merge } from 'rxjs';
@@ -54,6 +54,21 @@ function employeeOptionValidator(): ValidatorFn {
         if (typeof v === 'string') return { employeeNotSelected: true };
         if (typeof v === 'object' && (v as EmployeeListItem)?.id) return null;
         return { employeeNotSelected: true };
+    };
+}
+
+/** End date must be on or after start date (calendar days). */
+function periodDatesValidator(): ValidatorFn {
+    return (group: AbstractControl): ValidationErrors | null => {
+        const start = group.get('startDate')?.value;
+        const end = group.get('endDate')?.value;
+        if (!start || !end) return null;
+        const s = start instanceof Date ? start : new Date(start);
+        const e = end instanceof Date ? end : new Date(end);
+        if (isNaN(s.getTime()) || isNaN(e.getTime())) return null;
+        const sDay = Date.UTC(s.getFullYear(), s.getMonth(), s.getDate());
+        const eDay = Date.UTC(e.getFullYear(), e.getMonth(), e.getDate());
+        return eDay < sDay ? { dateRange: true } : null;
     };
 }
 
@@ -148,13 +163,16 @@ export class SalarySlipFormComponent implements OnInit, OnDestroy {
     ) {
         this.employeeSearch = new EmployeeAutocompleteSearch(this._employeesService);
 
-        this.detailsForm = this._fb.group({
-            employee: [null as EmployeeListItem | string | null, employeeOptionValidator()],
-            payrollFrequency: ['monthly' ],
-            startDate: [null as Date | null ],
-            endDate: [null as Date | null ],
-            deductOutstandingDebt: [true],
-        });
+        this.detailsForm = this._fb.group(
+            {
+                employee: [null as EmployeeListItem | string | null, employeeOptionValidator()],
+                payrollFrequency: ['monthly'],
+                startDate: [null as Date | null, Validators.required],
+                endDate: [null as Date | null, Validators.required],
+                deductOutstandingDebt: [true],
+            },
+            { validators: periodDatesValidator() }
+        );
 
         this.paymentForm = this._fb.group({
             workingDays: [22, [ Validators.min(0)]],
@@ -455,6 +473,25 @@ export class SalarySlipFormComponent implements OnInit, OnDestroy {
         this.stepperIndex = ev.selectedIndex;
     }
 
+    /** Validates the current step (dates on Details) before advancing. */
+    goNext(stepper: MatStepper): void {
+        if (this.stepperIndex === 0) {
+            this.detailsForm.markAllAsTouched();
+            this.paymentForm.markAllAsTouched();
+            if (this.detailsForm.invalid || this.paymentForm.invalid) {
+                if (!this.detailsForm.get('startDate')?.value || !this.detailsForm.get('endDate')?.value) {
+                    this._toast.error('Select start and end dates');
+                } else if (this.detailsForm.hasError('dateRange')) {
+                    this._toast.error('End date must be on or after start date');
+                } else {
+                    this._toast.error('Complete the Details step');
+                }
+                return;
+            }
+        }
+        stepper.next();
+    }
+
     /** When opened from e.g. employees list with `?employeeId=`. */
     private async _applyPreselectedEmployeeFromQuery(): Promise<void> {
         if (this.isEditMode) return;
@@ -505,6 +542,7 @@ export class SalarySlipFormComponent implements OnInit, OnDestroy {
         } catch {
             this.employeeLoans = [];
         }
+        this.loanDeductions.controls.forEach((c) => this._applyLoanAmountValidators(c as FormGroup));
     }
 
     private async _loadSalaryDebtForEmployee(employeeId: string): Promise<void> {
@@ -533,10 +571,64 @@ export class SalarySlipFormComponent implements OnInit, OnDestroy {
     }
 
     private _loanDeductionGroup(): FormGroup {
-        return this._fb.group({
+        const g = this._fb.group({
             loanId: [''],
             loanDeductionAmount: [null as number | null],
         });
+        g.get('loanId')!
+            .valueChanges.pipe(takeUntilDestroyed(this._destroyRef))
+            .subscribe(() => this._applyLoanAmountValidators(g));
+        return g;
+    }
+
+    /** Max deductible: remaining balance, never above loan principal. */
+    maxLoanDeductionAmount(loanId: string | null | undefined): number | null {
+        if (!loanId) return null;
+        const ln = this.employeeLoans.find((l) => l.id === loanId);
+        if (!ln) return null;
+        const remaining = Number(ln.remaining);
+        const loanAmount = Number(ln.loanAmount);
+        const rem = Number.isFinite(remaining) ? remaining : 0;
+        const principal = Number.isFinite(loanAmount) ? loanAmount : rem;
+        return Math.max(0, Math.min(rem, principal));
+    }
+
+    private _applyLoanAmountValidators(g: FormGroup): void {
+        const loanId = g.get('loanId')?.value as string;
+        const amtCtrl = g.get('loanDeductionAmount');
+        if (!amtCtrl) return;
+        if (!loanId) {
+            amtCtrl.clearValidators();
+            amtCtrl.updateValueAndValidity({ emitEvent: false });
+            return;
+        }
+        const max = this.maxLoanDeductionAmount(loanId);
+        const validators = [Validators.min(0.01)];
+        if (max != null && max > 0) {
+            validators.push(Validators.max(max));
+        }
+        amtCtrl.setValidators(validators);
+        amtCtrl.updateValueAndValidity({ emitEvent: false });
+    }
+
+    /** Loans not already chosen on another deduction row (current row keeps its selection). */
+    loansAvailableForRow(rowIndex: number): LoanListItem[] {
+        const taken = new Set(
+            this.loanDeductions.controls
+                .map((c, i) => (i === rowIndex ? '' : String(c.get('loanId')?.value || '')))
+                .filter(Boolean)
+        );
+        return this.employeeLoans.filter((ln) => !taken.has(ln.id));
+    }
+
+    get canAddLoanDeductionRow(): boolean {
+        if (!this.employeeLoans.length) return true;
+        const selected = new Set(
+            this.loanDeductions.controls
+                .map((c) => String(c.get('loanId')?.value || ''))
+                .filter(Boolean)
+        );
+        return this.employeeLoans.some((ln) => !selected.has(ln.id));
     }
 
     addEarningRow(): void {
@@ -558,6 +650,10 @@ export class SalarySlipFormComponent implements OnInit, OnDestroy {
     }
 
     addLoanDeductionRow(): void {
+        if (!this.canAddLoanDeductionRow) {
+            this._toast.error('Each loan can only be added once');
+            return;
+        }
         this.loanDeductions.push(this._loanDeductionGroup());
     }
 
@@ -718,6 +814,7 @@ export class SalarySlipFormComponent implements OnInit, OnDestroy {
                 loanId: d.loanId,
                 loanDeductionAmount: Number(d.loanDeductedAmount) || null,
             });
+            this._applyLoanAmountValidators(g);
             this.loanDeductions.push(g);
         });
         if (employeeId) {
@@ -767,20 +864,34 @@ export class SalarySlipFormComponent implements OnInit, OnDestroy {
         }
 
         const loansValid = (): boolean => {
+            const seen = new Set<string>();
             for (const c of this.loanDeductions.controls) {
-                const lid = c.get('loanId')?.value;
+                const lid = c.get('loanId')?.value as string;
                 const amt = c.get('loanDeductionAmount')?.value;
                 const lidEmpty = !lid;
                 const amtEmpty = amt === null || amt === '' || amt === undefined;
                 if (lidEmpty && amtEmpty) continue;
                 if (!lidEmpty && (amtEmpty || isNaN(Number(amt)) || Number(amt) <= 0)) return false;
                 if (lidEmpty && !amtEmpty) return false;
+                if (!lidEmpty) {
+                    if (seen.has(lid)) return false;
+                    seen.add(lid);
+                    const max = this.maxLoanDeductionAmount(lid);
+                    if (max != null && Number(amt) > max) return false;
+                    const ln = this.employeeLoans.find((l) => l.id === lid);
+                    if (ln && Number(amt) > Number(ln.loanAmount)) return false;
+                }
             }
             return true;
         };
         if (!loansValid()) {
-            this.loanDeductions.controls.forEach((c) => c.markAllAsTouched());
-            this._toast.error('Complete loan deduction rows or clear them');
+            this.loanDeductions.controls.forEach((c) => {
+                c.markAllAsTouched();
+                this._applyLoanAmountValidators(c as FormGroup);
+            });
+            this._toast.error(
+                'Fix loan deductions: each loan once; amount must be greater than 0 and not exceed remaining / loan amount'
+            );
             return;
         }
 
@@ -814,7 +925,13 @@ export class SalarySlipFormComponent implements OnInit, OnDestroy {
         const start = this._fmtDate(d.startDate);
         const end = this._fmtDate(d.endDate);
         if (!start || !end) {
+            this.detailsForm.markAllAsTouched();
             this._toast.error('Select start and end dates');
+            return;
+        }
+        if (this.detailsForm.hasError('dateRange')) {
+            this.detailsForm.markAllAsTouched();
+            this._toast.error('End date must be on or after start date');
             return;
         }
 

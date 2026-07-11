@@ -77,6 +77,16 @@
         @if (data?.personalNumber) {
           <span class="text-sm text-slate-600 dark:text-zinc-400">Personal #: {{ data.personalNumber }}</span>
         }
+        <div class="ms-auto flex flex-wrap gap-2">
+          <button mat-stroked-button type="button" (click)="openLoanHistory()">
+            <mat-icon class="icon-size-4" [svgIcon]="'heroicons_outline:banknotes'"></mat-icon>
+            <span class="ms-1">Loan history</span>
+          </button>
+          <button mat-stroked-button type="button" (click)="openSalarySlips()">
+            <mat-icon class="icon-size-4" [svgIcon]="'heroicons_outline:document-text'"></mat-icon>
+            <span class="ms-1">Salary slips</span>
+          </button>
+        </div>
       </div>
  
       <!-- Personal -->

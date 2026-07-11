@@ -1,6 +1,6 @@
 import { Component, Inject, OnInit } from '@angular/core';
 import { CommonModule, DatePipe, DecimalPipe } from '@angular/common';
-import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -10,6 +10,8 @@ import { lastValueFrom } from 'rxjs';
 import { EmployeesService, EmployeeAssignedAsset } from '../employees.service';
 import { AuthService } from 'app/core/auth/auth.service';
 import { hasModuleRead } from 'app/core/auth/module-access.util';
+import { EmployeeLoanHistoryDialogComponent } from './employee-loan-history-dialog.component';
+import { EmployeeSalarySlipsDialogComponent } from './employee-salary-slips-dialog.component';
 
 export interface EmployeeDetailDialogData {
     id: string;
@@ -42,7 +44,8 @@ export class EmployeeDetailDialogComponent implements OnInit {
         private decimalPipe: DecimalPipe,
         private employeesService: EmployeesService,
         private authService: AuthService,
-        private toast: ToastrService
+        private toast: ToastrService,
+        private matDialog: MatDialog
     ) {}
 
     get canReadAssets(): boolean {
@@ -164,6 +167,32 @@ export class EmployeeDetailDialogComponent implements OnInit {
             default:
                 return this.data?.occupation ? String(this.data.occupation) : '—';
         }
+    }
+
+    openLoanHistory(): void {
+        const employeeId = this.data?.id ?? this.dialogData?.id;
+        if (!employeeId) return;
+        this.matDialog.open(EmployeeLoanHistoryDialogComponent, {
+            data: { employeeId, employeeName: this.fullName },
+            width: '96vw',
+            maxWidth: '960px',
+            disableClose: false,
+        });
+    }
+
+    openSalarySlips(): void {
+        const employeeId = this.data?.id ?? this.dialogData?.id;
+        if (!employeeId) return;
+        this.matDialog.open(EmployeeSalarySlipsDialogComponent, {
+            data: {
+                employeeId,
+                employeeName: this.fullName,
+                companyId: this.data?.companyId ?? null,
+            },
+            width: '96vw',
+            maxWidth: '900px',
+            disableClose: false,
+        });
     }
 
     close(): void {

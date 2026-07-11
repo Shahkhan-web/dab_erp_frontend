@@ -41,6 +41,14 @@ export type LoanHistorySort =
     | 'amount_asc'
     | 'remaining_desc';
 
+export type LoanHistoryGroupBy = 'none' | 'status';
+
+export interface LoanHistoryGroup {
+    key: string;
+    label: string;
+    loans: EmployeeLoanHistoryItem[];
+}
+
 const LOAN_STATUS_SORT_ORDER: Record<string, number> = {
     open: 0,
     approved: 1,
@@ -77,6 +85,7 @@ export class EmployeeLoanHistoryDialogComponent implements OnInit {
     pageIndex = 0;
     pageSize = 10;
     sortBy: LoanHistorySort = 'date_desc';
+    groupBy: LoanHistoryGroupBy = 'none';
     loading = true;
     error: string | null = null;
     slipLoadingId: string | null = null;
@@ -86,6 +95,11 @@ export class EmployeeLoanHistoryDialogComponent implements OnInit {
         { value: 'status', label: 'Status' },
         { value: 'amount_asc', label: 'Amount (low to high)' },
         { value: 'remaining_desc', label: 'Remaining (highest first)' },
+    ];
+
+    readonly groupOptions: { value: LoanHistoryGroupBy; label: string }[] = [
+        { value: 'none', label: 'None' },
+        { value: 'status', label: 'Status' },
     ];
 
     deductionColumns: string[] = ['period', 'frequency', 'amount', 'salarySlip', 'deductedAt'];
@@ -142,10 +156,39 @@ export class EmployeeLoanHistoryDialogComponent implements OnInit {
         this.pageIndex = 0;
     }
 
+    onGroupChange(): void {
+        this.pageIndex = 0;
+    }
+
     get displayedLoans(): EmployeeLoanHistoryItem[] {
         const sorted = this._sortLoans(this.allLoans);
         const start = this.pageIndex * this.pageSize;
         return sorted.slice(start, start + this.pageSize);
+    }
+
+    /** Groups for the current page when groupBy is status; otherwise one flat group. */
+    get loanGroups(): LoanHistoryGroup[] {
+        const pageLoans = this.displayedLoans;
+        if (this.groupBy !== 'status') {
+            return [{ key: 'all', label: '', loans: pageLoans }];
+        }
+        const map = new Map<string, EmployeeLoanHistoryItem[]>();
+        for (const loan of pageLoans) {
+            const key = normalizeLoanStatus(loan.status) || 'unknown';
+            const list = map.get(key) ?? [];
+            list.push(loan);
+            map.set(key, list);
+        }
+        return [...map.keys()]
+            .sort(
+                (a, b) =>
+                    (LOAN_STATUS_SORT_ORDER[a] ?? 99) - (LOAN_STATUS_SORT_ORDER[b] ?? 99)
+            )
+            .map((key) => ({
+                key,
+                label: loanStatusLabel(key),
+                loans: map.get(key) ?? [],
+            }));
     }
 
     get hasLoans(): boolean {
