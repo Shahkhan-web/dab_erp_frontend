@@ -14,6 +14,7 @@ import { TranslocoService, provideTransloco } from '@jsverse/transloco';
 import { appRoutes } from 'app/app.routes';
 import { provideAuth } from 'app/core/auth/auth.provider';
 import { provideIcons } from 'app/core/icons/icons.provider';
+import { provideDisableNumberInputScroll } from 'app/core/providers/disable-number-input-scroll.provider';
 import { MockApiService } from 'app/mock-api';
 import { firstValueFrom } from 'rxjs';
 import { TranslocoHttpLoader } from './core/transloco/transloco.http-loader';
@@ -27,6 +28,8 @@ export const appConfig: ApplicationConfig = {
         provideToastr(),
         provideSweetAlert2(),
         provideHttpClient(),
+        provideDisableNumberInputScroll(),
+
         provideRouter(
             appRoutes,
             withPreloading(PreloadAllModules),
