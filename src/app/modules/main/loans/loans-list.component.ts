@@ -2,7 +2,6 @@ import { CommonModule, DatePipe } from '@angular/common';
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatAutocompleteModule, MatAutocomplete, MatAutocompleteTrigger } from '@angular/material/autocomplete';
@@ -36,7 +35,6 @@ import { LoanListItem, LoansService, canChangeLoanStatus, loanShowsRemainingBala
     imports: [
         CommonModule,
         FormsModule,
-        MatCardModule,
         MatTableModule,
         MatPaginatorModule,
         MatButtonModule,

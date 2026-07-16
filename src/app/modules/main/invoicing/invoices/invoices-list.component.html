@@ -8,79 +8,74 @@
     }
   </div>
 
-  <div class="flex justify-center">
-    <mat-card appearance="filled" class="bg-zinc-100 dark:bg-zinc-800/50 w-full max-w-5xl">
-      <mat-card-header class="flex flex-row items-center justify-between w-full">
-        <mat-card-title class="text-lg font-medium">Filters</mat-card-title>
-        <button mat-icon-button (click)="clearFilters()" matTooltip="Clear filters">
-          <mat-icon class="icon-size-5" [svgIcon]="'heroicons_outline:x-mark'"></mat-icon>
-        </button>
-      </mat-card-header>
-      <mat-card-content class="border border-neutral-200 dark:border-neutral-700">
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+  <div class="bg-card rounded-2xl border border-slate-200/60 dark:border-zinc-700/60 p-4 shadow-sm">
+    <div class="flex items-start gap-2">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 flex-1 min-w-0">
+        <mat-form-field class="fuse-mat-dense w-full">
+          <mat-label>Search</mat-label>
+          <input matInput [(ngModel)]="filterSearch" (ngModelChange)="scheduleApplyFilters()" placeholder="Number, party…" />
+        </mat-form-field>
+        <mat-form-field class="fuse-mat-dense w-full">
+          <mat-label>Status</mat-label>
+          <mat-select [(ngModel)]="filterStatus" (ngModelChange)="applyFilters()">
+            <mat-option [value]="null">All</mat-option>
+            @for (s of invoiceStatuses; track s) {
+              <mat-option [value]="s">{{ invoiceStatusLabel(s) }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+        @if (isAdmin) {
           <mat-form-field class="fuse-mat-dense w-full">
-            <mat-label>Search</mat-label>
-            <input matInput [(ngModel)]="filterSearch" (ngModelChange)="scheduleApplyFilters()" placeholder="Number, party…" />
-          </mat-form-field>
-          <mat-form-field class="fuse-mat-dense w-full">
-            <mat-label>Status</mat-label>
-            <mat-select [(ngModel)]="filterStatus" (ngModelChange)="applyFilters()">
+            <mat-label>Company</mat-label>
+            <mat-select [(ngModel)]="filterCompanyId" (ngModelChange)="applyFilters()">
               <mat-option [value]="null">All</mat-option>
-              @for (s of invoiceStatuses; track s) {
-                <mat-option [value]="s">{{ invoiceStatusLabel(s) }}</mat-option>
+              @for (c of companies; track c.id) {
+                <mat-option [value]="c.id">{{ c.name }}</mat-option>
               }
             </mat-select>
           </mat-form-field>
-          @if (isAdmin) {
-            <mat-form-field class="fuse-mat-dense w-full">
-              <mat-label>Company</mat-label>
-              <mat-select [(ngModel)]="filterCompanyId" (ngModelChange)="applyFilters()">
-                <mat-option [value]="null">All</mat-option>
-                @for (c of companies; track c.id) {
-                  <mat-option [value]="c.id">{{ c.name }}</mat-option>
-                }
-              </mat-select>
-            </mat-form-field>
+        }
+        <mat-form-field class="fuse-mat-dense w-full">
+          <mat-label>Party</mat-label>
+          <input matInput #partyTrigger="matAutocompleteTrigger" [matAutocomplete]="partyAuto"
+            [ngModel]="partyDisplayValue(partyFilter)"
+            (ngModelChange)="onPartyInput($event)" placeholder="Search party" />
+          @if (partyFilter) {
+            <button mat-icon-button matSuffix type="button" (click)="clearPartyFilter(partyTrigger)">
+              <mat-icon class="icon-size-4">close</mat-icon>
+            </button>
           }
-          <mat-form-field class="fuse-mat-dense w-full">
-            <mat-label>Party</mat-label>
-            <input matInput #partyTrigger="matAutocompleteTrigger" [matAutocomplete]="partyAuto"
-              [ngModel]="partyDisplayValue(partyFilter)"
-              (ngModelChange)="onPartyInput($event)" placeholder="Search party" />
-            @if (partyFilter) {
-              <button mat-icon-button matSuffix type="button" (click)="clearPartyFilter(partyTrigger)">
-                <mat-icon class="icon-size-4">close</mat-icon>
-              </button>
+          <mat-autocomplete #partyAuto="matAutocomplete" [displayWith]="partyDisplayValue.bind(this)"
+            (opened)="onPartyPanelOpened(partyAuto)" (closed)="onPartyPanelClosed()"
+            (optionSelected)="onPartySelected($event.option.value)">
+            @if (partySearch.loading) {
+              <mat-option disabled>Loading…</mat-option>
             }
-            <mat-autocomplete #partyAuto="matAutocomplete" [displayWith]="partyDisplayValue.bind(this)"
-              (opened)="onPartyPanelOpened(partyAuto)" (closed)="onPartyPanelClosed()"
-              (optionSelected)="onPartySelected($event.option.value)">
-              @if (partySearch.loading) {
-                <mat-option disabled>Loading…</mat-option>
-              }
-              @for (p of partySearch.items; track p.id) {
-                <mat-option [value]="p">{{ p.name }}</mat-option>
-              }
-              @if (partySearch.isEmpty) {
-                <mat-option disabled>No parties found</mat-option>
-              }
-            </mat-autocomplete>
-          </mat-form-field>
-          <mat-form-field class="fuse-mat-dense w-full">
-            <mat-label>Issued from</mat-label>
-            <input matInput [matDatepicker]="issuedFromPicker" [(ngModel)]="filterIssuedFrom" (ngModelChange)="applyFilters()" />
-            <mat-datepicker-toggle matSuffix [for]="issuedFromPicker"></mat-datepicker-toggle>
-            <mat-datepicker #issuedFromPicker></mat-datepicker>
-          </mat-form-field>
-          <mat-form-field class="fuse-mat-dense w-full">
-            <mat-label>Issued to</mat-label>
-            <input matInput [matDatepicker]="issuedToPicker" [(ngModel)]="filterIssuedTo" (ngModelChange)="applyFilters()" />
-            <mat-datepicker-toggle matSuffix [for]="issuedToPicker"></mat-datepicker-toggle>
-            <mat-datepicker #issuedToPicker></mat-datepicker>
-          </mat-form-field>
-        </div>
-      </mat-card-content>
-    </mat-card>
+            @for (p of partySearch.items; track p.id) {
+              <mat-option [value]="p">{{ p.name }}</mat-option>
+            }
+            @if (partySearch.isEmpty) {
+              <mat-option disabled>No parties found</mat-option>
+            }
+          </mat-autocomplete>
+        </mat-form-field>
+        <mat-form-field class="fuse-mat-dense w-full">
+          <mat-label>Issued from</mat-label>
+          <input matInput [matDatepicker]="issuedFromPicker" [(ngModel)]="filterIssuedFrom" (ngModelChange)="applyFilters()" />
+          <mat-datepicker-toggle matSuffix [for]="issuedFromPicker"></mat-datepicker-toggle>
+          <mat-datepicker #issuedFromPicker></mat-datepicker>
+        </mat-form-field>
+        <mat-form-field class="fuse-mat-dense w-full">
+          <mat-label>Issued to</mat-label>
+          <input matInput [matDatepicker]="issuedToPicker" [(ngModel)]="filterIssuedTo" (ngModelChange)="applyFilters()" />
+          <mat-datepicker-toggle matSuffix [for]="issuedToPicker"></mat-datepicker-toggle>
+          <mat-datepicker #issuedToPicker></mat-datepicker>
+        </mat-form-field>
+      </div>
+      <button mat-icon-button class="shrink-0 -mt-1" (click)="clearFilters()" matTooltip="Reset" aria-label="Reset filters">
+        <mat-icon class="icon-size-5" [svgIcon]="'heroicons_outline:x-mark'"></mat-icon>
+      </button>
+    </div>
   </div>
 
   <div class="bg-card rounded-xl shadow overflow-hidden border border-slate-200/60 dark:border-zinc-700/60" [overlayLoader]="pageLoader">

@@ -8,46 +8,38 @@
     }
   </div>
 
-  <div class="flex justify-center">
-    <mat-card appearance="filled" class="bg-zinc-100 dark:bg-zinc-800/50 w-full max-w-4xl">
-      <mat-card-header class="flex flex-row items-center justify-between w-full">
-        <div class="flex items-center gap-x-2">
-          <mat-icon class="icon-size-5" [svgIcon]="'heroicons_outline:funnel'"></mat-icon>
-          <mat-card-title class="text-lg font-medium">Filters</mat-card-title>
-        </div>
-        <button mat-icon-button (click)="clearFilters()" matTooltip="Clear filters">
-          <mat-icon class="icon-size-5" [svgIcon]="'heroicons_outline:x-mark'"></mat-icon>
-        </button>
-      </mat-card-header>
-      <mat-card-content class="border border-neutral-200 dark:border-neutral-700">
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+  <div class="bg-card rounded-2xl border border-slate-200/60 dark:border-zinc-700/60 p-4 shadow-sm">
+    <div class="flex items-start gap-2">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 flex-1 min-w-0">
+        <mat-form-field class="fuse-mat-dense w-full">
+          <mat-label>Search</mat-label>
+          <input matInput [(ngModel)]="filterSearch" (ngModelChange)="scheduleApplyFilters()" placeholder="Name, email, TRN…" />
+        </mat-form-field>
+        <mat-form-field class="fuse-mat-dense w-full">
+          <mat-label>Type</mat-label>
+          <mat-select [(ngModel)]="filterType" (ngModelChange)="applyFilters()">
+            <mat-option [value]="null">All</mat-option>
+            @for (t of partyTypes; track t) {
+              <mat-option [value]="t">{{ partyTypeLabel(t) }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+        @if (isAdmin) {
           <mat-form-field class="fuse-mat-dense w-full">
-            <mat-label>Search</mat-label>
-            <input matInput [(ngModel)]="filterSearch" (ngModelChange)="scheduleApplyFilters()" placeholder="Name, email, TRN…" />
-          </mat-form-field>
-          <mat-form-field class="fuse-mat-dense w-full">
-            <mat-label>Type</mat-label>
-            <mat-select [(ngModel)]="filterType" (ngModelChange)="applyFilters()">
+            <mat-label>Company</mat-label>
+            <mat-select [(ngModel)]="filterCompanyId" (ngModelChange)="applyFilters()">
               <mat-option [value]="null">All</mat-option>
-              @for (t of partyTypes; track t) {
-                <mat-option [value]="t">{{ partyTypeLabel(t) }}</mat-option>
+              @for (c of companies; track c.id) {
+                <mat-option [value]="c.id">{{ c.name }}</mat-option>
               }
             </mat-select>
           </mat-form-field>
-          @if (isAdmin) {
-            <mat-form-field class="fuse-mat-dense w-full">
-              <mat-label>Company</mat-label>
-              <mat-select [(ngModel)]="filterCompanyId" (ngModelChange)="applyFilters()">
-                <mat-option [value]="null">All</mat-option>
-                @for (c of companies; track c.id) {
-                  <mat-option [value]="c.id">{{ c.name }}</mat-option>
-                }
-              </mat-select>
-            </mat-form-field>
-          }
-        </div>
-      </mat-card-content>
-    </mat-card>
+        }
+      </div>
+      <button mat-icon-button class="shrink-0 -mt-1" (click)="clearFilters()" matTooltip="Reset" aria-label="Reset filters">
+        <mat-icon class="icon-size-5" [svgIcon]="'heroicons_outline:x-mark'"></mat-icon>
+      </button>
+    </div>
   </div>
 
   <div class="bg-card rounded-xl shadow overflow-hidden border border-slate-200/60 dark:border-zinc-700/60" [overlayLoader]="pageLoader">

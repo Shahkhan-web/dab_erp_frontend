@@ -217,6 +217,15 @@ export class AssetsListComponent implements OnInit, OnDestroy {
         this.applyFilters();
     }
 
+    clearFilters(): void {
+        this.filterSearch = null;
+        this.filterType = null;
+        this.filterStatus = null;
+        this.filterCompanyId = null;
+        this.employeeFilter = null;
+        this.applyFilters();
+    }
+
     // Employee Autocomplete Filter
     employeeLabel(e: EmployeeListItem): string {
         const name = [e.firstName, e.middleName, e.lastName].filter(Boolean).join(' ') || 'Employee';

@@ -23,86 +23,67 @@
     </div>
   </div>
 
-  <div class="flex-auto p-4 sm:p-6 md:p-5 flex flex-col gap-3">
-    <div class="flex justify-center">
-      <mat-card appearance="filled" class="bg-zinc-100 dark:bg-zinc-800/50 w-full max-w-6xl">
-        <mat-card-header class="flex flex-row items-center justify-between w-full">
-          <div class="flex items-center gap-x-2">
-            <mat-icon class="icon-size-5 text-zinc-900 dark:text-zinc-100"
-              [svgIcon]="'heroicons_outline:funnel'"></mat-icon>
-            <mat-card-title
-              class="text-zinc-900 dark:text-zinc-100 font-medium tracking-tight text-lg">Filters</mat-card-title>
-          </div>
-          <div class="flex items-center gap-1">
-            <button mat-icon-button (click)="clearFilters()" matTooltip="Clear filters" aria-label="Clear filters">
-              <mat-icon class="icon-size-5" [svgIcon]="'heroicons_outline:x-mark'"></mat-icon>
-            </button>
-          </div>
-        </mat-card-header>
-        <mat-card-content class="border border-neutral-200 dark:border-neutral-700">
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-            <mat-form-field class="fuse-mat-dense w-full">
-              <mat-label>Employee</mat-label>
-              <input matInput [(ngModel)]="employeeFilter" placeholder="Search by name or ID"
-                [matAutocomplete]="empAuto" #empTrigger="matAutocompleteTrigger"
-                (focus)="openEmployeePanel(empTrigger)" (click)="openEmployeePanel(empTrigger)"
-                (ngModelChange)="onEmployeeFilterChange($event)" />
-              <mat-autocomplete #empAuto="matAutocomplete" [displayWith]="displayEmployee"
-                (optionSelected)="onEmployeeOptionSelected()"
-                (opened)="onEmployeeAutocompleteOpened(empAuto)" (closed)="onEmployeeAutocompleteClosed()">
-                @if (employeeSearch.loading) {
-                <mat-option disabled>Searching…</mat-option>
-                }
-                @for (e of employeeSearch.items; track e.id) {
-                <mat-option [value]="e">{{ employeeLabel(e) }}</mat-option>
-                }
-                @if (employeeSearch.loadingMore) {
-                <mat-option disabled>Loading more…</mat-option>
-                }
-                @if (employeeSearch.isEmpty && !employeeSearch.loading) {
-                <mat-option disabled>No employees found</mat-option>
-                }
-              </mat-autocomplete>
-            </mat-form-field>
-            <!-- <mat-form-field class="fuse-mat-dense w-full">
-              <mat-label>Applicant type</mat-label>
-              <mat-select [(ngModel)]="filterApplicantType" placeholder="All">
-                <mat-option [value]="null">All</mat-option>
-                <mat-option value="employee">Employee</mat-option>
-              </mat-select>
-            </mat-form-field> -->
-            <mat-form-field class="fuse-mat-dense w-full">
-              <mat-label>Status</mat-label>
-              <mat-select [(ngModel)]="filterStatus" placeholder="All" (ngModelChange)="applyFilters()">
-                <mat-option [value]="null">All</mat-option>
-                <mat-option value="open">Open</mat-option>
-                <mat-option value="rejected">Rejected</mat-option>
-                <mat-option value="approved">Approved</mat-option>
-                <mat-option value="disbursed">Disbursed</mat-option>
-                <mat-option value="reimbursed">Reimbursed</mat-option>
-              </mat-select>
-            </mat-form-field>
-            <mat-form-field class="fuse-mat-dense w-full">
-              <mat-label>Loan name</mat-label>
-              <input matInput [(ngModel)]="filterLoanName" placeholder="Car loan" (ngModelChange)="scheduleApplyFilters()" />
-            </mat-form-field>
-            <mat-form-field class="fuse-mat-dense w-full">
-              <mat-label>Created from</mat-label>
-              <input matInput [matDatepicker]="createdFromPicker" [(ngModel)]="createdFromDate"
-                (ngModelChange)="applyFilters()" />
-              <mat-datepicker-toggle matSuffix [for]="createdFromPicker"></mat-datepicker-toggle>
-              <mat-datepicker #createdFromPicker></mat-datepicker>
-            </mat-form-field>
-            <mat-form-field class="fuse-mat-dense w-full">
-              <mat-label>Created to</mat-label>
-              <input matInput [matDatepicker]="createdToPicker" [(ngModel)]="createdToDate"
-                (ngModelChange)="applyFilters()" />
-              <mat-datepicker-toggle matSuffix [for]="createdToPicker"></mat-datepicker-toggle>
-              <mat-datepicker #createdToPicker></mat-datepicker>
-            </mat-form-field>
-          </div>
-        </mat-card-content>
-      </mat-card>
+  <div class="flex-auto p-4 sm:p-6 md:p-5 flex flex-col gap-4">
+    <div class="bg-card rounded-2xl border border-slate-200/60 dark:border-zinc-700/60 p-4 shadow-sm">
+      <div class="flex items-start gap-2">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 flex-1 min-w-0">
+          <mat-form-field class="fuse-mat-dense w-full">
+            <mat-label>Employee</mat-label>
+            <input matInput [(ngModel)]="employeeFilter" placeholder="Search by name or ID"
+              [matAutocomplete]="empAuto" #empTrigger="matAutocompleteTrigger"
+              (focus)="openEmployeePanel(empTrigger)" (click)="openEmployeePanel(empTrigger)"
+              (ngModelChange)="onEmployeeFilterChange($event)" />
+            <mat-autocomplete #empAuto="matAutocomplete" [displayWith]="displayEmployee"
+              (optionSelected)="onEmployeeOptionSelected()"
+              (opened)="onEmployeeAutocompleteOpened(empAuto)" (closed)="onEmployeeAutocompleteClosed()">
+              @if (employeeSearch.loading) {
+              <mat-option disabled>Searching…</mat-option>
+              }
+              @for (e of employeeSearch.items; track e.id) {
+              <mat-option [value]="e">{{ employeeLabel(e) }}</mat-option>
+              }
+              @if (employeeSearch.loadingMore) {
+              <mat-option disabled>Loading more…</mat-option>
+              }
+              @if (employeeSearch.isEmpty && !employeeSearch.loading) {
+              <mat-option disabled>No employees found</mat-option>
+              }
+            </mat-autocomplete>
+          </mat-form-field>
+          <mat-form-field class="fuse-mat-dense w-full">
+            <mat-label>Status</mat-label>
+            <mat-select [(ngModel)]="filterStatus" placeholder="All" (ngModelChange)="applyFilters()">
+              <mat-option [value]="null">All</mat-option>
+              <mat-option value="open">Open</mat-option>
+              <mat-option value="rejected">Rejected</mat-option>
+              <mat-option value="approved">Approved</mat-option>
+              <mat-option value="disbursed">Disbursed</mat-option>
+              <mat-option value="reimbursed">Reimbursed</mat-option>
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field class="fuse-mat-dense w-full">
+            <mat-label>Loan name</mat-label>
+            <input matInput [(ngModel)]="filterLoanName" placeholder="Car loan" (ngModelChange)="scheduleApplyFilters()" />
+          </mat-form-field>
+          <mat-form-field class="fuse-mat-dense w-full">
+            <mat-label>Created from</mat-label>
+            <input matInput [matDatepicker]="createdFromPicker" [(ngModel)]="createdFromDate"
+              (ngModelChange)="applyFilters()" />
+            <mat-datepicker-toggle matSuffix [for]="createdFromPicker"></mat-datepicker-toggle>
+            <mat-datepicker #createdFromPicker></mat-datepicker>
+          </mat-form-field>
+          <mat-form-field class="fuse-mat-dense w-full">
+            <mat-label>Created to</mat-label>
+            <input matInput [matDatepicker]="createdToPicker" [(ngModel)]="createdToDate"
+              (ngModelChange)="applyFilters()" />
+            <mat-datepicker-toggle matSuffix [for]="createdToPicker"></mat-datepicker-toggle>
+            <mat-datepicker #createdToPicker></mat-datepicker>
+          </mat-form-field>
+        </div>
+        <button mat-icon-button class="shrink-0 -mt-1" (click)="clearFilters()" matTooltip="Reset" aria-label="Reset filters">
+          <mat-icon class="icon-size-5" [svgIcon]="'heroicons_outline:x-mark'"></mat-icon>
+        </button>
+      </div>
     </div>
 
     <div class="bg-card rounded-xl shadow overflow-hidden border border-slate-200/60 dark:border-zinc-700/60" [overlayLoader]="pageLoader">

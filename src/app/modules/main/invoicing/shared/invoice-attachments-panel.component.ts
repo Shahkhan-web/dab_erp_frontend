@@ -137,9 +137,10 @@ export class InvoiceAttachmentsPanelComponent implements OnDestroy {
 
     onFileInputChange(event: Event): void {
         const input = event.target as HTMLInputElement;
-        const files = input.files;
+        // Copy before clearing — FileList is live and empties when value is reset.
+        const files = input.files ? Array.from(input.files) : [];
         input.value = '';
-        if (files?.length) this.addPendingFiles(files);
+        if (files.length) this.addPendingFiles(files);
     }
 
     addPendingFiles(files: FileList | File[]): void {

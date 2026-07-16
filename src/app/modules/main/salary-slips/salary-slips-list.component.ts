@@ -3,7 +3,6 @@ import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatAutocompleteModule, MatAutocomplete, MatAutocompleteTrigger } from '@angular/material/autocomplete';
 import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatDatepickerModule } from '@angular/material/datepicker';
@@ -43,7 +42,6 @@ import { SalarySlipUploadDialogComponent } from './salary-slip-upload-dialog.com
     imports: [
         CommonModule,
         FormsModule,
-        MatCardModule,
         MatTableModule,
         MatCheckboxModule,
         MatPaginatorModule,

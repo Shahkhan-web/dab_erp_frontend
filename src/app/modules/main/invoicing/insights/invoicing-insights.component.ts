@@ -167,7 +167,7 @@ export class InvoicingInsightsComponent implements OnInit, OnDestroy {
             { section: 'Finance', label: 'Salaries this month', plainValue: i.salariesThisMonth, format: 'money', icon: 'heroicons_outline:users' },
             { section: 'Finance', label: 'Net profit', metric: i.netProfit, format: 'money', icon: 'heroicons_outline:banknotes' },
             { section: 'Outstanding', label: 'Receivable', plainValue: i.outstandingReceivable, format: 'money', icon: 'heroicons_outline:document-text' },
-            { section: 'Outstanding', label: 'Payable', plainValue: i.outstandingPayable, format: 'money', icon: 'heroicons_outline:document-currency-dollar' },
+            { section: 'Outstanding', label: 'Payable', plainValue: i.outstandingPayable, format: 'money', icon: 'heroicons_outline:receipt-percent' },
         ];
     }
 

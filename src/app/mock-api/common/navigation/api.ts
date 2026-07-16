@@ -59,7 +59,7 @@ export class NavigationMockApi {
             id: 'invoice',
             title: 'Invoicing',
             type: 'basic',
-            icon: 'heroicons_outline:document-currency-dollar',
+            icon: 'heroicons_outline:receipt-percent',
             link: '/main/invoicing',
         },
         {

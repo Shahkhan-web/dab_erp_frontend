@@ -23,47 +23,35 @@
     </div>
   </div>
 
-  <div class="flex-auto p-4 sm:p-6 md:p-5 flex flex-col gap-3">
-    <div class="flex justify-center">
-      <mat-card appearance="filled" class="bg-zinc-100 dark:bg-zinc-800/50 w-full max-w-4xl">
-        <mat-card-header class="flex flex-row items-center justify-between w-full">
-          <div class="flex items-center gap-x-2">
-            <mat-icon class="icon-size-5 text-zinc-900 dark:text-zinc-100"
-              [svgIcon]="'heroicons_outline:funnel'"></mat-icon>
-            <mat-card-title
-              class="text-zinc-900 dark:text-zinc-100 font-medium tracking-tight text-lg">Filters</mat-card-title>
-          </div>
-          <div class="flex items-center gap-1">
-            <button mat-icon-button (click)="clearFilters()" matTooltip="Clear filters" aria-label="Clear filters">
-              <mat-icon class="icon-size-5" [svgIcon]="'heroicons_outline:x-mark'"></mat-icon>
-            </button>
-          </div>
-        </mat-card-header>
-        <mat-card-content class="border border-neutral-200 dark:border-neutral-700">
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
-            <mat-form-field class="fuse-mat-dense w-full">
-              <mat-label>Name</mat-label>
-              <input matInput [(ngModel)]="filterName" placeholder="Search name" (ngModelChange)="scheduleApplyFilters()" />
-            </mat-form-field>
-            <mat-form-field class="fuse-mat-dense w-full">
-              <mat-label>Type</mat-label>
-              <mat-select [(ngModel)]="filterType" placeholder="All" (ngModelChange)="applyFilters()">
-                <mat-option [value]="null">All</mat-option>
-                <mat-option value="earning">Earning</mat-option>
-                <mat-option value="deduction">Deduction</mat-option>
-              </mat-select>
-            </mat-form-field>
-            <mat-form-field class="fuse-mat-dense w-full">
-              <mat-label>Active</mat-label>
-              <mat-select [(ngModel)]="filterIsActive" placeholder="All" (ngModelChange)="applyFilters()">
-                <mat-option [value]="null">All</mat-option>
-                <mat-option [value]="true">Active</mat-option>
-                <mat-option [value]="false">Inactive</mat-option>
-              </mat-select>
-            </mat-form-field>
-          </div>
-        </mat-card-content>
-      </mat-card>
+  <div class="flex-auto p-4 sm:p-6 md:p-5 flex flex-col gap-4">
+    <div class="bg-card rounded-2xl border border-slate-200/60 dark:border-zinc-700/60 p-4 shadow-sm">
+      <div class="flex items-start gap-2">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 flex-1 min-w-0">
+          <mat-form-field class="fuse-mat-dense w-full">
+            <mat-label>Name</mat-label>
+            <input matInput [(ngModel)]="filterName" placeholder="Search name" (ngModelChange)="scheduleApplyFilters()" />
+          </mat-form-field>
+          <mat-form-field class="fuse-mat-dense w-full">
+            <mat-label>Type</mat-label>
+            <mat-select [(ngModel)]="filterType" placeholder="All" (ngModelChange)="applyFilters()">
+              <mat-option [value]="null">All</mat-option>
+              <mat-option value="earning">Earning</mat-option>
+              <mat-option value="deduction">Deduction</mat-option>
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field class="fuse-mat-dense w-full">
+            <mat-label>Active</mat-label>
+            <mat-select [(ngModel)]="filterIsActive" placeholder="All" (ngModelChange)="applyFilters()">
+              <mat-option [value]="null">All</mat-option>
+              <mat-option [value]="true">Active</mat-option>
+              <mat-option [value]="false">Inactive</mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+        <button mat-icon-button class="shrink-0 -mt-1" (click)="clearFilters()" matTooltip="Reset" aria-label="Reset filters">
+          <mat-icon class="icon-size-5" [svgIcon]="'heroicons_outline:x-mark'"></mat-icon>
+        </button>
+      </div>
     </div>
 
     <div class="bg-card rounded-xl shadow overflow-hidden border border-slate-200/60 dark:border-zinc-700/60" [overlayLoader]="pageLoader">

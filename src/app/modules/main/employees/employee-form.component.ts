@@ -849,9 +849,10 @@ export class EmployeeFormComponent implements OnInit, OnDestroy {
 
     onExtraDocFileInputChange(event: Event): void {
         const input = event.target as HTMLInputElement;
-        const files = input.files;
+        // Copy before clearing — FileList is live and empties when value is reset.
+        const files = input.files ? Array.from(input.files) : [];
         input.value = '';
-        if (files?.length) this.addPendingExtraDocFiles(files);
+        if (files.length) this.addPendingExtraDocFiles(files);
     }
 
     trackByPendingExtraId(_index: number, item: PendingExtraDocItem): number {
