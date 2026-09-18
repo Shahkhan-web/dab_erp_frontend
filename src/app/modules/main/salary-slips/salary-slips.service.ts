@@ -138,6 +138,12 @@ export function salarySlipAllowsPdfDownload(status: string | null | undefined): 
     return s === 'approved' || s === 'reimbursed';
 }
 
+/** Response of `PATCH /salary-slips/status` — slips no longer pending come back as skipped. */
+export interface BulkUpdateStatusResult {
+    updated: number;
+    skippedIds: string[];
+}
+
 export interface BulkUploadRowError {
     row: number;
     riderId: string;
@@ -252,8 +258,8 @@ export class SalarySlipsService {
         );
     }
 
-    bulkUpdateStatus(ids: string[], status: SalarySlipStatus): Observable<unknown> {
-        return this._http.patch(`${this._baseSlips}/status`, { ids, status });
+    bulkUpdateStatus(ids: string[], status: SalarySlipStatus): Observable<BulkUpdateStatusResult> {
+        return this._http.patch<BulkUpdateStatusResult>(`${this._baseSlips}/status`, { ids, status });
     }
 
     uploadSalarySlips(file: File, periodMonth: string): Observable<BulkUploadResult> {

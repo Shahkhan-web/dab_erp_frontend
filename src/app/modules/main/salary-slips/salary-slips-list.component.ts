@@ -39,6 +39,7 @@ import { SalarySlipLetterheadChoiceDialogComponent } from './salary-slip-letterh
 import { SalarySlipPdfDialogComponent } from './salary-slip-pdf-dialog.component';
 import { SalarySlipListItem, SalarySlipsService, SalarySlipStatus, normalizeSalarySlipStatus, salarySlipAllowsPdfDownload, salarySlipStatusChipClass, salarySlipStatusLabel } from './salary-slips.service';
 import { SalarySlipUploadDialogComponent } from './salary-slip-upload-dialog.component';
+import { createsSalaryDebt } from './salary-debt.util';
 import { DateTime } from 'luxon';
 
 @Component({
@@ -66,6 +67,9 @@ import { DateTime } from 'luxon';
     templateUrl: './salary-slips-list.component.html',
 })
 export class SalarySlipsListComponent implements OnInit, OnDestroy {
+    /** Negative net = debt carried to a future slip; surfaced in the list, not just the detail view. */
+    readonly createsSalaryDebt = createsSalaryDebt;
+
     private readonly _allDisplayedColumns = [
         'select',
         'employeeId',
@@ -100,6 +104,12 @@ export class SalarySlipsListComponent implements OnInit, OnDestroy {
     statusOptions: SalarySlipStatus[] = ['pending', 'approved', 'reimbursed'];
     bulkStatusOptions: SalarySlipStatus[] = ['approved', 'reimbursed'];
     selectedIds = new Set<string>();
+    /**
+     * Non-null once "select all matching" is used: every selectable slip id for the
+     * active filter, across all pages. Page-level `selectedIds` is ignored while set.
+     */
+    matchingSelectableIds: string[] | null = null;
+    selectAllMatchingLoading = false;
     bulkStatus: SalarySlipStatus | null = null;
     bulkUpdating = false;
 
@@ -433,7 +443,53 @@ export class SalarySlipsListComponent implements OnInit, OnDestroy {
     }
 
     get selectedCount(): number {
-        return this.selectedIds.size;
+        return this.matchingSelectableIds?.length ?? this.selectedIds.size;
+    }
+
+    /** True when the current page is fully selected but the filter spans further pages. */
+    get canOfferSelectAllMatching(): boolean {
+        return !this.matchingSelectableIds && this.isAllSelected() && this.total > this.rows.length;
+    }
+
+    /**
+     * Approving a pay run is one business action, so it should not have to be repeated
+     * per page. Only pending slips are selectable, so the filter is narrowed to pending
+     * and every matching page is walked to collect ids.
+     */
+    async selectAllMatching(): Promise<void> {
+        if (this.filterStatus && normalizeSalarySlipStatus(this.filterStatus) !== 'pending') {
+            this._toast.error('Only pending salary slips can be selected for a status change');
+            return;
+        }
+        this.selectAllMatchingLoading = true;
+        try {
+            const ids: string[] = [];
+            const pageSize = 100; // server caps `limit` at 100
+            const maxPages = 50; // safety stop: 5,000 slips
+            for (let page = 1; page <= maxPages; page++) {
+                const resp = await lastValueFrom(
+                    this._service.getSalarySlips(page, pageSize, {
+                        employeeId: this._selectedEmployeeId(),
+                        status: 'pending',
+                        periodFrom: formatMonthForPayload(this.periodFromDate),
+                        periodTo: formatMonthForPayload(this.periodToDate),
+                    })
+                );
+                const batch = resp.data ?? [];
+                ids.push(...batch.filter((row) => this.canSelectForStatusChange(row)).map((row) => row.id));
+                if (batch.length < pageSize || ids.length >= (resp.count ?? ids.length)) break;
+            }
+            if (ids.length === 0) {
+                this._toast.error('No pending salary slips match the current filter');
+                return;
+            }
+            this.matchingSelectableIds = ids;
+            this._ensureBulkStatusStillValid();
+        } catch (e: any) {
+            this._toast.error(e?.error?.message || 'Failed to select all matching salary slips');
+        } finally {
+            this.selectAllMatchingLoading = false;
+        }
     }
 
     isAllSelected(): boolean {
@@ -450,6 +506,8 @@ export class SalarySlipsListComponent implements OnInit, OnDestroy {
     }
 
     toggleSelectAll(checked: boolean): void {
+        // Any manual selection change reverts to an explicit, page-level selection.
+        this.matchingSelectableIds = null;
         const selectableRows = this.rows.filter((row) => this.canSelectForStatusChange(row));
         if (!checked) {
             selectableRows.forEach((row) => this.selectedIds.delete(row.id));
@@ -466,6 +524,7 @@ export class SalarySlipsListComponent implements OnInit, OnDestroy {
 
     toggleSelection(slip: SalarySlipListItem): void {
         if (!this.canSelectForStatusChange(slip)) return;
+        this.matchingSelectableIds = null;
         if (this.selectedIds.has(slip.id)) {
             this.selectedIds.delete(slip.id);
         } else {
@@ -476,6 +535,7 @@ export class SalarySlipsListComponent implements OnInit, OnDestroy {
 
     clearSelection(): void {
         this.selectedIds.clear();
+        this.matchingSelectableIds = null;
         this.bulkStatus = null;
     }
 
@@ -485,35 +545,53 @@ export class SalarySlipsListComponent implements OnInit, OnDestroy {
     }
 
     canChooseBulkStatus(status: SalarySlipStatus): boolean {
+        if (this.matchingSelectableIds) {
+            // The set was built from pending slips only, so the transition rule is uniform.
+            return this.matchingSelectableIds.length > 0 && this.canTransitionStatus('pending', status);
+        }
         const selectedRows = this._selectedRowsOnPage();
         if (selectedRows.length === 0) return false;
         return selectedRows.every((row) => this.canTransitionStatus(row.status, status));
     }
 
     async applyBulkStatus(): Promise<void> {
-        const selectedRows = this.rows.filter((row) => this.selectedIds.has(row.id));
-        const ids = selectedRows.map((row) => row.id);
         if (!this.bulkStatus) {
             this._toast.error('Choose a status');
             return;
         }
+        const selectedRows = this.rows.filter((row) => this.selectedIds.has(row.id));
+        const ids = this.matchingSelectableIds ?? selectedRows.map((row) => row.id);
         if (ids.length === 0) {
             this._toast.error('Select at least one salary slip');
             return;
         }
-        const invalidRows = selectedRows.filter((row) => !this.canTransitionStatus(row.status, this.bulkStatus!));
-        if (invalidRows.length > 0) {
-            this._toast.error(
-                'Invalid status change. Only pending salary slips can be marked approved or reimbursed.'
+        // Rows outside the current page aren't loaded, so this check only applies to an
+        // explicit page selection; the filter-wide set is pending-only by construction.
+        if (!this.matchingSelectableIds) {
+            const invalidRows = selectedRows.filter(
+                (row) => !this.canTransitionStatus(row.status, this.bulkStatus!)
             );
-            return;
+            if (invalidRows.length > 0) {
+                this._toast.error(
+                    'Invalid status change. Only pending salary slips can be marked approved or reimbursed.'
+                );
+                return;
+            }
         }
         this.bulkUpdating = true;
         try {
-            await lastValueFrom(this._service.bulkUpdateStatus(ids, this.bulkStatus));
-            this._toast.success(
-                `Updated ${ids.length} salary slip${ids.length === 1 ? '' : 's'} to ${salarySlipStatusLabel(this.bulkStatus)}`
-            );
+            const result = await lastValueFrom(this._service.bulkUpdateStatus(ids, this.bulkStatus));
+            // Report what the server actually changed: a slip approved by someone else
+            // between selection and apply comes back skipped, not updated.
+            const updated = result?.updated ?? ids.length;
+            const skipped = result?.skippedIds?.length ?? 0;
+            const label = salarySlipStatusLabel(this.bulkStatus);
+            const message = `Updated ${updated} salary slip${updated === 1 ? '' : 's'} to ${label}`;
+            if (skipped > 0) {
+                this._toast.warning(`${message} · ${skipped} skipped (no longer pending)`);
+            } else {
+                this._toast.success(message);
+            }
             this.clearSelection();
             await this.loadList();
         } catch (e: any) {
@@ -524,6 +602,8 @@ export class SalarySlipsListComponent implements OnInit, OnDestroy {
     }
 
     private _retainSelectionOnlyVisibleRows(): void {
+        // A filter-wide selection deliberately spans pages; pruning it would defeat it.
+        if (this.matchingSelectableIds) return;
         const visibleIds = new Set(this.rows.map((r) => r.id));
         Array.from(this.selectedIds).forEach((id) => {
             if (!visibleIds.has(id)) this.selectedIds.delete(id);

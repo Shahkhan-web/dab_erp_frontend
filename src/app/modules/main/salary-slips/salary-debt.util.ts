@@ -45,6 +45,14 @@ export function inferredCarriedDebtDeduction(slip: SalarySlipListItem): number {
     return diff > 0.005 ? diff : 0;
 }
 
+/**
+ * A negative net means the slip created carried-forward debt rather than a payment.
+ * `netPayment` can arrive as a numeric string, so parse before comparing.
+ */
+export function createsSalaryDebt(slip: SalarySlipListItem): boolean {
+    return parseMoneyField(slip?.netPayment) < 0;
+}
+
 export function shortSlipId(id: string | null | undefined): string {
     const s = String(id ?? '').trim();
     if (!s) return '—';

@@ -92,8 +92,18 @@
       @if (canWriteSalarySlip && selectedCount > 0) {
       <div
         class="salary-slip-bulk-bar flex flex-wrap items-center justify-between gap-3 px-4 py-3 bg-primary/10 dark:bg-primary/20 border-b border-slate-200/60 dark:border-zinc-700/60">
-        <span class="salary-slip-bulk-bar__count text-sm font-medium text-neutral-800 dark:text-neutral-100">
-          {{ selectedCount }} slip{{ selectedCount === 1 ? '' : 's' }} selected
+        <span class="salary-slip-bulk-bar__count flex flex-wrap items-center gap-2 text-sm font-medium text-neutral-800 dark:text-neutral-100">
+          @if (matchingSelectableIds) {
+          <span>All {{ selectedCount }} pending slip{{ selectedCount === 1 ? '' : 's' }} matching this filter selected</span>
+          } @else {
+          <span>{{ selectedCount }} slip{{ selectedCount === 1 ? '' : 's' }} selected on this page</span>
+          @if (canOfferSelectAllMatching) {
+          <button mat-button type="button" color="primary" class="salary-slip-bulk-bar__select-all"
+            [disabled]="selectAllMatchingLoading" (click)="selectAllMatching()">
+            {{ selectAllMatchingLoading ? 'Selecting…' : 'Select all matching this filter' }}
+          </button>
+          }
+          }
         </span>
         <div class="salary-slip-bulk-bar__actions flex flex-wrap items-center gap-2">
           <div class="salary-slip-bulk-bar__status-group" role="group" aria-label="Change status to">
@@ -171,7 +181,19 @@
           </ng-container>
           <ng-container matColumnDef="netPayment">
             <th mat-header-cell *matHeaderCellDef>Net</th>
-            <td mat-cell *matCellDef="let item" class="font-medium">AED {{ item?.netPayment | number: '1.2-2' }}</td>
+            <td mat-cell *matCellDef="let item" class="font-medium">
+              @if (createsSalaryDebt(item)) {
+              <span class="inline-flex items-center gap-1 text-red-600 dark:text-red-400"
+                matTooltip="Negative net pay — this slip carries debt forward to a future slip">
+                <mat-icon class="icon-size-4 shrink-0 text-red-600 dark:text-red-400"
+                  [svgIcon]="'heroicons_outline:exclamation-triangle'"></mat-icon>
+                <span>AED {{ item?.netPayment | number: '1.2-2' }}</span>
+                <span class="sr-only">(debt carried forward)</span>
+              </span>
+              } @else {
+              AED {{ item?.netPayment | number: '1.2-2' }}
+              }
+            </td>
           </ng-container>
           <ng-container matColumnDef="createdAt">
             <th mat-header-cell *matHeaderCellDef>Created</th>
