@@ -41,6 +41,18 @@ import {
 
 type DashboardTab = 'payroll' | 'workforce' | 'loans' | 'performance' | 'activity';
 
+/**
+ * Shown when the selected range contains no payroll but payroll exists elsewhere,
+ * so an empty window can't be mistaken for an empty system.
+ */
+interface PayrollElsewhereNotice {
+    /** Human label of the most recent period with payroll, e.g. "July 2026". */
+    latestLabel: string;
+    /** Smallest preset range that would include that period, or null when none reaches it. */
+    jumpRange: DashboardRange | null;
+    jumpLabel: string | null;
+}
+
 interface KpiCard {
     label: string;
     section: string;
@@ -82,6 +94,7 @@ export class MainDashboardComponent implements OnInit, OnDestroy {
     companies: Company[] = [];
 
     overview: DashboardOverview | null = null;
+    payrollElsewhere: PayrollElsewhereNotice | null = null;
     overviewLoader = false;
     kpiCards: KpiCard[] = [];
 
@@ -217,6 +230,63 @@ export class MainDashboardComponent implements OnInit, OnDestroy {
         return 'flat';
     }
 
+    /** Jump the dashboard to the range that reveals the payroll the current window missed. */
+    jumpToLatestPayroll(): void {
+        const jumpRange = this.payrollElsewhere?.jumpRange;
+        if (jumpRange) {
+            this.onRangeChange(jumpRange);
+        }
+    }
+
+    /**
+     * An all-zero payroll section is ambiguous: it looks identical whether payroll was
+     * never run or simply falls outside the selected window. The backend reports the
+     * latest slip period regardless of range, so the two can be told apart here.
+     */
+    private buildPayrollElsewhereNotice(overview: DashboardOverview): PayrollElsewhereNotice | null {
+        const payroll = overview.payroll;
+        const latest = payroll?.latestPeriodMonth;
+        if (!payroll || !latest || payroll.slips.value > 0) return null;
+
+        // A slip's period_month is stored as the 1st of the month and the backend filters
+        // it as a plain date, so compare the same way. Comparing month prefixes instead
+        // would wrongly treat 2026-08 as inside a window starting 2026-08-20.
+        const { fromDate, toDate } = overview.meta;
+        const latestDate = `${latest}-01`;
+        if (latestDate >= fromDate && latestDate <= toDate) return null;
+
+        return {
+            latestLabel: this.formatPeriodMonth(latest),
+            ...this.jumpTarget(latest),
+        };
+    }
+
+    /** Smallest preset range whose window would reach back to `periodMonth`. */
+    private jumpTarget(periodMonth: string): { jumpRange: DashboardRange | null; jumpLabel: string | null } {
+        const now = new Date();
+        const [year, month] = periodMonth.split('-').map(Number);
+        const monthsAgo =
+            (now.getFullYear() - year) * 12 + (now.getMonth() + 1 - month);
+
+        // A future period is covered by any range that includes the current month.
+        const range: DashboardRange | null =
+            monthsAgo < 0 ? null : monthsAgo <= 5 ? 'last_6_months' : monthsAgo <= 11 ? 'yearly' : null;
+        if (!range) return { jumpRange: null, jumpLabel: null };
+
+        return {
+            jumpRange: range,
+            jumpLabel: DASHBOARD_RANGES.find((r) => r.value === range)?.label ?? null,
+        };
+    }
+
+    private formatPeriodMonth(periodMonth: string): string {
+        const [year, month] = periodMonth.split('-').map(Number);
+        return new Date(year, month - 1, 1).toLocaleDateString('en-US', {
+            month: 'long',
+            year: 'numeric',
+        });
+    }
+
     private parseRange(value: string | null): DashboardRange {
         const valid = DASHBOARD_RANGES.map((r) => r.value);
         return valid.includes(value as DashboardRange) ? (value as DashboardRange) : 'monthly';
@@ -284,9 +354,11 @@ export class MainDashboardComponent implements OnInit, OnDestroy {
         try {
             this.overview = await lastValueFrom(this._dashboard.getOverview(this.queryParams()));
             this.kpiCards = this.buildKpiCards(this.overview);
+            this.payrollElsewhere = this.buildPayrollElsewhereNotice(this.overview);
         } catch {
             this.overview = null;
             this.kpiCards = [];
+            this.payrollElsewhere = null;
         } finally {
             this.overviewLoader = false;
         }

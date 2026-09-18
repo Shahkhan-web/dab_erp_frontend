@@ -80,6 +80,8 @@ export interface DashboardOverviewPayroll {
     netPayment: DashboardMetric;
     byStatus: DashboardBreakdownItem[];
     pendingNetPayment: number;
+    /** Most recent slip period ('YYYY-MM') across all time; null when no slips exist at all. */
+    latestPeriodMonth: string | null;
 }
 
 export interface DashboardOverviewLoans {
@@ -114,6 +116,8 @@ export interface DashboardOverview {
 
 export interface DashboardPayrollResponse {
     meta: DashboardMeta;
+    /** Most recent slip period ('YYYY-MM') across all time; null when no slips exist at all. */
+    latestPeriodMonth: string | null;
     series: DashboardSeriesPoint[];
     byStatus: DashboardBreakdownItem[];
     deductionComposition: DashboardBreakdownItem[];

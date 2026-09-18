@@ -138,6 +138,19 @@ export function salarySlipAllowsPdfDownload(status: string | null | undefined): 
     return s === 'approved' || s === 'reimbursed';
 }
 
+export interface BulkUploadRowError {
+    row: number;
+    riderId: string;
+    message: string;
+}
+
+/** Response of `POST /salary-slips/upload` — a 201 can still mean rows were skipped. */
+export interface BulkUploadResult {
+    created: number;
+    notFoundRiderIds: string[];
+    errors: BulkUploadRowError[];
+}
+
 export interface SalarySlipLineInput {
     payComponentId: string;
     amount: number;
@@ -243,11 +256,11 @@ export class SalarySlipsService {
         return this._http.patch(`${this._baseSlips}/status`, { ids, status });
     }
 
-    uploadSalarySlips(file: File, periodMonth: string): Observable<unknown> {
+    uploadSalarySlips(file: File, periodMonth: string): Observable<BulkUploadResult> {
         const formData = new FormData();
         formData.append('file', file);
         formData.append('periodMonth', periodMonth);
-        return this._http.post(`${this._baseSlips}/upload`, formData);
+        return this._http.post<BulkUploadResult>(`${this._baseSlips}/upload`, formData);
     }
 
     /**

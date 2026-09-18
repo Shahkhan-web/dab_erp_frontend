@@ -13,7 +13,7 @@ import { ToastrService } from 'ngx-toastr';
 import { lastValueFrom } from 'rxjs';
 import { OverlayLoaderDirective } from 'app/core/directives/overlay-loader.directive';
 import { formatMonthForPayload } from 'app/core/utils/date.utils';
-import { SalarySlipsService } from './salary-slips.service';
+import { BulkUploadResult, SalarySlipsService } from './salary-slips.service';
 import { DateTime } from 'luxon';
 
 @Component({
@@ -41,6 +41,12 @@ export class SalarySlipUploadDialogComponent {
     uploading = false;
     /** Shown inline in the dialog, so a failure is visible even if the toast is missed. */
     errorMessage: string | null = null;
+    /**
+     * Set once the upload returns. A 201 can still mean rows were skipped, so the
+     * dialog stays open on a partial result and reports the breakdown rather than
+     * closing and leaving the operator to reconcile the list against their file.
+     */
+    result: BulkUploadResult | null = null;
 
     constructor(
         private _dialogRef: MatDialogRef<SalarySlipUploadDialogComponent, boolean | undefined>,
@@ -49,19 +55,22 @@ export class SalarySlipUploadDialogComponent {
     ) {}
 
     cancel(): void {
-        this._dialogRef.close();
+        // A partial upload already created slips, so the list still needs a refresh.
+        this._dialogRef.close(this.result ? true : undefined);
     }
 
     onUploadFilePicked(event: Event): void {
         const input = event.target as HTMLInputElement;
         this.uploadFile = input.files?.[0] ?? null;
         this.errorMessage = null;
+        this.result = null;
     }
 
     /** Material month pickers only fire `monthSelected`; close the panel ourselves once a month is chosen. */
     onPeriodMonthSelected(date: DateTime, picker: { close: () => void }): void {
         this.periodMonthDate = date;
         this.errorMessage = null;
+        this.result = null;
         picker.close();
     }
 
@@ -82,6 +91,7 @@ export class SalarySlipUploadDialogComponent {
         // Validation runs inside the try as well: a throw out here used to leave the
         // dialog completely silent — no toast, no loader, no request.
         this.errorMessage = null;
+        this.result = null;
         try {
             if (!this.uploadFile) {
                 this._fail('Select a file to upload');
@@ -93,11 +103,22 @@ export class SalarySlipUploadDialogComponent {
                 return;
             }
             this.uploading = true;
-            await lastValueFrom(
+            this.result = await lastValueFrom(
                 this._salarySlipsService.uploadSalarySlips(this.uploadFile, periodMonth)
             );
-            this._toast.success('Salary slips uploaded');
-            this._dialogRef.close(true);
+            const skipped =
+                this.result.notFoundRiderIds.length + this.result.errors.length;
+            if (skipped === 0) {
+                this._toast.success(
+                    `${this.result.created} salary ${this.result.created === 1 ? 'slip' : 'slips'} created`
+                );
+                this._dialogRef.close(true);
+                return;
+            }
+            // Hold the dialog open so the breakdown below can be read and acted on.
+            this._toast.warning(
+                `${this.result.created} created, ${skipped} ${skipped === 1 ? 'row' : 'rows'} not imported`
+            );
         } catch (e: any) {
             this._fail(this._errorText(e));
         } finally {

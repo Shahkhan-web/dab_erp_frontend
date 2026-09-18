@@ -42,6 +42,24 @@
     </div>
   </div>
 
+  <!-- Payroll exists, but not in the selected window -->
+  @if (payrollElsewhere) {
+  <div role="status"
+    class="mt-4 flex flex-wrap items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200">
+    <mat-icon class="icon-size-5 shrink-0 text-amber-600 dark:text-amber-400"
+      [svgIcon]="'heroicons_outline:information-circle'"></mat-icon>
+    <span class="min-w-0">
+      No payroll activity in the selected period. The most recent payroll is
+      <strong>{{ payrollElsewhere.latestLabel }}</strong>.
+    </span>
+    @if (payrollElsewhere.jumpRange) {
+    <button mat-stroked-button type="button" class="ml-auto" (click)="jumpToLatestPayroll()">
+      Show {{ payrollElsewhere.jumpLabel }}
+    </button>
+    }
+  </div>
+  }
+
   <!-- KPI cards -->
   <div class="relative" [overlayLoader]="overviewLoader">
     @if (kpiCards.length) {

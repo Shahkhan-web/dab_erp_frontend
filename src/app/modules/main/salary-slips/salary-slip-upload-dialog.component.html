@@ -40,6 +40,52 @@
     </p>
   </div>
 
+  @if (result) {
+  <div role="status"
+    class="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200">
+    <div class="flex items-start gap-2">
+      <mat-icon class="icon-size-5 shrink-0 text-amber-600 dark:text-amber-400"
+        [svgIcon]="'heroicons_outline:exclamation-triangle'"></mat-icon>
+      <div class="min-w-0">
+        <p class="font-semibold">
+          {{ result.created }} slip{{ result.created === 1 ? '' : 's' }} created ·
+          {{ result.notFoundRiderIds.length + result.errors.length }} row{{ result.notFoundRiderIds.length + result.errors.length === 1 ? '' : 's' }} not imported
+        </p>
+
+        @if (result.notFoundRiderIds.length) {
+        <div class="mt-3">
+          <p class="font-medium">
+            {{ result.notFoundRiderIds.length }} Rider ID{{ result.notFoundRiderIds.length === 1 ? '' : 's' }} not found in the system:
+          </p>
+          <p class="mt-1 break-words font-mono text-xs">{{ result.notFoundRiderIds.join(', ') }}</p>
+        </div>
+        }
+
+        @if (result.errors.length) {
+        <div class="mt-3">
+          <p class="font-medium">
+            {{ result.errors.length }} row{{ result.errors.length === 1 ? '' : 's' }} could not be processed:
+          </p>
+          <ul class="mt-1 list-disc space-y-0.5 pl-5 text-xs">
+            @for (rowError of result.errors; track rowError.row) {
+            <li>
+              Row {{ rowError.row }}@if (rowError.riderId) { (Rider ID {{ rowError.riderId }})} — {{ rowError.message }}
+            </li>
+            }
+          </ul>
+        </div>
+        }
+
+        <p class="mt-3 text-xs">
+          These rows have no salary slip for this month. Fix the file or add the missing
+          employees, then upload again — rows that already have a slip are reported as
+          conflicts rather than duplicated.
+        </p>
+      </div>
+    </div>
+  </div>
+  }
+
   @if (errorMessage) {
   <div role="alert"
     class="mt-4 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-500/40 dark:bg-red-500/10 dark:text-red-300">
@@ -50,10 +96,14 @@
   }
 
   <div class="mt-8 flex flex-wrap gap-3 justify-end">
+    @if (result) {
+    <button mat-flat-button color="primary" type="button" (click)="cancel()">Done</button>
+    } @else {
     <button mat-flat-button color="primary" type="button" (click)="upload()" [disabled]="uploading">
       {{ uploading ? 'Uploading…' : 'Upload' }}
     </button>
     <button mat-stroked-button type="button" (click)="cancel()" [disabled]="uploading">Cancel</button>
+    }
   </div>
   </div>
 </div>
