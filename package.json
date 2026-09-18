@@ -10,7 +10,8 @@
         "start": "ng serve --port=4200 -o",
         "build": "ng build",
         "watch": "ng build --watch --configuration development",
-        "test": "ng test"
+        "test": "ng test",
+        "prepare": "git config core.hooksPath .githooks || true"
     },
     "dependencies": {
         "@angular/animations": "19.0.5",

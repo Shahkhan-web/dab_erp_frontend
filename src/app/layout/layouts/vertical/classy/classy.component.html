@@ -47,6 +47,18 @@
         </div> -->
     </ng-container>
     <!-- Navigation footer hook -->
+    <ng-container fuseVerticalNavigationContentFooter>
+        <div class="text-secondary flex flex-col gap-0.5 border-t px-6 py-3 text-xs">
+            <div class="flex justify-between">
+                <span>Frontend</span>
+                <span class="font-medium">v{{ frontendVersion }}</span>
+            </div>
+            <div class="flex justify-between">
+                <span>Backend</span>
+                <span class="font-medium">{{ backendVersion ? (backendVersion === 'unavailable' ? backendVersion : 'v' + backendVersion) : '…' }}</span>
+            </div>
+        </div>
+    </ng-container>
     <!-- <ng-container fuseVerticalNavigationContentFooter>
         <div
             class="mb-4 mt-2 flex h-16 flex-0 items-center justify-center pl-2 pr-6 opacity-12"

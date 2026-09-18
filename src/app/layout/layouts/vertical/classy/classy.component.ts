@@ -27,6 +27,9 @@ import { CommonModule } from '@angular/common';
 import { FuseConfig, FuseConfigService, Scheme } from '@fuse/services/config';
 import { AuthService } from 'app/core/auth/auth.service';
 import { MatBadgeModule } from '@angular/material/badge';
+import { HttpClient } from '@angular/common/http';
+import { environment } from 'environments/environment';
+import { APP_VERSION } from 'environments/version';
 @Component({
     selector: 'classy-layout',
     templateUrl: './classy.component.html',
@@ -66,6 +69,8 @@ export class ClassyLayoutComponent implements OnInit, OnDestroy {
     config: FuseConfig;
     scheme: 'dark' | 'light';
     activeModule: 'main' = 'main';
+    frontendVersion: string = APP_VERSION;
+    backendVersion: string | null = null;
     private _unsubscribeAll: Subject<any> = new Subject<any>();
     modules = [
         { key: 'main', label: 'Main', icon: 'heroicons_outline:squares-2x2', link: '/main/dashboard' },
@@ -79,7 +84,8 @@ export class ClassyLayoutComponent implements OnInit, OnDestroy {
         private _fuseMediaWatcherService: FuseMediaWatcherService,
         private _fuseNavigationService: FuseNavigationService,
         private _fuseConfigService: FuseConfigService,
-        private _authService: AuthService
+        private _authService: AuthService,
+        private _httpClient: HttpClient
     ) { }
 
     get currentYear(): number {
@@ -115,6 +121,14 @@ export class ClassyLayoutComponent implements OnInit, OnDestroy {
                 this.resolveNavigationFromUrl(event.urlAfterRedirects);
             });
 
+
+        this._httpClient
+            .get<{ success: boolean; data: { version: string } }>(`${environment.apiUrl}version`)
+            .pipe(takeUntil(this._unsubscribeAll))
+            .subscribe({
+                next: (res) => (this.backendVersion = res?.data?.version ?? 'unknown'),
+                error: () => (this.backendVersion = 'unavailable'),
+            });
 
         this._fuseMediaWatcherService.onMediaChange$
             .pipe(takeUntil(this._unsubscribeAll))

@@ -1,0 +1,48 @@
+#!/bin/sh
+# Bumps the patch version (src/environments/version.ts) on every push and pushes the bump commit with your commits.
+# Enabled by `npm install` (prepare script sets core.hooksPath). Skip once with `git push --no-verify`.
+
+VERSION_FILES="src/environments/version.ts"
+bump() {
+  node -e "
+    const fs = require('fs'), f = '$VERSION_FILES';
+    const s = fs.readFileSync(f, 'utf8'), m = s.match(/(\d+)\.(\d+)\.(\d+)/);
+    const v = m[1] + '.' + m[2] + '.' + (+m[3] + 1);
+    fs.writeFileSync(f, s.replace(m[0], v));
+    console.log(v);"
+}
+
+zero=0000000000000000000000000000000000000000
+remote="$1"
+branch=$(git symbolic-ref --short -q HEAD) || exit 0
+head=$(git rev-parse HEAD)
+
+# Only bump when this push sends new commits from the current branch's HEAD.
+target=""
+while read -r local_ref local_sha remote_ref remote_sha; do
+  [ "$local_ref" = "refs/heads/$branch" ] || continue
+  [ "$local_sha" = "$head" ] || continue
+  [ "$local_sha" = "$remote_sha" ] && continue
+  target="$remote_ref"
+done
+[ -n "$target" ] || exit 0
+
+# HEAD is already a bump (e.g. retrying a rejected push): push it as-is instead of bumping twice.
+case "$(git log -1 --format=%s)" in "chore: bump version"*) exit 0 ;; esac
+
+if ! git diff --quiet HEAD -- $VERSION_FILES; then
+  echo "pre-push: $VERSION_FILES has uncommitted changes; commit or stash them first." >&2
+  exit 1
+fi
+
+new=$(bump) || { echo "pre-push: version bump failed" >&2; exit 1; }
+git commit --no-verify -q -m "chore: bump version to $new" -- $VERSION_FILES || exit 1
+
+# Push the bump commit ourselves; git's own push was computed before it existed, so cancel that one.
+if git push --no-verify "$remote" "HEAD:$target"; then
+  echo "" >&2
+  echo "pre-push: pushed with version $new. (The 'failed to push' message below is expected - ignore it.)" >&2
+else
+  echo "pre-push: push failed; the bump commit to $new is kept and will be reused on your next push." >&2
+fi
+exit 1
