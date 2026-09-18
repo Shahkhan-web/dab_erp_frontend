@@ -11,6 +11,7 @@ import { MatInputModule } from '@angular/material/input';
 import { ToastrService } from 'ngx-toastr';
 import { lastValueFrom } from 'rxjs';
 import { EmployeesService } from '../employees.service';
+import { formatPickedDateForPayload } from 'app/core/utils/date.utils';
 
 export interface EmployeeDocumentsDialogData {
     employeeId: string;
@@ -92,7 +93,7 @@ export class EmployeeDocumentsDialogComponent implements OnInit {
             const raw = this.form.value;
             const payload: any = { ...raw };
             ['passportIssueDate', 'passportExpiryDate', 'homeCountryIdCardExpDate'].forEach((f) => {
-                if (payload[f] instanceof Date) payload[f] = payload[f].toISOString().split('T')[0];
+                if (payload[f] != null) payload[f] = formatPickedDateForPayload(payload[f]);
             });
             await lastValueFrom(this._employeesService.updateDocumentsDetails(this.data.employeeId, payload));
             this._toast.success('Passport & home country ID details updated');

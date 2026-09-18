@@ -11,6 +11,7 @@ import { MatInputModule } from '@angular/material/input';
 import { ToastrService } from 'ngx-toastr';
 import { lastValueFrom } from 'rxjs';
 import { EmployeesService } from '../employees.service';
+import { formatPickedDateForPayload } from 'app/core/utils/date.utils';
 
 export interface EmployeeJoiningDialogData {
     employeeId: string;
@@ -88,7 +89,7 @@ export class EmployeeJoiningDialogComponent implements OnInit {
             const raw = this.form.value;
             const payload: any = { ...raw };
             ['joiningDate', 'confirmationDate', 'offerDate', 'contractEndDate', 'dateOfRetirement'].forEach((f) => {
-                if (payload[f] instanceof Date) payload[f] = payload[f].toISOString().split('T')[0];
+                if (payload[f] != null) payload[f] = formatPickedDateForPayload(payload[f]);
             });
             await lastValueFrom(this._employeesService.updateJoiningDetails(this.data.employeeId, payload));
             this._toast.success('Joining details updated');

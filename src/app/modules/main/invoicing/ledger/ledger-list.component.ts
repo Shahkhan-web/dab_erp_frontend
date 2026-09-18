@@ -35,6 +35,7 @@ import {
     ledgerCategoryLabel,
 } from '../services/ledger.service';
 import { LedgerEntryFormDialogComponent } from './dialogs/ledger-entry-form-dialog.component';
+import { formatPickedDateForPayload } from 'app/core/utils/date.utils';
 
 @Component({
     selector: 'app-ledger-list',
@@ -145,8 +146,8 @@ export class LedgerListComponent implements OnInit {
                     entryType: this.filterEntryType as any,
                     category: this.filterCategory,
                     source: this.filterSource,
-                    dateFrom: this._formatDate(this.filterDateFrom),
-                    dateTo: this._formatDate(this.filterDateTo),
+                    dateFrom: formatPickedDateForPayload(this.filterDateFrom),
+                    dateTo: formatPickedDateForPayload(this.filterDateTo),
                     search: this.filterSearch,
                 })
             );
@@ -247,11 +248,4 @@ export class LedgerListComponent implements OnInit {
         }
     }
 
-    private _formatDate(d: Date | null): string | null {
-        if (!d) return null;
-        const y = d.getFullYear();
-        const m = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
-        return `${y}-${m}-${day}`;
-    }
 }

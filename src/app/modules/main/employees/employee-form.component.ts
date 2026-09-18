@@ -20,6 +20,7 @@ import { OverlayLoaderDirective } from 'app/core/directives/overlay-loader.direc
 import { COUNTRY_NAMES } from 'app/core/utils/countries';
 import { Company, CompaniesService } from '../companies/companies.service';
 import { EmployeeExtraDocument, EmployeesService } from './employees.service';
+import { formatPickedDateForPayload } from 'app/core/utils/date.utils';
 
 /** Queued file + label for step 7 before POST /extra-documents. */
 interface PendingExtraDocItem {
@@ -536,10 +537,7 @@ export class EmployeeFormComponent implements OnInit, OnDestroy {
     }
 
     private _dateToYmd(value: unknown): string | null {
-        if (!value) return null;
-        if (value instanceof Date) return value.toISOString().split('T')[0];
-        if (typeof value === 'string') return value;
-        return null;
+        return formatPickedDateForPayload(value as Parameters<typeof formatPickedDateForPayload>[0]);
     }
 
     private _requireEmployeeId(): string | null {

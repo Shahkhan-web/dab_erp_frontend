@@ -29,6 +29,7 @@ import { LoanDetailDialogComponent } from './loan-detail-dialog.component';
 import { LoanPdfService } from './loan-pdf.service';
 import { LoanStatusDialogComponent } from './loan-status-dialog.component';
 import { LoanListItem, LoansService, canChangeLoanStatus, loanShowsRemainingBalance, loanStatusChipClass, loanStatusLabel } from './loans.service';
+import { formatPickedDateForPayload } from 'app/core/utils/date.utils';
 
 @Component({
     selector: 'app-loans-list',
@@ -80,7 +81,7 @@ export class LoansListComponent implements OnInit, OnDestroy {
     filterApplicantType: string | null = null;
     filterStatus: string | null = null;
     filterLoanName: string | null = null;
-    /** Local calendar dates; sent to API as `YYYY-MM-DD` via `_dateToYmd`. */
+    /** Local calendar dates; sent to API as `YYYY-MM-DD` via `formatPickedDateForPayload`. */
     createdFromDate: Date | null = null;
     createdToDate: Date | null = null;
 
@@ -205,8 +206,8 @@ export class LoansListComponent implements OnInit, OnDestroy {
                     applicantType: this.filterApplicantType,
                     status: this.filterStatus,
                     loanName: this.filterLoanName,
-                    createdFrom: this._dateToYmd(this.createdFromDate),
-                    createdTo: this._dateToYmd(this.createdToDate),
+                    createdFrom: formatPickedDateForPayload(this.createdFromDate),
+                    createdTo: formatPickedDateForPayload(this.createdToDate),
                 })
             );
             this.loans = resp.data ?? [];
@@ -253,14 +254,7 @@ export class LoansListComponent implements OnInit, OnDestroy {
         this._filterApply.now();
     }
 
-    /** Same shape as manual `YYYY-MM-DD` text filters; local calendar date, no timezone shift. */
-    private _dateToYmd(d: Date | null): string | null {
-        if (!d) return null;
-        const y = d.getFullYear();
-        const m = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
-        return `${y}-${m}-${day}`;
-    }
+
 
     addLoan(): void {
         this._router.navigate(['/main/loans/new']);

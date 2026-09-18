@@ -34,6 +34,7 @@ import {
 } from '../services/invoices.service';
 import { PartyAutocompleteSearch } from '../shared/party-autocomplete-search';
 import { PartiesService } from '../services/parties.service';
+import { formatPickedDateForPayload } from 'app/core/utils/date.utils';
 
 @Component({
     selector: 'app-invoices-list',
@@ -157,8 +158,8 @@ export class InvoicesListComponent implements OnInit, OnDestroy {
                     status: this.filterStatus,
                     companyId: this.filterCompanyId,
                     partyId,
-                    issuedFrom: this._formatDate(this.filterIssuedFrom),
-                    issuedTo: this._formatDate(this.filterIssuedTo),
+                    issuedFrom: formatPickedDateForPayload(this.filterIssuedFrom),
+                    issuedTo: formatPickedDateForPayload(this.filterIssuedTo),
                     search: this.filterSearch,
                 })
             );
@@ -253,11 +254,4 @@ export class InvoicesListComponent implements OnInit, OnDestroy {
         this.applyFilters();
     }
 
-    private _formatDate(d: Date | null): string | null {
-        if (!d) return null;
-        const y = d.getFullYear();
-        const m = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
-        return `${y}-${m}-${day}`;
-    }
 }
