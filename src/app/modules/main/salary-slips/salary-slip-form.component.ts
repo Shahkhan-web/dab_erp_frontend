@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
-import { Component, DestroyRef, inject, OnDestroy, OnInit } from '@angular/core';
+import { HasUnsavedChanges } from 'app/core/auth/guards/unsaved-changes.guard';
+import { Component, DestroyRef, HostListener, inject, OnDestroy, OnInit } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
     AbstractControl,
@@ -15,9 +16,7 @@ import { MatAutocompleteModule, MatAutocompleteTrigger, MatAutocomplete } from '
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatCheckboxModule } from '@angular/material/checkbox';
-import {
-    MatNativeDateModule,
-} from '@angular/material/core';
+import { MAT_DATE_FORMATS } from '@angular/material/core';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
@@ -33,7 +32,7 @@ import { AuthService } from 'app/core/auth/auth.service';
 import { hasModuleRead } from 'app/core/auth/module-access.util';
 import { BackButtonComponent } from 'app/core/components/back-button/back-button.component';
 import { OverlayLoaderDirective } from 'app/core/directives/overlay-loader.directive';
-import { formatMonthForPayload, parseMonthLocal } from 'app/core/utils/date.utils';
+import { MONTH_ONLY_DATE_FORMATS, formatMonthForPayload, parseMonthLocal } from 'app/core/utils/date.utils';
 import { createDebouncedFilterApply } from 'app/core/utils/filter-debounce.util';
 import { EmployeeAutocompleteSearch } from '../employees/employee-autocomplete-search';
 import { EmployeesService, EmployeeListItem, EmployeeAssignedAsset } from '../employees/employees.service';
@@ -74,19 +73,22 @@ function employeeOptionValidator(): ValidatorFn {
         MatCheckboxModule,
         MatSelectModule,
         MatDatepickerModule,
-        MatNativeDateModule,
         MatAutocompleteModule,
         MatTooltipModule,
         BackButtonComponent,
         OverlayLoaderDirective,
     ],
     templateUrl: './salary-slip-form.component.html',
+    // Scoped to this form: its only picker represents a whole month.
+    providers: [{ provide: MAT_DATE_FORMATS, useValue: MONTH_ONLY_DATE_FORMATS }],
 })
-export class SalarySlipFormComponent implements OnInit, OnDestroy {
+export class SalarySlipFormComponent implements OnInit, OnDestroy, HasUnsavedChanges {
     private _destroyRef = inject(DestroyRef);
 
     pageLoader = false;
     saving = false;
+    /** Set once a save succeeds, so the post-save redirect isn't treated as abandoning data. */
+    private _saved = false;
 
     detailsForm: FormGroup;
     paymentForm: FormGroup;
@@ -692,6 +694,30 @@ export class SalarySlipFormComponent implements OnInit, OnDestroy {
     }
 
     /** YYYY-MM-DD using the user's local calendar date (not UTC — avoids `toISOString` shifting the day). */
+    /**
+     * True while the form holds entered-but-unsaved data. Every step is a separate
+     * FormGroup, so dirtiness is checked across all of them, not just the visible one.
+     */
+    hasUnsavedChanges(): boolean {
+        if (this.saving || this._saved) return false;
+        return [
+            this.detailsAndPaymentForm,
+            this.linesWrapperForm,
+            this.bankAndRiderForm,
+        ].some((form) => form?.dirty);
+    }
+
+    /** Route guards can't see a tab close or reload, so the browser prompt is wired separately. */
+    @HostListener('window:beforeunload', ['$event'])
+    onBeforeUnload(event: BeforeUnloadEvent): void {
+        if (this.hasUnsavedChanges()) {
+            event.preventDefault();
+            // Older browsers only raise the prompt when `returnValue` is set; the text
+            // itself is ignored everywhere modern.
+            event.returnValue = '';
+        }
+    }
+
     private _numOrUndef(v: unknown): number | undefined {
         if (v === '' || v === null || v === undefined) return undefined;
         const n = Number(v);
@@ -979,8 +1005,10 @@ export class SalarySlipFormComponent implements OnInit, OnDestroy {
                 this._toast.success('Salary slip created');
             }
 
+            this._saved = true;
             await this._router.navigate(['/main/salary-slips']);
         } catch (e: any) {
+            this._saved = false;
             this._toast.error(
                 e?.error?.message || (this.isEditMode ? 'Failed to update salary slip' : 'Failed to create salary slip')
             );

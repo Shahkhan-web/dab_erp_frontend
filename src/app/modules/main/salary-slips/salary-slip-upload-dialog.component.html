@@ -23,7 +23,7 @@
       <input matInput readonly [matDatepicker]="periodPicker" placeholder="Select month"
         [(ngModel)]="periodMonthDate" [ngModelOptions]="{ standalone: true }" (click)="periodPicker.open()" />
       <mat-datepicker-toggle matSuffix [for]="periodPicker"></mat-datepicker-toggle>
-      <mat-datepicker #periodPicker startView="multi-year"
+      <mat-datepicker #periodPicker startView="year"
         (monthSelected)="onPeriodMonthSelected($event, periodPicker)"></mat-datepicker>
       <mat-hint>Every slip in the file is created for this month.</mat-hint>
     </mat-form-field>
@@ -38,6 +38,11 @@
     <p class="mt-3 text-xs text-secondary leading-relaxed">
       Use separate <strong>Total Rider Salaries</strong> and <strong>Distance (LC)</strong> columns; the server combines them into stored Talabat rider earning.
     </p>
+    <button mat-button type="button" color="primary" class="mt-1 -ml-2"
+      [disabled]="templateDownloading" (click)="downloadTemplate()">
+      <mat-icon class="icon-size-5" [svgIcon]="'heroicons_outline:arrow-down-tray'"></mat-icon>
+      {{ templateDownloading ? 'Preparing…' : 'Download template' }}
+    </button>
   </div>
 
   @if (result) {

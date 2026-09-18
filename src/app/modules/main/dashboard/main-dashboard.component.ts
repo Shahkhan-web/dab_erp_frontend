@@ -407,7 +407,8 @@ export class MainDashboardComponent implements OnInit, OnDestroy {
                 { key: 'netPayment', name: 'Net' },
             ],
             data.meta,
-            { yFormatter: (v) => `AED ${this.formatNumber(v)}` }
+            // Payroll runs once per period, so don't interpolate between months.
+            { yFormatter: (v) => `AED ${this.formatNumber(v)}`, curve: 'straight' }
         );
         this.payrollDeductionChart = buildDonutChart(data.deductionComposition, 'amount');
         this.payrollStatusChart = buildDonutChart(data.byStatus, 'count');

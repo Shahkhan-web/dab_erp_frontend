@@ -97,6 +97,23 @@ export function parseDateOnlyLocal(value: string | Date | null | undefined): Dat
   return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate(), 12, 0, 0, 0);
 }
 
+/**
+ * Date formats for a picker that represents a whole calendar month.
+ *
+ * Provide alongside the app's `LuxonDateAdapter` (see app.config.ts) so the field reads
+ * "August 2026" rather than a day-level date like "8/1/2026", which misrepresents a
+ * value the user chose from a month grid.
+ */
+export const MONTH_ONLY_DATE_FORMATS = {
+  parse: { dateInput: 'LLLL yyyy' },
+  display: {
+    dateInput: 'LLLL yyyy',
+    monthYearLabel: 'LLL yyyy',
+    dateA11yLabel: 'DD',
+    monthYearA11yLabel: 'LLLL yyyy',
+  },
+};
+
 /** Anything a Material datepicker or the API may hand us for a date or period. */
 export type MonthPickerValue = Date | DateTime | string | null | undefined;
 

@@ -94,7 +94,7 @@
                     <input matInput readonly [matDatepicker]="periodPicker" placeholder="Select month"
                       formControlName="periodMonth" (click)="periodPicker.open()" />
                     <mat-datepicker-toggle matSuffix [for]="periodPicker"></mat-datepicker-toggle>
-                    <mat-datepicker #periodPicker startView="multi-year"
+                    <mat-datepicker #periodPicker startView="year"
                       (monthSelected)="onPeriodMonthSelected($event, periodPicker)"></mat-datepicker>
                     <mat-hint>The slip covers the whole calendar month.</mat-hint>
                     @if (detailsForm.get('periodMonth')?.hasError('required') && detailsForm.get('periodMonth')?.touched) {

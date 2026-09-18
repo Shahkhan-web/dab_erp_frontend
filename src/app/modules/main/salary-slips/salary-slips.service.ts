@@ -262,6 +262,11 @@ export class SalarySlipsService {
         return this._http.patch<BulkUpdateStatusResult>(`${this._baseSlips}/status`, { ids, status });
     }
 
+    /** CSV template whose headers are generated from what the parser actually accepts. */
+    downloadUploadTemplate(): Observable<Blob> {
+        return this._http.get(`${this._baseSlips}/upload-template`, { responseType: 'blob' });
+    }
+
     uploadSalarySlips(file: File, periodMonth: string): Observable<BulkUploadResult> {
         const formData = new FormData();
         formData.append('file', file);

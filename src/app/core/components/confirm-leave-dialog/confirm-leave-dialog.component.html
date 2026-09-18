@@ -1,0 +1,13 @@
+<h2 mat-dialog-title class="pt-5 text-center">
+  <mat-icon class="icon-size-20" color="warn" [svgIcon]="'heroicons_outline:exclamation-triangle'"></mat-icon>
+</h2>
+
+<mat-dialog-content class="p-5 text-center">
+  <h3 class="mat-title">You have unsaved changes</h3>
+  <p class="mat-body-1">Leaving this page will discard everything you have entered.</p>
+</mat-dialog-content>
+
+<mat-dialog-actions align="center" class="pb-5">
+  <button mat-stroked-button (click)="stay()">Keep editing</button>
+  <button mat-flat-button color="warn" (click)="discard()">Discard changes</button>
+</mat-dialog-actions>

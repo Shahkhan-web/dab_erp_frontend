@@ -145,7 +145,15 @@ export function buildLineChart(
     series: DashboardSeriesPoint[],
     metrics: { key: string; name: string }[],
     meta: DashboardMeta,
-    options?: { colors?: string[]; yFormatter?: (v: number) => string }
+    options?: {
+        colors?: string[];
+        yFormatter?: (v: number) => string;
+        /**
+         * 'straight' for quantities that only occur in discrete batches (e.g. payroll runs);
+         * a smoothed curve would imply activity in periods where nothing happened.
+         */
+        curve?: 'smooth' | 'straight';
+    }
 ): ApexChartOptions {
     const categories = series.map((p) => formatBucketLabel(p.bucket, meta.bucket));
     const chartSeries: ApexAxisChartSeries = metrics.map((m) => ({
@@ -157,7 +165,7 @@ export function buildLineChart(
         series: chartSeries,
         chart: baseChart('line'),
         colors: options?.colors ?? CHART_COLORS,
-        stroke: { curve: 'smooth', width: 2 },
+        stroke: { curve: options?.curve ?? 'smooth', width: 2 },
         dataLabels: baseDataLabels(),
         legend: baseLegend(),
         grid: baseGrid(),

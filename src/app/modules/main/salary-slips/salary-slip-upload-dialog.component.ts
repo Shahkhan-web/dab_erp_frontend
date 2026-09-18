@@ -7,12 +7,12 @@ import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
-import { MatNativeDateModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
 import { ToastrService } from 'ngx-toastr';
 import { lastValueFrom } from 'rxjs';
 import { OverlayLoaderDirective } from 'app/core/directives/overlay-loader.directive';
-import { formatMonthForPayload } from 'app/core/utils/date.utils';
+import { MAT_DATE_FORMATS } from '@angular/material/core';
+import { MONTH_ONLY_DATE_FORMATS, formatMonthForPayload } from 'app/core/utils/date.utils';
 import { BulkUploadResult, SalarySlipsService } from './salary-slips.service';
 import { DateTime } from 'luxon';
 
@@ -27,12 +27,13 @@ import { DateTime } from 'luxon';
         MatInputModule,
         MatSelectModule,
         MatDatepickerModule,
-        MatNativeDateModule,
         MatButtonModule,
         MatIconModule,
         OverlayLoaderDirective,
     ],
     templateUrl: './salary-slip-upload-dialog.component.html',
+    // Scoped to this dialog: its only picker represents a whole month.
+    providers: [{ provide: MAT_DATE_FORMATS, useValue: MONTH_ONLY_DATE_FORMATS }],
 })
 export class SalarySlipUploadDialogComponent {
     /** Luxon `DateTime` — the type the app's Material date adapter emits. */
@@ -47,6 +48,7 @@ export class SalarySlipUploadDialogComponent {
      * closing and leaving the operator to reconcile the list against their file.
      */
     result: BulkUploadResult | null = null;
+    templateDownloading = false;
 
     constructor(
         private _dialogRef: MatDialogRef<SalarySlipUploadDialogComponent, boolean | undefined>,
@@ -57,6 +59,28 @@ export class SalarySlipUploadDialogComponent {
     cancel(): void {
         // A partial upload already created slips, so the list still needs a refresh.
         this._dialogRef.close(this.result ? true : undefined);
+    }
+
+    /**
+     * The recognized headers are a server-side detail, so the template is fetched rather
+     * than hard-coded here — a hard-coded copy would drift from the parser and from the
+     * Pay Components that define the remaining valid columns.
+     */
+    async downloadTemplate(): Promise<void> {
+        this.templateDownloading = true;
+        try {
+            const blob = await lastValueFrom(this._salarySlipsService.downloadUploadTemplate());
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'salary-slips-template.csv';
+            link.click();
+            URL.revokeObjectURL(url);
+        } catch (e: any) {
+            this._fail(this._errorText(e));
+        } finally {
+            this.templateDownloading = false;
+        }
     }
 
     onUploadFilePicked(event: Event): void {
