@@ -39,6 +39,8 @@ export class SalarySlipUploadDialogComponent {
     periodMonthDate: DateTime | null = null;
     uploadFile: File | null = null;
     uploading = false;
+    /** Shown inline in the dialog, so a failure is visible even if the toast is missed. */
+    errorMessage: string | null = null;
 
     constructor(
         private _dialogRef: MatDialogRef<SalarySlipUploadDialogComponent, boolean | undefined>,
@@ -53,25 +55,41 @@ export class SalarySlipUploadDialogComponent {
     onUploadFilePicked(event: Event): void {
         const input = event.target as HTMLInputElement;
         this.uploadFile = input.files?.[0] ?? null;
+        this.errorMessage = null;
     }
 
     /** Material month pickers only fire `monthSelected`; close the panel ourselves once a month is chosen. */
     onPeriodMonthSelected(date: DateTime, picker: { close: () => void }): void {
         this.periodMonthDate = date;
+        this.errorMessage = null;
         picker.close();
+    }
+
+    /**
+     * Nest returns `message` as a string for pipe failures and as a string[] for
+     * DTO validation, so both shapes have to be handled or the user sees "[object Object]".
+     */
+    private _errorText(e: any): string {
+        const body = e?.error;
+        const raw = Array.isArray(body?.message)
+            ? body.message.join(' ')
+            : body?.message ?? (typeof body === 'string' ? body : null) ?? e?.message;
+        const text = typeof raw === 'string' ? raw.trim() : '';
+        return text || 'Failed to upload salary slips';
     }
 
     async upload(): Promise<void> {
         // Validation runs inside the try as well: a throw out here used to leave the
         // dialog completely silent — no toast, no loader, no request.
+        this.errorMessage = null;
         try {
             if (!this.uploadFile) {
-                this._toast.error('Select a file to upload');
+                this._fail('Select a file to upload');
                 return;
             }
             const periodMonth = formatMonthForPayload(this.periodMonthDate);
             if (!periodMonth) {
-                this._toast.error('Select the salary month');
+                this._fail('Select the salary month');
                 return;
             }
             this.uploading = true;
@@ -81,11 +99,14 @@ export class SalarySlipUploadDialogComponent {
             this._toast.success('Salary slips uploaded');
             this._dialogRef.close(true);
         } catch (e: any) {
-            this._toast.error(
-                e?.error?.message || e?.message || 'Failed to upload salary slips'
-            );
+            this._fail(this._errorText(e));
         } finally {
             this.uploading = false;
         }
+    }
+
+    private _fail(message: string): void {
+        this.errorMessage = message;
+        this._toast.error(message);
     }
 }
