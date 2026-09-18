@@ -22,18 +22,9 @@
           type="button"
           (click)="print()"
           class="text-white hover:bg-white/15"
-          matTooltip="Print this document">
+          matTooltip="Print, or choose 'Save as PDF' to download">
           <mat-icon class="icon-size-5">print</mat-icon>
-          <span class="ms-1">Print</span>
-        </button>
-        <button
-          mat-button
-          type="button"
-          (click)="download()"
-          class="text-white hover:bg-white/15"
-          matTooltip="Save PDF to your device">
-          <mat-icon class="icon-size-5">download</mat-icon>
-          <span class="ms-1">Download</span>
+          <span class="ms-1">Print / Save as PDF</span>
         </button>
         <button
           mat-icon-button

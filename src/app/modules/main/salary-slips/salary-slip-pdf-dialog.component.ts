@@ -7,7 +7,13 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 
 export interface SalarySlipPdfDialogData {
-    blob: Blob;
+    /**
+     * Self-contained HTML for the document (from the backend). Rendered in an iframe and printed with
+     * the browser's own print dialog ("Save as PDF") — the backend no longer renders a PDF itself,
+     * since server-side Puppeteer rendering was prone to hanging under load.
+     */
+    html: string;
+    /** Base filename (no extension) used if the user saves the raw HTML, e.g. "loan-3F9A2C1B". */
     filename: string;
     /** Shown under the title when provided */
     subtitle?: string | null;
@@ -33,7 +39,7 @@ export class SalarySlipPdfDialogComponent implements OnDestroy {
         @Inject(MAT_DIALOG_DATA) public data: SalarySlipPdfDialogData,
         sanitizer: DomSanitizer
     ) {
-        this._objectUrl = URL.createObjectURL(data.blob);
+        this._objectUrl = URL.createObjectURL(new Blob([data.html], { type: 'text/html' }));
         this.pdfSrc = sanitizer.bypassSecurityTrustResourceUrl(this._objectUrl);
     }
 
@@ -49,7 +55,7 @@ export class SalarySlipPdfDialogComponent implements OnDestroy {
         return this.data.title?.trim() || 'Salary slip PDF';
     }
 
-    /** Opens the browser print dialog for the embedded PDF (falls back to a new tab if the viewer blocks it). */
+    /** Opens the browser print dialog for the document ("Save as PDF" produces the PDF). */
     print(): void {
         try {
             const win = this._pdfFrame?.nativeElement.contentWindow;
@@ -59,14 +65,5 @@ export class SalarySlipPdfDialogComponent implements OnDestroy {
         } catch {
             window.open(this._objectUrl, '_blank');
         }
-    }
-
-    download(): void {
-        const url = URL.createObjectURL(this.data.blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = this.data.filename;
-        a.click();
-        URL.revokeObjectURL(url);
     }
 }

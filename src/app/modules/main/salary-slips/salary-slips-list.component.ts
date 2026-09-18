@@ -404,7 +404,7 @@ export class SalarySlipsListComponent implements OnInit, OnDestroy {
 
         this.pdfLoadingSlipId = slip.id;
         try {
-            const blob = await lastValueFrom(
+            const html = await lastValueFrom(
                 this._service.getSalarySlipPdf(slip.employeeId, slip.id, letterhead)
             );
             const subtitle =
@@ -412,8 +412,8 @@ export class SalarySlipsListComponent implements OnInit, OnDestroy {
                 `${this._datePipe.transform(slip.startDate, 'mediumDate') ?? ''} — ${this._datePipe.transform(slip.endDate, 'mediumDate') ?? ''}`;
             this._matDialog.open(SalarySlipPdfDialogComponent, {
                 data: {
-                    blob,
-                    filename: `salary-slip-${slip.id}.pdf`,
+                    html,
+                    filename: `salary-slip-${slip.id}`,
                     subtitle,
                 },
                 maxWidth: '960px',

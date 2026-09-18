@@ -51,9 +51,9 @@ export class SalarySlipDetailDialogComponent implements OnInit {
     debtLoading = false;
     debtRecords: SalaryDebtRecord[] = [];
     talabatOccupationRates: TalabatOccupationRate[] = [];
-    /** Cached PDF for this slip so reopening the viewer avoids another request. */
-    private _pdfBlob: Blob | null = null;
-    /** Letterhead flag used when `_pdfBlob` was fetched (invalidate if it changes). */
+    /** Cached document HTML for this slip so reopening the viewer avoids another request. */
+    private _pdfHtml: string | null = null;
+    /** Letterhead flag used when `_pdfHtml` was fetched (invalidate if it changes). */
     private _pdfLetterhead: boolean | null = null;
 
     constructor(
@@ -181,11 +181,11 @@ export class SalarySlipDetailDialogComponent implements OnInit {
             }
             letterhead = choice;
         }
-        const needFetch = !this._pdfBlob || this._pdfLetterhead !== letterhead;
+        const needFetch = !this._pdfHtml || this._pdfLetterhead !== letterhead;
         if (needFetch) {
             this.pdfLoading = true;
             try {
-                this._pdfBlob = await lastValueFrom(
+                this._pdfHtml = await lastValueFrom(
                     this._salarySlipsService.getSalarySlipPdf(slip.employeeId, slip.id, letterhead)
                 );
                 this._pdfLetterhead = letterhead;
@@ -201,8 +201,8 @@ export class SalarySlipDetailDialogComponent implements OnInit {
             `${this._datePipe.transform(slip.startDate, 'mediumDate') ?? ''} — ${this._datePipe.transform(slip.endDate, 'mediumDate') ?? ''}`;
         this._matDialog.open(SalarySlipPdfDialogComponent, {
             data: {
-                blob: this._pdfBlob,
-                filename: `salary-slip-${slip.id}.pdf`,
+                html: this._pdfHtml!,
+                filename: `salary-slip-${slip.id}`,
                 subtitle,
             },
             maxWidth: '960px',

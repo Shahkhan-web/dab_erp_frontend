@@ -57,9 +57,9 @@ export class LoanPdfService {
             letterhead = choice;
         }
 
-        let blob: Blob;
+        let html: string;
         try {
-            blob = await lastValueFrom(this._loansService.getLoanPdf(loan.employeeId, loan.id, letterhead));
+            html = await lastValueFrom(this._loansService.getLoanPdf(loan.employeeId, loan.id, letterhead));
         } catch (e: unknown) {
             this._toast.error(await errorMessage(e, 'Loan PDF could not be generated'));
             return;
@@ -67,9 +67,9 @@ export class LoanPdfService {
 
         const who = loan.employeeName?.trim() || loan.employeeCode || '';
         const data: SalarySlipPdfDialogData = {
-            blob,
+            html,
             title: 'Loan form PDF',
-            filename: `loan-${loan.id.replace(/-/g, '').slice(0, 8).toUpperCase()}.pdf`,
+            filename: `loan-${loan.id.replace(/-/g, '').slice(0, 8).toUpperCase()}`,
             subtitle: [loan.loanName, who].filter(Boolean).join(' · '),
         };
         this._matDialog.open(SalarySlipPdfDialogComponent, {
@@ -84,13 +84,17 @@ export class LoanPdfService {
     }
 }
 
-/** With responseType 'blob', API error bodies arrive as a Blob — read the JSON message out of it. */
+/**
+ * With responseType 'text', API error bodies arrive as a raw string (Angular doesn't parse them as
+ * JSON for a text request) — parse out the message ourselves. Older 'blob' responses are handled too
+ * for safety.
+ */
 async function errorMessage(e: unknown, fallback: string): Promise<string> {
     const err = (e as HttpErrorResponse)?.error;
-    if (err instanceof Blob) {
+    const raw = err instanceof Blob ? await err.text() : typeof err === 'string' ? err : null;
+    if (raw != null) {
         try {
-            const parsed = JSON.parse(await err.text());
-            const msg = parsed?.message;
+            const msg = JSON.parse(raw)?.message;
             return (Array.isArray(msg) ? msg.join(', ') : msg) || fallback;
         } catch {
             return fallback;

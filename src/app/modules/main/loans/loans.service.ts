@@ -244,12 +244,16 @@ export class LoansService {
         return this._http.get<LoanResponseDto>(`${this._baseEmployee}/${employeeId}/loans/${loanId}`);
     }
 
-    /** GET printable loan form PDF — available at every status. */
-    getLoanPdf(employeeId: string, loanId: string, letterhead = false): Observable<Blob> {
+    /**
+     * GET printable loan form — available at every status. Returns the document as a self-contained
+     * HTML page; the caller prints it (window.print()) to produce a PDF, since the backend no longer
+     * renders PDFs itself (server-side Puppeteer rendering was prone to hanging under load).
+     */
+    getLoanPdf(employeeId: string, loanId: string, letterhead = false): Observable<string> {
         const params = new HttpParams().set('letterhead', String(letterhead));
         return this._http.get(`${this._baseEmployee}/${employeeId}/loans/${loanId}/pdf`, {
             params,
-            responseType: 'blob',
+            responseType: 'text',
         });
     }
 

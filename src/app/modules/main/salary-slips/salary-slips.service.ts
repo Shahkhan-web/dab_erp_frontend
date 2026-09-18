@@ -260,17 +260,20 @@ export class SalarySlipsService {
     }
 
     /**
-     * GET PDF for a slip. `letterhead` defaults to false (company name header); set true when letterhead UI is added.
+     * GET the slip document. `letterhead` defaults to false (company name header); set true when letterhead
+     * UI is added. Returns the document as a self-contained HTML page; the caller prints it (window.print())
+     * to produce a PDF, since the backend no longer renders PDFs itself (server-side Puppeteer rendering
+     * was prone to hanging under load).
      */
     getSalarySlipPdf(
         employeeId: string,
         salarySlipId: string,
         letterhead = false
-    ): Observable<Blob> {
+    ): Observable<string> {
         const params = new HttpParams().set('letterhead', String(letterhead));
         return this._http.get(`${this._baseEmployee}/${employeeId}/salary-slips/${salarySlipId}/pdf`, {
             params,
-            responseType: 'blob',
+            responseType: 'text',
         });
     }
 }
