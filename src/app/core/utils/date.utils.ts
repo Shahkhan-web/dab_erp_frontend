@@ -1,3 +1,5 @@
+import { DateTime } from 'luxon';
+
 /**
  * Date utilities for API payloads using Pakistan timezone (Asia/Karachi, UTC+5).
  * Use these instead of Date.toISOString() so the selected calendar date is sent
@@ -95,45 +97,84 @@ export function parseDateOnlyLocal(value: string | Date | null | undefined): Dat
   return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate(), 12, 0, 0, 0);
 }
 
-/**
- * Salary periods are calendar months, exchanged with the API as `YYYY-MM`.
- * These helpers keep the month-picker `Date` and the API string in sync without
- * timezone drift (a month picker only ever cares about year + month).
- */
+/** Anything a Material datepicker or the API may hand us for a date or period. */
+export type MonthPickerValue = Date | DateTime | string | null | undefined;
 
-/** `Date` → `YYYY-MM`, using the local calendar month the user picked. */
-export function formatMonthForPayload(date: Date | string | null | undefined): string | null {
-  if (date == null) return null;
-  if (typeof date === 'string') {
-    const s = date.trim();
-    return /^\d{4}-\d{2}$/.test(s) ? s : (s.match(/^(\d{4}-\d{2})-\d{2}/)?.[1] ?? null);
+/**
+ * Material datepicker value → `YYYY-MM-DD`, using the calendar day the user picked.
+ *
+ * The app provides `LuxonDateAdapter`, so pickers emit Luxon `DateTime`, not `Date`.
+ * Reaching for `Date` methods on one throws, and gating on `instanceof Date` silently
+ * drops the value — use this instead of hand-rolling the conversion per component.
+ */
+export function formatPickedDateForPayload(value: MonthPickerValue): string | null {
+  if (value == null) return null;
+  if (typeof value === 'string') {
+    const s = value.trim();
+    return s.match(/^\d{4}-\d{2}-\d{2}/)?.[0] ?? (s || null);
   }
-  if (isNaN(date.getTime())) return null;
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+  if (DateTime.isDateTime(value)) {
+    return value.isValid ? value.toISODate() : null;
+  }
+  if (value instanceof Date) {
+    if (isNaN(value.getTime())) return null;
+    return `${String(value.getFullYear()).padStart(4, '0')}-${String(
+      value.getMonth() + 1,
+    ).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}`;
+  }
+  return null;
 }
 
-/** `YYYY-MM` (or any date string) → a `Date` on the 1st of that month, for month pickers. */
-export function parseMonthLocal(value: string | Date | null | undefined): Date | null {
+/**
+ * Salary periods are calendar months, exchanged with the API as `YYYY-MM`.
+ *
+ * The app provides `LuxonDateAdapter` (see app.config.ts), so every Material
+ * datepicker emits and accepts Luxon `DateTime` — not a JS `Date`. These helpers
+ * therefore accept either, plus the `YYYY-MM` string the API returns, and hand
+ * `DateTime` back to the pickers so the value round-trips as one type.
+ */
+
+function monthString(year: number, month: number): string {
+  return `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}`;
+}
+
+/** Month-picker value → `YYYY-MM`, or null when there is no usable month. */
+export function formatMonthForPayload(value: MonthPickerValue): string | null {
   if (value == null) return null;
-  if (value instanceof Date) {
-    return isNaN(value.getTime()) ? null : new Date(value.getFullYear(), value.getMonth(), 1);
+  if (typeof value === 'string') {
+    const s = value.trim();
+    return /^\d{4}-\d{2}$/.test(s) ? s : (s.match(/^(\d{4}-\d{2})-\d{2}/)?.[1] ?? null);
   }
-  const m = String(value).trim().match(/^(\d{4})-(\d{2})/);
-  if (!m) return null;
-  const dt = new Date(parseInt(m[1], 10), parseInt(m[2], 10) - 1, 1);
-  return isNaN(dt.getTime()) ? null : dt;
+  if (DateTime.isDateTime(value)) {
+    return value.isValid ? monthString(value.year, value.month) : null;
+  }
+  if (value instanceof Date) {
+    return isNaN(value.getTime()) ? null : monthString(value.getFullYear(), value.getMonth() + 1);
+  }
+  return null;
+}
+
+/**
+ * `YYYY-MM` (or any date value) → a `DateTime` on the 1st of that month.
+ * Returns the adapter's own type so it can be written straight into a picker.
+ */
+export function parseMonthLocal(value: MonthPickerValue): DateTime | null {
+  const month = formatMonthForPayload(value);
+  if (!month) return null;
+  const dt = DateTime.fromISO(`${month}-01`);
+  return dt.isValid ? dt : null;
 }
 
 /** `YYYY-MM` → "March 2025" for display. Falls back to the raw value when unparseable. */
-export function monthPeriodLabel(value: string | Date | null | undefined): string {
+export function monthPeriodLabel(value: MonthPickerValue): string {
   const d = parseMonthLocal(value);
   if (!d) return typeof value === 'string' && value.trim() ? value : '—';
-  return d.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+  return d.toFormat('LLLL yyyy');
 }
 
 /** `YYYY-MM` → "Mar 2025" for tight spaces like table cells. */
-export function monthPeriodShortLabel(value: string | Date | null | undefined): string {
+export function monthPeriodShortLabel(value: MonthPickerValue): string {
   const d = parseMonthLocal(value);
   if (!d) return typeof value === 'string' && value.trim() ? value : '—';
-  return d.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
+  return d.toFormat('LLL yyyy');
 }

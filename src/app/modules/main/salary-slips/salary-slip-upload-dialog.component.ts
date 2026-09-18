@@ -14,6 +14,7 @@ import { lastValueFrom } from 'rxjs';
 import { OverlayLoaderDirective } from 'app/core/directives/overlay-loader.directive';
 import { formatMonthForPayload } from 'app/core/utils/date.utils';
 import { SalarySlipsService } from './salary-slips.service';
+import { DateTime } from 'luxon';
 
 @Component({
     selector: 'app-salary-slip-upload-dialog',
@@ -34,7 +35,8 @@ import { SalarySlipsService } from './salary-slips.service';
     templateUrl: './salary-slip-upload-dialog.component.html',
 })
 export class SalarySlipUploadDialogComponent {
-    periodMonthDate: Date | null = null;
+    /** Luxon `DateTime` — the type the app's Material date adapter emits. */
+    periodMonthDate: DateTime | null = null;
     uploadFile: File | null = null;
     uploading = false;
 
@@ -54,30 +56,34 @@ export class SalarySlipUploadDialogComponent {
     }
 
     /** Material month pickers only fire `monthSelected`; close the panel ourselves once a month is chosen. */
-    onPeriodMonthSelected(date: Date, picker: { close: () => void }): void {
+    onPeriodMonthSelected(date: DateTime, picker: { close: () => void }): void {
         this.periodMonthDate = date;
         picker.close();
     }
 
     async upload(): Promise<void> {
-        if (!this.uploadFile) {
-            this._toast.error('Select a file to upload');
-            return;
-        }
-        const periodMonth = formatMonthForPayload(this.periodMonthDate);
-        if (!periodMonth) {
-            this._toast.error('Select the salary month');
-            return;
-        }
-        this.uploading = true;
+        // Validation runs inside the try as well: a throw out here used to leave the
+        // dialog completely silent — no toast, no loader, no request.
         try {
+            if (!this.uploadFile) {
+                this._toast.error('Select a file to upload');
+                return;
+            }
+            const periodMonth = formatMonthForPayload(this.periodMonthDate);
+            if (!periodMonth) {
+                this._toast.error('Select the salary month');
+                return;
+            }
+            this.uploading = true;
             await lastValueFrom(
                 this._salarySlipsService.uploadSalarySlips(this.uploadFile, periodMonth)
             );
             this._toast.success('Salary slips uploaded');
             this._dialogRef.close(true);
         } catch (e: any) {
-            this._toast.error(e?.error?.message || 'Failed to upload salary slips');
+            this._toast.error(
+                e?.error?.message || e?.message || 'Failed to upload salary slips'
+            );
         } finally {
             this.uploading = false;
         }

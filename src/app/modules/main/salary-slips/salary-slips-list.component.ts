@@ -39,6 +39,7 @@ import { SalarySlipLetterheadChoiceDialogComponent } from './salary-slip-letterh
 import { SalarySlipPdfDialogComponent } from './salary-slip-pdf-dialog.component';
 import { SalarySlipListItem, SalarySlipsService, SalarySlipStatus, normalizeSalarySlipStatus, salarySlipAllowsPdfDownload, salarySlipStatusChipClass, salarySlipStatusLabel } from './salary-slips.service';
 import { SalarySlipUploadDialogComponent } from './salary-slip-upload-dialog.component';
+import { DateTime } from 'luxon';
 
 @Component({
     selector: 'app-salary-slips-list',
@@ -91,9 +92,10 @@ export class SalarySlipsListComponent implements OnInit, OnDestroy {
     employeeFilter: EmployeeListItem | string | null = null;
     readonly employeeSearch: EmployeeAutocompleteSearch;
     filterStatus: SalarySlipStatus | null = null;
-    /** UI: month pickers, mapped to `periodFrom` / `periodTo` query params as `YYYY-MM`. */
-    periodFromDate: Date | null = null;
-    periodToDate: Date | null = null;
+    /** UI: month pickers, mapped to `periodFrom` / `periodTo` query params as `YYYY-MM`.
+     *  Luxon `DateTime` — the type the app's Material date adapter emits. */
+    periodFromDate: DateTime | null = null;
+    periodToDate: DateTime | null = null;
 
     statusOptions: SalarySlipStatus[] = ['pending', 'approved', 'reimbursed'];
     bulkStatusOptions: SalarySlipStatus[] = ['approved', 'reimbursed'];
@@ -267,13 +269,13 @@ export class SalarySlipsListComponent implements OnInit, OnDestroy {
     }
 
     /** Material month pickers only fire `monthSelected`; close the panel ourselves once a month is chosen. */
-    onPeriodFromMonthSelected(date: Date, picker: { close: () => void }): void {
+    onPeriodFromMonthSelected(date: DateTime, picker: { close: () => void }): void {
         this.periodFromDate = date;
         picker.close();
         this.applyFilters();
     }
 
-    onPeriodToMonthSelected(date: Date, picker: { close: () => void }): void {
+    onPeriodToMonthSelected(date: DateTime, picker: { close: () => void }): void {
         this.periodToDate = date;
         picker.close();
         this.applyFilters();

@@ -43,6 +43,7 @@ import {
     TalabatOccupationRate,
     TalabatOccupationRatesService,
 } from '../talabat-occupation-rates/talabat-occupation-rates.service';
+import { DateTime } from 'luxon';
 import {
     SalarySlipCreatePayload,
     SalarySlipsService,
@@ -150,7 +151,7 @@ export class SalarySlipFormComponent implements OnInit, OnDestroy {
 
         this.detailsForm = this._fb.group({
             employee: [null as EmployeeListItem | string | null, employeeOptionValidator()],
-            periodMonth: [null as Date | null, Validators.required],
+            periodMonth: [null as DateTime | null, Validators.required],
             deductOutstandingDebt: [true],
         });
 
@@ -464,7 +465,7 @@ export class SalarySlipFormComponent implements OnInit, OnDestroy {
     }
 
     /** Material month pickers only fire `monthSelected`; close the panel ourselves once a month is chosen. */
-    onPeriodMonthSelected(date: Date, picker: { close: () => void }): void {
+    onPeriodMonthSelected(date: DateTime, picker: { close: () => void }): void {
         this.detailsForm.get('periodMonth')?.setValue(date);
         this.detailsForm.get('periodMonth')?.markAsTouched();
         picker.close();
