@@ -51,9 +51,8 @@ export interface SalarySlipListItem {
     status?: string | null;
     /** When `staff` (case-insensitive), rider/Talabat and performance blocks are hidden in UI (see add form). */
     employeeOccupation?: string | null;
-    payrollFrequency: string;
-    startDate: string;
-    endDate: string;
+    /** Calendar month the slip covers, `YYYY-MM`. */
+    periodMonth: string;
     workingDays: number;
     absentDays: number;
     paymentDays: number;
@@ -88,12 +87,10 @@ export interface SalarySlipsListResponse {
 
 export interface SalarySlipsListFilters {
     employeeId?: string | null;
-    payrollFrequency?: string | null;
     status?: SalarySlipStatus | null;
-    slipStartFrom?: string | null;
-    slipStartTo?: string | null;
-    slipEndFrom?: string | null;
-    slipEndTo?: string | null;
+    /** Inclusive period bounds as `YYYY-MM`. */
+    periodFrom?: string | null;
+    periodTo?: string | null;
 }
 
 export type SalarySlipStatus = 'pending' | 'approved' | 'reimbursed';
@@ -161,9 +158,8 @@ export interface SalarySlipPerformanceInput {
 
 /** POST body — optional fields omitted when empty */
 export interface SalarySlipCreatePayload {
-    payrollFrequency: string;
-    startDate: string;
-    endDate: string;
+    /** Calendar month the slip covers, `YYYY-MM`. */
+    periodMonth: string;
     workingDays: number;
     absentDays: number;
     leaveDaysWithoutPay: number;
@@ -205,12 +201,9 @@ export class SalarySlipsService {
     ): Observable<SalarySlipsListResponse> {
         let params = new HttpParams().set('page', String(page)).set('limit', String(limit));
         if (filters?.employeeId) params = params.set('employeeId', filters.employeeId);
-        if (filters?.payrollFrequency) params = params.set('payrollFrequency', filters.payrollFrequency);
         if (filters?.status) params = params.set('status', filters.status);
-        if (filters?.slipStartFrom) params = params.set('slipStartFrom', filters.slipStartFrom);
-        if (filters?.slipStartTo) params = params.set('slipStartTo', filters.slipStartTo);
-        if (filters?.slipEndFrom) params = params.set('slipEndFrom', filters.slipEndFrom);
-        if (filters?.slipEndTo) params = params.set('slipEndTo', filters.slipEndTo);
+        if (filters?.periodFrom) params = params.set('periodFrom', filters.periodFrom);
+        if (filters?.periodTo) params = params.set('periodTo', filters.periodTo);
         return this._http.get<SalarySlipsListResponse>(this._baseSlips, { params });
     }
 
@@ -250,12 +243,10 @@ export class SalarySlipsService {
         return this._http.patch(`${this._baseSlips}/status`, { ids, status });
     }
 
-    uploadSalarySlips(file: File, payrollFrequency: string, startDate: string, endDate: string): Observable<unknown> {
+    uploadSalarySlips(file: File, periodMonth: string): Observable<unknown> {
         const formData = new FormData();
         formData.append('file', file);
-        formData.append('payrollFrequency', payrollFrequency);
-        formData.append('startDate', startDate);
-        formData.append('endDate', endDate);
+        formData.append('periodMonth', periodMonth);
         return this._http.post(`${this._baseSlips}/upload`, formData);
     }
 

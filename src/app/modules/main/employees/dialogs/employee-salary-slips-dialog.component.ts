@@ -14,6 +14,7 @@ import {
     SalarySlipDetailDialogData,
 } from '../../salary-slips/salary-slip-detail-dialog.component';
 import { SalarySlipListItem, SalarySlipsService } from '../../salary-slips/salary-slips.service';
+import { monthPeriodShortLabel } from 'app/core/utils/date.utils';
 
 export interface EmployeeSalarySlipsDialogData {
     employeeId: string;
@@ -32,7 +33,6 @@ export interface EmployeeSalarySlipsDialogData {
         MatProgressSpinnerModule,
         MatTableModule,
         MatPaginatorModule,
-        DatePipe,
         DecimalPipe,
     ],
     providers: [DatePipe, DecimalPipe],
@@ -48,7 +48,7 @@ export class EmployeeSalarySlipsDialogComponent implements OnInit {
     error: string | null = null;
     slipLoadingId: string | null = null;
 
-    displayedColumns: string[] = ['period', 'frequency', 'netPayment', 'status', 'actions'];
+    displayedColumns: string[] = ['period', 'netPayment', 'status', 'actions'];
 
     constructor(
         private _dialogRef: MatDialogRef<EmployeeSalarySlipsDialogComponent>,
@@ -60,6 +60,11 @@ export class EmployeeSalarySlipsDialogComponent implements OnInit {
 
     ngOnInit(): void {
         void this.loadSlips();
+    }
+
+    /** `YYYY-MM` → "Mar 2025". */
+    periodLabel(slip: SalarySlipListItem): string {
+        return monthPeriodShortLabel(slip?.periodMonth);
     }
 
     async loadSlips(): Promise<void> {

@@ -18,6 +18,7 @@ import {
 import { SalarySlipsService } from '../salary-slips/salary-slips.service';
 import { LoanAttachmentsPanelComponent } from './loan-attachments-panel.component';
 import { LoanPdfService } from './loan-pdf.service';
+import { monthPeriodLabel } from 'app/core/utils/date.utils';
 import {
     LoanAttachment,
     LoanDeductionHistoryEntry,
@@ -60,7 +61,7 @@ export class LoanDetailDialogComponent implements OnInit {
     slipLoadingId: string | null = null;
     pdfLoading = false;
 
-    deductionColumns: string[] = ['period', 'frequency', 'amount', 'salarySlip'];
+    deductionColumns: string[] = ['period', 'amount', 'salarySlip'];
 
     constructor(
         private _dialogRef: MatDialogRef<LoanDetailDialogComponent>,
@@ -152,11 +153,8 @@ export class LoanDetailDialogComponent implements OnInit {
         }
     }
 
-    deductionPeriod(row: { startDate: string; endDate: string }): string {
-        const a = this._datePipe.transform(row.startDate, 'mediumDate');
-        const b = this._datePipe.transform(row.endDate, 'mediumDate');
-        if (a && b) return `${a} – ${b}`;
-        return a || b || '—';
+    deductionPeriod(row: { periodMonth: string }): string {
+        return monthPeriodLabel(row?.periodMonth);
     }
 
     async viewSalarySlip(entry: LoanDeductionHistoryEntry): Promise<void> {

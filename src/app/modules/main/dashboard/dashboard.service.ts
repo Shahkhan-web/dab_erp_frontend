@@ -116,7 +116,6 @@ export interface DashboardPayrollResponse {
     meta: DashboardMeta;
     series: DashboardSeriesPoint[];
     byStatus: DashboardBreakdownItem[];
-    byFrequency: DashboardBreakdownItem[];
     deductionComposition: DashboardBreakdownItem[];
     topPayComponents: DashboardTopItem[];
 }

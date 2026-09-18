@@ -20,9 +20,7 @@
           </p>
           <p class="mt-1.5 inline-flex max-w-full flex-wrap items-center gap-2 rounded-full bg-black/25 px-2.5 py-0.5 text-[11px] font-medium text-white/95 sm:text-xs">
             <mat-icon class="icon-size-4 text-white/90" [svgIcon]="'heroicons_outline:calendar-days'"></mat-icon>
-            {{ slip.startDate | date: 'mediumDate' }} — {{ slip.endDate | date: 'mediumDate' }}
-            <span class="text-white/60">·</span>
-            {{ slip.payrollFrequency | titlecase }}
+            {{ displayPeriodMonth(slip.periodMonth) }}
             @if (slip.status) {
               <span class="text-white/60">·</span>
               <span class="rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide"
@@ -101,9 +99,7 @@
         </div>
         <div class="grid grid-cols-1 gap-x-4 sm:grid-cols-2">
           <div class="detail-row"><span class="label">Employee ID</span><span class="value font-mono text-xs break-all">{{ slip.employeeCode }}</span></div>
-          <div class="detail-row"><span class="label">Payroll frequency</span><span class="value">{{ slip.payrollFrequency | titlecase }}</span></div>
-          <div class="detail-row"><span class="label">Period start</span><span class="value">{{ displayPeriodDate(slip.startDate) }}</span></div>
-          <div class="detail-row"><span class="label">Period end</span><span class="value">{{ displayPeriodDate(slip.endDate) }}</span></div>
+          <div class="detail-row"><span class="label">Salary month</span><span class="value">{{ displayPeriodMonth(slip.periodMonth) }}</span></div>
           <div class="detail-row"><span class="label">Working days</span><span class="value">{{ slip.workingDays }}</span></div>
           <div class="detail-row"><span class="label">Absent days</span><span class="value">{{ slip.absentDays }}</span></div>
           <div class="detail-row"><span class="label">Payment days</span><span class="value">{{ slip.paymentDays }}</span></div>

@@ -55,15 +55,6 @@
             </mat-autocomplete>
           </mat-form-field>
           <mat-form-field class="fuse-mat-dense w-full">
-            <mat-label>Payroll frequency</mat-label>
-            <mat-select [(ngModel)]="filterPayrollFrequency" placeholder="All" (ngModelChange)="applyFilters()">
-              <mat-option [value]="null">All</mat-option>
-              @for (f of payrollFrequencyOptions; track f) {
-              <mat-option [value]="f">{{ f | titlecase }}</mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
-          <mat-form-field class="fuse-mat-dense w-full">
             <mat-label>Status</mat-label>
             <mat-select [(ngModel)]="filterStatus" placeholder="All" (ngModelChange)="applyFilters()">
               <mat-option [value]="null">All</mat-option>
@@ -73,26 +64,22 @@
             </mat-select>
           </mat-form-field>
           <mat-form-field class="fuse-mat-dense w-full">
-            <mat-label>Slip period start</mat-label>
-            <mat-date-range-input [rangePicker]="slipStartRangePicker">
-              <input matStartDate placeholder="From" [(ngModel)]="slipStartFromDate"
-                [ngModelOptions]="{ standalone: true }" (dateChange)="applyFilters()" />
-              <input matEndDate placeholder="To" [(ngModel)]="slipStartToDate"
-                [ngModelOptions]="{ standalone: true }" (dateChange)="applyFilters()" />
-            </mat-date-range-input>
-            <mat-datepicker-toggle matSuffix [for]="slipStartRangePicker"></mat-datepicker-toggle>
-            <mat-date-range-picker #slipStartRangePicker></mat-date-range-picker>
+            <mat-label>Period from</mat-label>
+            <input matInput readonly [matDatepicker]="periodFromPicker" placeholder="Any month"
+              [(ngModel)]="periodFromDate" [ngModelOptions]="{ standalone: true }"
+              (click)="periodFromPicker.open()" />
+            <mat-datepicker-toggle matSuffix [for]="periodFromPicker"></mat-datepicker-toggle>
+            <mat-datepicker #periodFromPicker startView="multi-year"
+              (monthSelected)="onPeriodFromMonthSelected($event, periodFromPicker)"></mat-datepicker>
           </mat-form-field>
           <mat-form-field class="fuse-mat-dense w-full">
-            <mat-label>Slip period end</mat-label>
-            <mat-date-range-input [rangePicker]="slipEndRangePicker">
-              <input matStartDate placeholder="From" [(ngModel)]="slipEndFromDate"
-                [ngModelOptions]="{ standalone: true }" (dateChange)="applyFilters()" />
-              <input matEndDate placeholder="To" [(ngModel)]="slipEndToDate"
-                [ngModelOptions]="{ standalone: true }" (dateChange)="applyFilters()" />
-            </mat-date-range-input>
-            <mat-datepicker-toggle matSuffix [for]="slipEndRangePicker"></mat-datepicker-toggle>
-            <mat-date-range-picker #slipEndRangePicker></mat-date-range-picker>
+            <mat-label>Period to</mat-label>
+            <input matInput readonly [matDatepicker]="periodToPicker" placeholder="Any month"
+              [(ngModel)]="periodToDate" [ngModelOptions]="{ standalone: true }"
+              (click)="periodToPicker.open()" />
+            <mat-datepicker-toggle matSuffix [for]="periodToPicker"></mat-datepicker-toggle>
+            <mat-datepicker #periodToPicker startView="multi-year"
+              (monthSelected)="onPeriodToMonthSelected($event, periodToPicker)"></mat-datepicker>
           </mat-form-field>
         </div>
         <button mat-icon-button class="shrink-0 -mt-1" (click)="clearFilters()" matTooltip="Reset" aria-label="Reset filters">
@@ -165,9 +152,9 @@
             </td>
           </ng-container>
           <ng-container matColumnDef="period">
-            <th mat-header-cell *matHeaderCellDef>Period</th>
+            <th mat-header-cell *matHeaderCellDef>Month</th>
             <td mat-cell *matCellDef="let item">
-              <span class="text-sm">{{ item?.startDate }} → {{ item?.endDate }}</span>
+              <span class="text-sm">{{ periodLabel(item) }}</span>
             </td>
           </ng-container>
           <ng-container matColumnDef="workingDays">

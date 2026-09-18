@@ -12,6 +12,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { ToastrService } from 'ngx-toastr';
 import { lastValueFrom } from 'rxjs';
 import { OverlayLoaderDirective } from 'app/core/directives/overlay-loader.directive';
+import { formatMonthForPayload } from 'app/core/utils/date.utils';
 import { SalarySlipsService } from './salary-slips.service';
 
 @Component({
@@ -33,12 +34,9 @@ import { SalarySlipsService } from './salary-slips.service';
     templateUrl: './salary-slip-upload-dialog.component.html',
 })
 export class SalarySlipUploadDialogComponent {
-    payrollFrequency: string | null = 'monthly';
-    startDate: Date | null = null;
-    endDate: Date | null = null;
+    periodMonthDate: Date | null = null;
     uploadFile: File | null = null;
     uploading = false;
-    payrollFrequencyOptions = ['monthly', 'fortnightly', 'bimonthly', 'weekly', 'daily'] as const;
 
     constructor(
         private _dialogRef: MatDialogRef<SalarySlipUploadDialogComponent, boolean | undefined>,
@@ -55,14 +53,10 @@ export class SalarySlipUploadDialogComponent {
         this.uploadFile = input.files?.[0] ?? null;
     }
 
-    private _dateToYmd(value: unknown): string | null {
-        if (!value) return null;
-        const d = value instanceof Date ? value : new Date(value as string);
-        if (Number.isNaN(d.getTime())) return null;
-        const y = d.getFullYear();
-        const m = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
-        return `${y}-${m}-${day}`;
+    /** Material month pickers only fire `monthSelected`; close the panel ourselves once a month is chosen. */
+    onPeriodMonthSelected(date: Date, picker: { close: () => void }): void {
+        this.periodMonthDate = date;
+        picker.close();
     }
 
     async upload(): Promise<void> {
@@ -70,20 +64,15 @@ export class SalarySlipUploadDialogComponent {
             this._toast.error('Select a file to upload');
             return;
         }
-        if (!this.payrollFrequency) {
-            this._toast.error('Choose payroll frequency');
-            return;
-        }
-        const start = this._dateToYmd(this.startDate);
-        const end = this._dateToYmd(this.endDate);
-        if (!start || !end) {
-            this._toast.error('Select start and end date');
+        const periodMonth = formatMonthForPayload(this.periodMonthDate);
+        if (!periodMonth) {
+            this._toast.error('Select the salary month');
             return;
         }
         this.uploading = true;
         try {
             await lastValueFrom(
-                this._salarySlipsService.uploadSalarySlips(this.uploadFile, this.payrollFrequency, start, end)
+                this._salarySlipsService.uploadSalarySlips(this.uploadFile, periodMonth)
             );
             this._toast.success('Salary slips uploaded');
             this._dialogRef.close(true);

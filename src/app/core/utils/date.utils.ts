@@ -94,3 +94,46 @@ export function parseDateOnlyLocal(value: string | Date | null | undefined): Dat
   if (isNaN(parsed.getTime())) return null;
   return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate(), 12, 0, 0, 0);
 }
+
+/**
+ * Salary periods are calendar months, exchanged with the API as `YYYY-MM`.
+ * These helpers keep the month-picker `Date` and the API string in sync without
+ * timezone drift (a month picker only ever cares about year + month).
+ */
+
+/** `Date` → `YYYY-MM`, using the local calendar month the user picked. */
+export function formatMonthForPayload(date: Date | string | null | undefined): string | null {
+  if (date == null) return null;
+  if (typeof date === 'string') {
+    const s = date.trim();
+    return /^\d{4}-\d{2}$/.test(s) ? s : (s.match(/^(\d{4}-\d{2})-\d{2}/)?.[1] ?? null);
+  }
+  if (isNaN(date.getTime())) return null;
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+}
+
+/** `YYYY-MM` (or any date string) → a `Date` on the 1st of that month, for month pickers. */
+export function parseMonthLocal(value: string | Date | null | undefined): Date | null {
+  if (value == null) return null;
+  if (value instanceof Date) {
+    return isNaN(value.getTime()) ? null : new Date(value.getFullYear(), value.getMonth(), 1);
+  }
+  const m = String(value).trim().match(/^(\d{4})-(\d{2})/);
+  if (!m) return null;
+  const dt = new Date(parseInt(m[1], 10), parseInt(m[2], 10) - 1, 1);
+  return isNaN(dt.getTime()) ? null : dt;
+}
+
+/** `YYYY-MM` → "March 2025" for display. Falls back to the raw value when unparseable. */
+export function monthPeriodLabel(value: string | Date | null | undefined): string {
+  const d = parseMonthLocal(value);
+  if (!d) return typeof value === 'string' && value.trim() ? value : '—';
+  return d.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+}
+
+/** `YYYY-MM` → "Mar 2025" for tight spaces like table cells. */
+export function monthPeriodShortLabel(value: string | Date | null | undefined): string {
+  const d = parseMonthLocal(value);
+  if (!d) return typeof value === 'string' && value.trim() ? value : '—';
+  return d.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
+}

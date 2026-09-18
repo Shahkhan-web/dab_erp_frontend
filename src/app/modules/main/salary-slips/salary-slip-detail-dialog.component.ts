@@ -11,6 +11,7 @@ import {
     TalabatOccupationRate,
     TalabatOccupationRatesService,
 } from '../talabat-occupation-rates/talabat-occupation-rates.service';
+import { monthPeriodLabel } from 'app/core/utils/date.utils';
 import { inferredCarriedDebtDeduction, shortSlipId } from './salary-debt.util';
 import { SalarySlipLetterheadChoiceDialogComponent } from './salary-slip-letterhead-choice-dialog.component';
 import { SalarySlipPdfDialogComponent } from './salary-slip-pdf-dialog.component';
@@ -197,8 +198,7 @@ export class SalarySlipDetailDialogComponent implements OnInit {
             }
         }
         const subtitle =
-            this.dialogData.employeeDisplayName?.trim() ||
-            `${this._datePipe.transform(slip.startDate, 'mediumDate') ?? ''} — ${this._datePipe.transform(slip.endDate, 'mediumDate') ?? ''}`;
+            this.dialogData.employeeDisplayName?.trim() || monthPeriodLabel(slip.periodMonth);
         this._matDialog.open(SalarySlipPdfDialogComponent, {
             data: {
                 html: this._pdfHtml!,
@@ -240,12 +240,9 @@ export class SalarySlipDetailDialogComponent implements OnInit {
     }
 
     /** Period labels: date only (shorter than `medium`). */
-    displayPeriodDate(value: unknown): string {
-        if (value == null) return '—';
-        if (typeof value === 'string' && value.trim() !== '') {
-            return this._datePipe.transform(value, 'mediumDate') ?? value;
-        }
-        return '—';
+    /** `YYYY-MM` → "March 2025". */
+    displayPeriodMonth(value: unknown): string {
+        return typeof value === 'string' && value.trim() !== '' ? monthPeriodLabel(value) : '—';
     }
 
     get hasBasicSalaryFromProfile(): boolean {

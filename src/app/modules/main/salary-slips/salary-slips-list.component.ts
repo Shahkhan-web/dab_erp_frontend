@@ -22,6 +22,11 @@ import { hasModuleWrite } from 'app/core/auth/module-access.util';
 import { BackButtonComponent } from 'app/core/components/back-button/back-button.component';
 import { ConfirmDeleteDialogComponent } from 'app/core/components/confirm-delete-dialog/confirm-delete-dialog.component';
 import { OverlayLoaderDirective } from 'app/core/directives/overlay-loader.directive';
+import {
+    formatMonthForPayload,
+    monthPeriodLabel,
+    monthPeriodShortLabel,
+} from 'app/core/utils/date.utils';
 import { createDebouncedFilterApply } from 'app/core/utils/filter-debounce.util';
 import { CompaniesService } from '../companies/companies.service';
 import { EmployeeAutocompleteSearch } from '../employees/employee-autocomplete-search';
@@ -38,7 +43,6 @@ import { SalarySlipUploadDialogComponent } from './salary-slip-upload-dialog.com
 @Component({
     selector: 'app-salary-slips-list',
     standalone: true,
-    providers: [DatePipe],
     imports: [
         CommonModule,
         FormsModule,
@@ -86,16 +90,11 @@ export class SalarySlipsListComponent implements OnInit, OnDestroy {
     /** Bound to employee autocomplete: `EmployeeListItem` when chosen, or search string while typing. */
     employeeFilter: EmployeeListItem | string | null = null;
     readonly employeeSearch: EmployeeAutocompleteSearch;
-    filterPayrollFrequency: string | null = null;
     filterStatus: SalarySlipStatus | null = null;
-    /** UI: mapped to `slipStartFrom` / `slipStartTo` query params as `YYYY-MM-DD` (local). */
-    slipStartFromDate: Date | null = null;
-    slipStartToDate: Date | null = null;
-    /** UI: mapped to `slipEndFrom` / `slipEndTo` query params as `YYYY-MM-DD` (local). */
-    slipEndFromDate: Date | null = null;
-    slipEndToDate: Date | null = null;
+    /** UI: month pickers, mapped to `periodFrom` / `periodTo` query params as `YYYY-MM`. */
+    periodFromDate: Date | null = null;
+    periodToDate: Date | null = null;
 
-    payrollFrequencyOptions = ['monthly', 'fortnightly', 'bimonthly', 'weekly', 'daily'] as const;
     statusOptions: SalarySlipStatus[] = ['pending', 'approved', 'reimbursed'];
     bulkStatusOptions: SalarySlipStatus[] = ['approved', 'reimbursed'];
     selectedIds = new Set<string>();
@@ -120,8 +119,7 @@ export class SalarySlipsListComponent implements OnInit, OnDestroy {
         private _router: Router,
         private _toast: ToastrService,
         private _matDialog: MatDialog,
-        private _auth: AuthService,
-        private _datePipe: DatePipe
+        private _auth: AuthService
     ) {
         this.employeeSearch = new EmployeeAutocompleteSearch(this._employeesService);
         const write = hasModuleWrite(this._auth.profileData, 'salarySlip');
@@ -220,12 +218,9 @@ export class SalarySlipsListComponent implements OnInit, OnDestroy {
             const resp = await lastValueFrom(
                 this._service.getSalarySlips(this.pageIndex + 1, this.pageSize, {
                     employeeId: this._selectedEmployeeId(),
-                    payrollFrequency: this.filterPayrollFrequency,
                     status: this.filterStatus,
-                    slipStartFrom: this._dateToYmd(this.slipStartFromDate),
-                    slipStartTo: this._dateToYmd(this.slipStartToDate),
-                    slipEndFrom: this._dateToYmd(this.slipEndFromDate),
-                    slipEndTo: this._dateToYmd(this.slipEndToDate),
+                    periodFrom: formatMonthForPayload(this.periodFromDate),
+                    periodTo: formatMonthForPayload(this.periodToDate),
                 })
             );
             this.rows = resp.data ?? [];
@@ -264,23 +259,29 @@ export class SalarySlipsListComponent implements OnInit, OnDestroy {
     clearFilters(): void {
         this._suppressFilterApply = true;
         this.employeeFilter = null;
-        this.filterPayrollFrequency = null;
         this.filterStatus = null;
-        this.slipStartFromDate = null;
-        this.slipStartToDate = null;
-        this.slipEndFromDate = null;
-        this.slipEndToDate = null;
+        this.periodFromDate = null;
+        this.periodToDate = null;
         this._suppressFilterApply = false;
         this._filterApply.now();
     }
 
-    /** Same shape as manual `YYYY-MM-DD` text filters; local calendar date, no timezone shift. */
-    private _dateToYmd(d: Date | null): string | null {
-        if (!d) return null;
-        const y = d.getFullYear();
-        const m = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
-        return `${y}-${m}-${day}`;
+    /** Material month pickers only fire `monthSelected`; close the panel ourselves once a month is chosen. */
+    onPeriodFromMonthSelected(date: Date, picker: { close: () => void }): void {
+        this.periodFromDate = date;
+        picker.close();
+        this.applyFilters();
+    }
+
+    onPeriodToMonthSelected(date: Date, picker: { close: () => void }): void {
+        this.periodToDate = date;
+        picker.close();
+        this.applyFilters();
+    }
+
+    /** "March 2025" for the period column and confirmation prompts. */
+    periodLabel(slip: SalarySlipListItem): string {
+        return monthPeriodShortLabel(slip?.periodMonth);
     }
 
     goNew(): void {
@@ -318,7 +319,7 @@ export class SalarySlipsListComponent implements OnInit, OnDestroy {
             this._toast.warning('Only pending salary slips can be deleted');
             return;
         }
-        const period = `${slip.startDate} – ${slip.endDate}`;
+        const period = monthPeriodLabel(slip.periodMonth);
         const label = slip.employeeCode ? `${slip.employeeCode} (${period})` : period;
         const confirmed = await lastValueFrom(
             this._matDialog
@@ -408,8 +409,7 @@ export class SalarySlipsListComponent implements OnInit, OnDestroy {
                 this._service.getSalarySlipPdf(slip.employeeId, slip.id, letterhead)
             );
             const subtitle =
-                this.employeeDisplayName(slip.employeeId)?.trim() ||
-                `${this._datePipe.transform(slip.startDate, 'mediumDate') ?? ''} — ${this._datePipe.transform(slip.endDate, 'mediumDate') ?? ''}`;
+                this.employeeDisplayName(slip.employeeId)?.trim() || monthPeriodLabel(slip.periodMonth);
             this._matDialog.open(SalarySlipPdfDialogComponent, {
                 data: {
                     html,

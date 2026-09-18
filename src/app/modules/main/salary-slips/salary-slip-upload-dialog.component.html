@@ -19,25 +19,13 @@
   <div class="p-6 sm:p-8">
   <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
     <mat-form-field class="fuse-mat-dense w-full">
-      <mat-label>Payroll frequency</mat-label>
-      <mat-select [(ngModel)]="payrollFrequency">
-        @for (f of payrollFrequencyOptions; track f) {
-        <mat-option [value]="f">{{ f | titlecase }}</mat-option>
-        }
-      </mat-select>
-    </mat-form-field>
-    <div></div>
-    <mat-form-field class="fuse-mat-dense w-full">
-      <mat-label>Start date</mat-label>
-      <input matInput [matDatepicker]="startPicker" [(ngModel)]="startDate" [ngModelOptions]="{ standalone: true }" />
-      <mat-datepicker-toggle matSuffix [for]="startPicker"></mat-datepicker-toggle>
-      <mat-datepicker #startPicker></mat-datepicker>
-    </mat-form-field>
-    <mat-form-field class="fuse-mat-dense w-full">
-      <mat-label>End date</mat-label>
-      <input matInput [matDatepicker]="endPicker" [(ngModel)]="endDate" [ngModelOptions]="{ standalone: true }" />
-      <mat-datepicker-toggle matSuffix [for]="endPicker"></mat-datepicker-toggle>
-      <mat-datepicker #endPicker></mat-datepicker>
+      <mat-label>Salary month</mat-label>
+      <input matInput readonly [matDatepicker]="periodPicker" placeholder="Select month"
+        [(ngModel)]="periodMonthDate" [ngModelOptions]="{ standalone: true }" (click)="periodPicker.open()" />
+      <mat-datepicker-toggle matSuffix [for]="periodPicker"></mat-datepicker-toggle>
+      <mat-datepicker #periodPicker startView="multi-year"
+        (monthSelected)="onPeriodMonthSelected($event, periodPicker)"></mat-datepicker>
+      <mat-hint>Every slip in the file is created for this month.</mat-hint>
     </mat-form-field>
   </div>
 

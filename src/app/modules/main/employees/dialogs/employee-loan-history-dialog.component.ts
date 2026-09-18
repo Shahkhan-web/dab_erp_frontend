@@ -29,6 +29,7 @@ import {
     SalarySlipDetailDialogData,
 } from '../../salary-slips/salary-slip-detail-dialog.component';
 import { SalarySlipsService } from '../../salary-slips/salary-slips.service';
+import { monthPeriodLabel } from 'app/core/utils/date.utils';
 
 export interface EmployeeLoanHistoryDialogData {
     employeeId: string;
@@ -102,7 +103,7 @@ export class EmployeeLoanHistoryDialogComponent implements OnInit {
         { value: 'status', label: 'Status' },
     ];
 
-    deductionColumns: string[] = ['period', 'frequency', 'amount', 'salarySlip', 'deductedAt'];
+    deductionColumns: string[] = ['period', 'amount', 'salarySlip', 'deductedAt'];
 
     constructor(
         private _dialogRef: MatDialogRef<EmployeeLoanHistoryDialogComponent>,
@@ -243,11 +244,8 @@ export class EmployeeLoanHistoryDialogComponent implements OnInit {
         }
     }
 
-    deductionPeriod(row: { startDate: string; endDate: string }): string {
-        const a = this._datePipe.transform(row.startDate, 'mediumDate');
-        const b = this._datePipe.transform(row.endDate, 'mediumDate');
-        if (a && b) return `${a} – ${b}`;
-        return a || b || '—';
+    deductionPeriod(row: { periodMonth: string }): string {
+        return monthPeriodLabel(row?.periodMonth);
     }
 
     deductionsFor(loan: EmployeeLoanHistoryItem): LoanDeductionHistoryEntry[] {

@@ -90,32 +90,15 @@
                   </div>
                   }
                   <mat-form-field class="fuse-mat-dense w-full md:col-span-2">
-                    <mat-label>Payroll frequency</mat-label>
-                    <mat-select formControlName="payrollFrequency">
-                      @for (f of payrollFrequencyOptions; track f) {
-                      <mat-option [value]="f">{{ f | titlecase }}</mat-option>
-                      }
-                    </mat-select>
-                  </mat-form-field>
-                  <mat-form-field class="fuse-mat-dense w-full">
-                    <mat-label>Start date <span class="text-warn">*</span></mat-label>
-                    <input matInput [matDatepicker]="startPicker" formControlName="startDate" />
-                    <mat-datepicker-toggle matSuffix [for]="startPicker"></mat-datepicker-toggle>
-                    <mat-datepicker #startPicker></mat-datepicker>
-                    @if (detailsForm.get('startDate')?.hasError('required') && detailsForm.get('startDate')?.touched) {
-                    <mat-error>Start date is required</mat-error>
-                    }
-                  </mat-form-field>
-                  <mat-form-field class="fuse-mat-dense w-full">
-                    <mat-label>End date <span class="text-warn">*</span></mat-label>
-                    <input matInput [matDatepicker]="endPicker" formControlName="endDate" />
-                    <mat-datepicker-toggle matSuffix [for]="endPicker"></mat-datepicker-toggle>
-                    <mat-datepicker #endPicker></mat-datepicker>
-                    @if (detailsForm.get('endDate')?.hasError('required') && detailsForm.get('endDate')?.touched) {
-                    <mat-error>End date is required</mat-error>
-                    }
-                    @if (detailsForm.hasError('dateRange') && (detailsForm.get('endDate')?.touched || detailsForm.get('startDate')?.touched)) {
-                    <mat-error>End date must be on or after start date</mat-error>
+                    <mat-label>Salary month <span class="text-warn">*</span></mat-label>
+                    <input matInput readonly [matDatepicker]="periodPicker" placeholder="Select month"
+                      formControlName="periodMonth" (click)="periodPicker.open()" />
+                    <mat-datepicker-toggle matSuffix [for]="periodPicker"></mat-datepicker-toggle>
+                    <mat-datepicker #periodPicker startView="multi-year"
+                      (monthSelected)="onPeriodMonthSelected($event, periodPicker)"></mat-datepicker>
+                    <mat-hint>The slip covers the whole calendar month.</mat-hint>
+                    @if (detailsForm.get('periodMonth')?.hasError('required') && detailsForm.get('periodMonth')?.touched) {
+                    <mat-error>Salary month is required</mat-error>
                     }
                   </mat-form-field>
                 </div>

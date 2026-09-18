@@ -33,6 +33,7 @@ import { AuthService } from 'app/core/auth/auth.service';
 import { hasModuleRead } from 'app/core/auth/module-access.util';
 import { BackButtonComponent } from 'app/core/components/back-button/back-button.component';
 import { OverlayLoaderDirective } from 'app/core/directives/overlay-loader.directive';
+import { formatMonthForPayload, parseMonthLocal } from 'app/core/utils/date.utils';
 import { createDebouncedFilterApply } from 'app/core/utils/filter-debounce.util';
 import { EmployeeAutocompleteSearch } from '../employees/employee-autocomplete-search';
 import { EmployeesService, EmployeeListItem, EmployeeAssignedAsset } from '../employees/employees.service';
@@ -54,21 +55,6 @@ function employeeOptionValidator(): ValidatorFn {
         if (typeof v === 'string') return { employeeNotSelected: true };
         if (typeof v === 'object' && (v as EmployeeListItem)?.id) return null;
         return { employeeNotSelected: true };
-    };
-}
-
-/** End date must be on or after start date (calendar days). */
-function periodDatesValidator(): ValidatorFn {
-    return (group: AbstractControl): ValidationErrors | null => {
-        const start = group.get('startDate')?.value;
-        const end = group.get('endDate')?.value;
-        if (!start || !end) return null;
-        const s = start instanceof Date ? start : new Date(start);
-        const e = end instanceof Date ? end : new Date(end);
-        if (isNaN(s.getTime()) || isNaN(e.getTime())) return null;
-        const sDay = Date.UTC(s.getFullYear(), s.getMonth(), s.getDate());
-        const eDay = Date.UTC(e.getFullYear(), e.getMonth(), e.getDate());
-        return eDay < sDay ? { dateRange: true } : null;
     };
 }
 
@@ -100,7 +86,6 @@ export class SalarySlipFormComponent implements OnInit, OnDestroy {
 
     pageLoader = false;
     saving = false;
-    payrollFrequencyOptions = ['monthly', 'fortnightly', 'bimonthly', 'weekly', 'daily'] as const;
 
     detailsForm: FormGroup;
     paymentForm: FormGroup;
@@ -163,16 +148,11 @@ export class SalarySlipFormComponent implements OnInit, OnDestroy {
     ) {
         this.employeeSearch = new EmployeeAutocompleteSearch(this._employeesService);
 
-        this.detailsForm = this._fb.group(
-            {
-                employee: [null as EmployeeListItem | string | null, employeeOptionValidator()],
-                payrollFrequency: ['monthly'],
-                startDate: [null as Date | null, Validators.required],
-                endDate: [null as Date | null, Validators.required],
-                deductOutstandingDebt: [true],
-            },
-            { validators: periodDatesValidator() }
-        );
+        this.detailsForm = this._fb.group({
+            employee: [null as EmployeeListItem | string | null, employeeOptionValidator()],
+            periodMonth: [null as Date | null, Validators.required],
+            deductOutstandingDebt: [true],
+        });
 
         this.paymentForm = this._fb.group({
             workingDays: [22, [ Validators.min(0)]],
@@ -483,6 +463,13 @@ export class SalarySlipFormComponent implements OnInit, OnDestroy {
         this.employeeSearch.unbindPanelScroll();
     }
 
+    /** Material month pickers only fire `monthSelected`; close the panel ourselves once a month is chosen. */
+    onPeriodMonthSelected(date: Date, picker: { close: () => void }): void {
+        this.detailsForm.get('periodMonth')?.setValue(date);
+        this.detailsForm.get('periodMonth')?.markAsTouched();
+        picker.close();
+    }
+
     onStepperSelectionChange(ev: StepperSelectionEvent): void {
         this.stepperIndex = ev.selectedIndex;
     }
@@ -493,10 +480,8 @@ export class SalarySlipFormComponent implements OnInit, OnDestroy {
             this.detailsForm.markAllAsTouched();
             this.paymentForm.markAllAsTouched();
             if (this.detailsForm.invalid || this.paymentForm.invalid) {
-                if (!this.detailsForm.get('startDate')?.value || !this.detailsForm.get('endDate')?.value) {
-                    this._toast.error('Select start and end dates');
-                } else if (this.detailsForm.hasError('dateRange')) {
-                    this._toast.error('End date must be on or after start date');
+                if (!this.detailsForm.get('periodMonth')?.value) {
+                    this._toast.error('Select the salary month');
                 } else {
                     this._toast.error('Complete the Details step');
                 }
@@ -706,14 +691,6 @@ export class SalarySlipFormComponent implements OnInit, OnDestroy {
     }
 
     /** YYYY-MM-DD using the user's local calendar date (not UTC — avoids `toISOString` shifting the day). */
-    private _fmtDate(d: Date | null): string | null {
-        if (!d || !(d instanceof Date) || isNaN(d.getTime())) return null;
-        const y = d.getFullYear();
-        const m = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
-        return `${y}-${m}-${day}`;
-    }
-
     private _numOrUndef(v: unknown): number | undefined {
         if (v === '' || v === null || v === undefined) return undefined;
         const n = Number(v);
@@ -726,12 +703,6 @@ export class SalarySlipFormComponent implements OnInit, OnDestroy {
 
     async save(): Promise<void> {
         await this._save();
-    }
-
-    private _toLocalDate(value: unknown): Date | null {
-        if (!value || typeof value !== 'string') return null;
-        const d = new Date(value);
-        return isNaN(d.getTime()) ? null : d;
     }
 
     private _setLineArray(arr: FormArray<FormGroup>, items: Array<{ payComponentId: string; amount: number }>): void {
@@ -774,9 +745,7 @@ export class SalarySlipFormComponent implements OnInit, OnDestroy {
         }
         this.detailsForm.patchValue({
             employee: selectedEmployee,
-            payrollFrequency: slip.payrollFrequency ?? 'monthly',
-            startDate: this._toLocalDate(slip.startDate),
-            endDate: this._toLocalDate(slip.endDate),
+            periodMonth: parseMonthLocal(slip.periodMonth),
         });
         this.detailsForm.get('employee')!.disable({ emitEvent: false });
         this.paymentForm.patchValue({
@@ -935,16 +904,10 @@ export class SalarySlipFormComponent implements OnInit, OnDestroy {
 
         const d = this.detailsForm.getRawValue();
         const p = this.paymentForm.getRawValue();
-        const start = this._fmtDate(d.startDate);
-        const end = this._fmtDate(d.endDate);
-        if (!start || !end) {
+        const periodMonth = formatMonthForPayload(d.periodMonth);
+        if (!periodMonth) {
             this.detailsForm.markAllAsTouched();
-            this._toast.error('Select start and end dates');
-            return;
-        }
-        if (this.detailsForm.hasError('dateRange')) {
-            this.detailsForm.markAllAsTouched();
-            this._toast.error('End date must be on or after start date');
+            this._toast.error('Select the salary month');
             return;
         }
 
@@ -953,9 +916,7 @@ export class SalarySlipFormComponent implements OnInit, OnDestroy {
         const bank = this.bankForm.getRawValue();
 
         const payload: SalarySlipCreatePayload = {
-            payrollFrequency: d.payrollFrequency,
-            startDate: start,
-            endDate: end,
+            periodMonth,
             workingDays: Number(p.workingDays) || 0,
             absentDays: Number(p.absentDays) || 0,
             leaveDaysWithoutPay: Number(p.leaveDaysWithoutPay) || 0,

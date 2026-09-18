@@ -6,9 +6,8 @@ import { Observable } from 'rxjs';
 export interface LoanDeductionHistoryEntry {
     id: string;
     salarySlipId: string;
-    payrollFrequency: string;
-    startDate: string;
-    endDate: string;
+    /** Calendar month the deducting slip covers, `YYYY-MM`. */
+    periodMonth: string;
     loanDeductedAmount: number;
     createdAt: string;
 }
