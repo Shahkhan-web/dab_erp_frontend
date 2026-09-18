@@ -14,9 +14,27 @@
           }
         </div>
       </div>
-      <button mat-icon-button (click)="close()" class="text-white/90 hover:bg-white/20 shrink-0" aria-label="Close">
-        <mat-icon class="text-white">close</mat-icon>
-      </button>
+      <div class="flex items-center gap-1 shrink-0">
+        @if (loan) {
+          <button
+            mat-button
+            type="button"
+            (click)="openPdf()"
+            [disabled]="pdfLoading"
+            class="text-white hover:bg-white/15"
+            matTooltip="Printable loan form (PDF)">
+            @if (pdfLoading) {
+              <mat-spinner diameter="18" class="inline-block"></mat-spinner>
+            } @else {
+              <mat-icon class="icon-size-5 text-white" [svgIcon]="'heroicons_outline:printer'"></mat-icon>
+            }
+            <span class="ms-1 text-white">Print / PDF</span>
+          </button>
+        }
+        <button mat-icon-button (click)="close()" class="text-white/90 hover:bg-white/20" aria-label="Close">
+          <mat-icon class="text-white">close</mat-icon>
+        </button>
+      </div>
     </div>
   </div>
 

@@ -10,13 +10,22 @@
           <mat-icon class="icon-size-7 text-white">picture_as_pdf</mat-icon>
         </div>
         <div class="min-w-0">
-          <h2 class="text-lg font-bold tracking-tight sm:text-xl">Salary slip PDF</h2>
+          <h2 class="text-lg font-bold tracking-tight sm:text-xl">{{ title }}</h2>
           @if (data.subtitle) {
           <p class="mt-0.5 truncate text-sm text-white/90">{{ data.subtitle }}</p>
           }
         </div>
       </div>
       <div class="flex shrink-0 flex-wrap items-center gap-2">
+        <button
+          mat-button
+          type="button"
+          (click)="print()"
+          class="text-white hover:bg-white/15"
+          matTooltip="Print this document">
+          <mat-icon class="icon-size-5">print</mat-icon>
+          <span class="ms-1">Print</span>
+        </button>
         <button
           mat-button
           type="button"
@@ -39,7 +48,8 @@
   </div>
 
   <iframe
+    #pdfFrame
     [src]="pdfSrc"
-    title="Salary slip PDF"
+    [title]="title"
     class="pdf-viewer-frame min-h-0 w-full flex-1 border-0 bg-zinc-100 dark:bg-zinc-950"></iframe>
 </div>

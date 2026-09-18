@@ -26,6 +26,7 @@ import { createDebouncedFilterApply } from 'app/core/utils/filter-debounce.util'
 import { EmployeeAutocompleteSearch } from '../employees/employee-autocomplete-search';
 import { EmployeeListItem, EmployeesService } from '../employees/employees.service';
 import { LoanDetailDialogComponent } from './loan-detail-dialog.component';
+import { LoanPdfService } from './loan-pdf.service';
 import { LoanStatusDialogComponent } from './loan-status-dialog.component';
 import { LoanListItem, LoansService, canChangeLoanStatus, loanShowsRemainingBalance, loanStatusChipClass, loanStatusLabel } from './loans.service';
 
@@ -88,13 +89,17 @@ export class LoansListComponent implements OnInit, OnDestroy {
         void this._scheduleEmployeeSearch();
     });
 
+    /** Loan whose PDF is being generated (disables the menu entry meanwhile). */
+    pdfLoadingLoanId: string | null = null;
+
     constructor(
         private _loansService: LoansService,
         private _employeesService: EmployeesService,
         private _router: Router,
         private _toast: ToastrService,
         private _matDialog: MatDialog,
-        private _auth: AuthService
+        private _auth: AuthService,
+        private _loanPdf: LoanPdfService
     ) {
         this.employeeSearch = new EmployeeAutocompleteSearch(this._employeesService);
         this.displayedColumns = [...this._allDisplayedColumns];
@@ -307,6 +312,16 @@ export class LoansListComponent implements OnInit, OnDestroy {
             autoFocus: 'first-tabbable',
             panelClass: 'loan-detail-dialog-panel',
         });
+    }
+
+    async openLoanPdf(loan: LoanListItem): Promise<void> {
+        if (this.pdfLoadingLoanId) return;
+        this.pdfLoadingLoanId = loan?.id ?? null;
+        try {
+            await this._loanPdf.open(loan);
+        } finally {
+            this.pdfLoadingLoanId = null;
+        }
     }
 
     async openStatusDialog(loan: LoanListItem): Promise<void> {

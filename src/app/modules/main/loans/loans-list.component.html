@@ -149,6 +149,10 @@
                   <mat-icon class="text-secondary icon-size-4" [svgIcon]="'heroicons_outline:eye'"></mat-icon>
                   <span>View loan</span>
                 </button>
+                <button mat-menu-item (click)="openLoanPdf(item)" [disabled]="pdfLoadingLoanId === item.id">
+                  <mat-icon class="text-secondary icon-size-4" [svgIcon]="'heroicons_outline:printer'"></mat-icon>
+                  <span>{{ pdfLoadingLoanId === item.id ? 'Generating PDF…' : 'Print loan form (PDF)' }}</span>
+                </button>
                 @if (canEditLoan(item)) {
                 <button mat-menu-item (click)="editLoan(item)">
                   <mat-icon class="text-secondary icon-size-4" [svgIcon]="'heroicons_outline:pencil-square'"></mat-icon>

@@ -46,6 +46,8 @@ export interface LoanListItem {
     /** Present on list / GET single loan responses. */
     employeeName?: string;
     employeeCode?: string;
+    /** Employee's company — used to decide whether to offer the letterhead option on PDFs. */
+    employeeCompanyId?: string | null;
     /** User who last approved; null for open/rejected or legacy approved loans not re-approved via status PATCH. */
     approvedByUserId?: string | null;
     approvedByName?: string | null;
@@ -240,6 +242,15 @@ export class LoansService {
 
     getLoan(employeeId: string, loanId: string): Observable<LoanResponseDto> {
         return this._http.get<LoanResponseDto>(`${this._baseEmployee}/${employeeId}/loans/${loanId}`);
+    }
+
+    /** GET printable loan form PDF — available at every status. */
+    getLoanPdf(employeeId: string, loanId: string, letterhead = false): Observable<Blob> {
+        const params = new HttpParams().set('letterhead', String(letterhead));
+        return this._http.get(`${this._baseEmployee}/${employeeId}/loans/${loanId}/pdf`, {
+            params,
+            responseType: 'blob',
+        });
     }
 
     updateLoan(employeeId: string, loanId: string, payload: UpdateLoanDto): Observable<unknown> {

@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, Inject, OnDestroy } from '@angular/core';
+import { Component, ElementRef, Inject, OnDestroy, ViewChild } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
@@ -11,6 +11,8 @@ export interface SalarySlipPdfDialogData {
     filename: string;
     /** Shown under the title when provided */
     subtitle?: string | null;
+    /** Dialog heading; defaults to "Salary slip PDF". Lets other modules reuse this viewer. */
+    title?: string | null;
 }
 
 @Component({
@@ -21,6 +23,8 @@ export interface SalarySlipPdfDialogData {
     styleUrl: './salary-slip-pdf-dialog.component.scss',
 })
 export class SalarySlipPdfDialogComponent implements OnDestroy {
+    @ViewChild('pdfFrame') private _pdfFrame?: ElementRef<HTMLIFrameElement>;
+
     readonly pdfSrc: SafeResourceUrl;
     private readonly _objectUrl: string;
 
@@ -39,6 +43,22 @@ export class SalarySlipPdfDialogComponent implements OnDestroy {
 
     close(): void {
         this._dialogRef.close();
+    }
+
+    get title(): string {
+        return this.data.title?.trim() || 'Salary slip PDF';
+    }
+
+    /** Opens the browser print dialog for the embedded PDF (falls back to a new tab if the viewer blocks it). */
+    print(): void {
+        try {
+            const win = this._pdfFrame?.nativeElement.contentWindow;
+            if (!win) throw new Error('no frame');
+            win.focus();
+            win.print();
+        } catch {
+            window.open(this._objectUrl, '_blank');
+        }
     }
 
     download(): void {

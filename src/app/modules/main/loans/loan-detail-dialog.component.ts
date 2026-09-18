@@ -6,6 +6,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTableModule } from '@angular/material/table';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { ToastrService } from 'ngx-toastr';
 import { lastValueFrom } from 'rxjs';
 import { AuthService } from 'app/core/auth/auth.service';
@@ -16,6 +17,7 @@ import {
 } from '../salary-slips/salary-slip-detail-dialog.component';
 import { SalarySlipsService } from '../salary-slips/salary-slips.service';
 import { LoanAttachmentsPanelComponent } from './loan-attachments-panel.component';
+import { LoanPdfService } from './loan-pdf.service';
 import {
     LoanAttachment,
     LoanDeductionHistoryEntry,
@@ -42,6 +44,7 @@ export interface LoanDetailDialogData {
         MatIconModule,
         MatProgressSpinnerModule,
         MatTableModule,
+        MatTooltipModule,
         DatePipe,
         LoanAttachmentsPanelComponent,
     ],
@@ -55,6 +58,7 @@ export class LoanDetailDialogComponent implements OnInit {
     loading = true;
     error: string | null = null;
     slipLoadingId: string | null = null;
+    pdfLoading = false;
 
     deductionColumns: string[] = ['period', 'frequency', 'amount', 'salarySlip'];
 
@@ -66,7 +70,8 @@ export class LoanDetailDialogComponent implements OnInit {
         private _toast: ToastrService,
         private _datePipe: DatePipe,
         private _matDialog: MatDialog,
-        private _auth: AuthService
+        private _auth: AuthService,
+        private _loanPdf: LoanPdfService
     ) {}
 
     get canWriteLoan(): boolean {
@@ -120,6 +125,16 @@ export class LoanDetailDialogComponent implements OnInit {
 
     close(): void {
         this._dialogRef.close();
+    }
+
+    async openPdf(): Promise<void> {
+        if (!this.loan || this.pdfLoading) return;
+        this.pdfLoading = true;
+        try {
+            await this._loanPdf.open(this.loan);
+        } finally {
+            this.pdfLoading = false;
+        }
     }
 
     readonly statusChipClass = loanStatusChipClass;
